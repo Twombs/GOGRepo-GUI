@@ -1,0 +1,18 @@
+First time users need to do the following.
+
+1. Download and install Python.
+2. Download 'gogrepo.py' and place in the same folder as 'GOGRepo GUI' or vice-a-versa.
+3. Run the 'GOGRepo GUI' program.
+4. Click the SETUP button.
+5. Click the INSTALL html5lin & html2text button. Wait for it to finish.
+6. Click the CREATE COOKIE button. Wait for it to finish.
+7. Close the SETUP window.
+8. Click the UPDATE button ... recommended you do it with the ALL checkbox selected.
+IMPORTANT - Make sure to choose the OS you are interested in (use that field).
+WARNING - UPDATE can potentially take hours to finish, depending on the size of your library at GOG. This needs to be done at least once, and I recommend that you select all the OS you are likely to want to use, so as you avoid lengthy updates later. All games are returned anyway, but have missing detail for OS not selected.
+9. Select a game on the list, and click DOWN ONE ... or if you want your whole library of games, enable the ALL checkbox at right of the DOWN ONE button. Also select if you want the game cover image. Extras are automatically downloaded at this stage.
+WARNING - This likewise, may take a long time depending on the size of your game files and or library.
+
+ADVICE - The program remains unusable while Steps 8 or 9 are running. You can minimize the window only.
+
+It is my intent to add queuing of download files, and skip existing etc when UPDATING. Also need to cater for no extras, implement a shutdown feature, etc. These things are not available yet.
