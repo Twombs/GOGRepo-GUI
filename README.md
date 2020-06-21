@@ -6,3 +6,6 @@ The gogrepo.py script obtains a manifest of a user's game file library at GOG.co
 The gogrepo.py script can be found here - https://github.com/eddie3/gogrepo
 
 GOGRepo GUI makes things easier to do, especially for those not comfortable with the command-line or using BAT files, plus it has some additional features.
+
+BIG THANKS to woolymethodman, Kalanyr, etc.
+https://www.gog.com/forum/general/gogrepopy_python_script_for_regularly_backing_up_your_purchased_gog_collection_for_full_offline_e/page1
