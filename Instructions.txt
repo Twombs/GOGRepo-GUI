@@ -4,7 +4,7 @@ First time users need to do the following.
 2. Download 'gogrepo.py' and place in the same folder as 'GOGRepo GUI' or vice-a-versa.
 3. Run the 'GOGRepo GUI' program.
 4. Click the SETUP button.
-5. Click the INSTALL html5lin & html2text button. Wait for it to finish.
+5. Click the INSTALL html5lib & html2text button. Wait for it to finish.
 6. Click the CREATE COOKIE button. Wait for it to finish.
 7. Close the SETUP window.
 8. Click the UPDATE button ... recommended you do it with the ALL checkbox selected.
