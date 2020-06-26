@@ -9,4 +9,5 @@ GOGRepo GUI makes things easier to do, especially for those not comfortable with
 
 BIG THANKS to woolymethodman, Kalanyr, etc for gogrepo.
 https://www.gog.com/forum/general/gogrepopy_python_script_for_regularly_backing_up_your_purchased_gog_collection_for_full_offline_e/page1
+
 And thanks to Flyingfluffypiglet and Lifthrasil for extra inspiration.
