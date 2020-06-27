@@ -11,7 +11,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; FUNCTIONS
-; MainGUI(), QueueGUI(), SetupGUI(), UpdateGUI()
+; MainGUI(), QueueGUI(), SetupGUI()
 ; CheckIfPythonRunning(), CheckOnGameDownload(), CheckOnShutdown(), ClearDisableEnableRestore()
 ; DisableQueueButtons(), EnableDisableControls($state), FillTheGamesList(), GetWindowPosition()
 ; ParseTheManifest(), RemoveListEntry($num)
@@ -44,12 +44,11 @@ Global $Input_dest, $Input_destination, $Input_download, $Input_extra, $Input_la
 Global $Input_OP, $Input_OS, $Input_title, $List_done, $List_games, $List_waiting, $Pic_cover, $Progress_bar
 ;
 Global $a, $ans, $array, $auto, $bigpic, $blackjpg, $c, $check, $chunk, $chunks, $cookies, $cover, $date, $delay
-Global $downlist, $every, $extras, $fdate, $file, $files, $flag, $game, $gamefold, $gamepic, $games, $gamesfle
-Global $gogrepo, $GOGRepoGUI, $height, $icoD, $icoF, $icoI, $icoT, $icoX, $image, $imgfle, $ind, $infofle, $inifle
-Global $lang, $left, $line, $lines, $logfle, $manifest, $minimize, $name, $num, $open, $OS, $OSget, $pid, $QueueGUI
-Global $read, $res, $segment, $SetupGUI, $shell, $shutdown, $split, $started, $state, $stop, $style, $t, $text
-Global $textdump, $threads, $title, $titles, $titlist, $top, $tot, $UpdateGUI, $updating, $user, $val, $validate
-Global $verifying, $version, $wait, $width, $window, $winpos, $xpos, $ypos
+Global $downlist, $extras, $file, $files, $flag, $game, $gamefold, $gamepic, $games, $gamesfle, $gogrepo, $GOGRepoGUI
+Global $height, $icoD, $icoF, $icoI, $icoT, $icoX, $image, $imgfle, $ind, $infofle, $inifle, $lang, $left, $line, $lines
+Global $logfle, $manifest, $minimize, $name, $num, $open, $OS, $OSget, $pid, $QueueGUI, $read, $res, $segment, $SetupGUI
+Global $shell, $shutdown, $split, $started, $state, $stop, $style, $t, $text, $textdump, $title, $titles, $titlist, $top
+Global $tot, $user, $val, $validate, $verifying, $version, $wait, $width, $window, $winpos, $xpos, $ypos
 
 $bigpic = @ScriptDir & "\Big.jpg"
 $blackjpg = @ScriptDir & "\Black.jpg"
@@ -82,7 +81,7 @@ Exit
 Func MainGUI()
 	Local $Group_cover, $Group_dest, $Group_down, $Group_update, $Label_cover, $Label_extra, $Label_OS, $Label_title
 	;
-	Local $add, $all, $alpha, $dll, $exist, $gamesfold, $let, $mpos, $OSes, $pth, $show, $verify
+	Local $add, $all, $alpha, $dll, $every, $exist, $gamesfold, $let, $mpos, $OSes, $pth, $show, $verify
 	;
 	$width = 590
 	$height = 405
@@ -175,7 +174,7 @@ Func MainGUI()
 	;
 	$Group_dest = GuiCtrlCreateGroup("Download Destination - Games Folder", 10, $height - 63, 308, 52)
 	$Input_dest = GUICtrlCreateInput("", 20, $height - 43, 185, 20)
-	;GUICtrlSetBkColor($Input_dest, 0xFFFFB0)
+	GUICtrlSetBkColor($Input_dest, 0xFFFFB0)
 	GUICtrlSetTip($Input_dest, "Destination path (main parent folder for games)!")
 	$Button_dest = GuiCtrlCreateButton("B", 210, $height - 43, 20, 20, $BS_ICON)
 	GUICtrlSetTip($Button_dest, "Browse to set the destination folder!")
@@ -319,99 +318,6 @@ Func MainGUI()
 	EndIf
 	GUICtrlSetData($Input_langs, $lang)
 	;
-	If FileExists($gogrepo) Then
-		$fdate = IniRead($inifle, "gogrepo.py", "file_date", "")
-		If $fdate = "" Then
-			SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
-			$file = FileOpen($gogrepo, 0)
-			$read = FileRead($file)
-			FileClose($file)
-			$chunk = StringSplit($read, "HTTP_GAME_DOWNLOADER_THREADS = ", 1)
-			If $chunk[0] > 1 Then
-				$chunk = $chunk[2]
-				;MsgBox(262192, "Threads Check", $chunk, 0, $GOGRepoGUI)
-				$chunk = StringSplit($chunk, @LF, 1)
-				$chunk = $chunk[1]
-				$chunk = StringStripWS($chunk, 8)
-				;MsgBox(262192, "Threads Check 1", $chunk, 0, $GOGRepoGUI)
-				If StringIsDigit($chunk) Then
-					$threads = $chunk
-				Else
-					$threads = ""
-				EndIf
-			EndIf
-			SplashOff()
-			;MsgBox(262192, "Threads Check 2", $threads, 0, $GOGRepoGUI)
-			;Exit
-			If $threads <> "" And $threads <> 1 Then
-				$ans = MsgBox(262177, "Threads Query", _
-					"By default, 'gogrepo.py' is set to use '" & $threads & "' threads." & @LF & @LF & _
-					"Do you want to change it to '1' thread?" & @LF & @LF & _
-					"NOTE -  This is the number of threads it uses for" & @LF & _
-					"downloading, which in practice, means it will be" & @LF & _
-					"downloading up to '" & $threads & "' files simultaneously." & @LF & @LF & _
-					"ADVICE -  This could potentially result in those" & @LF & _
-					"'" & $threads & "' downloads being incomplete, if cancelled or" & @LF & _
-					"an issue occurs. Whatever your choice, you can" & @LF & _
-					"later change it on the SETUP window.", 0, $GOGRepoGUI)
-				If $ans = 1 Then
-					$res = _ReplaceStringInFile($gogrepo, "HTTP_GAME_DOWNLOADER_THREADS = " & $threads, "HTTP_GAME_DOWNLOADER_THREADS = 1")
-					If $res > 0 Then
-						$threads = 1
-					EndIf
-				EndIf
-			ElseIf $threads = "" Then
-				$threads = "X"
-			EndIf
-			IniWrite($inifle, "Downloading", "threads", $threads)
-			$fdate = FileGetTime($gogrepo, 0, 1)
-			IniWrite($inifle, "gogrepo.py", "file_date", $fdate)
-		Else
-			If $fdate <> FileGetTime($gogrepo, 0, 1) Then
-				SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
-				$file = FileOpen($gogrepo, 0)
-				$read = FileRead($file)
-				FileClose($file)
-				$chunk = StringSplit($read, "HTTP_GAME_DOWNLOADER_THREADS = ", 1)
-				If $chunk[0] > 1 Then
-					$chunk = $chunk[2]
-					;MsgBox(262192, "Threads Check", $chunk, 0, $GOGRepoGUI)
-					$chunk = StringSplit($chunk, @LF, 1)
-					$chunk = $chunk[1]
-					$chunk = StringStripWS($chunk, 8)
-					;MsgBox(262192, "Threads Check 1", "'" & $chunk & "'", 0, $GOGRepoGUI)
-					If StringIsDigit($chunk) = 0 Then
-						$chunk = ""
-					EndIf
-				EndIf
-				SplashOff()
-				;MsgBox(262192, "Threads Check 2", $chunk, 0, $GOGRepoGUI)
-				$threads = IniRead($inifle, "Downloading", "threads", "")
-				If $threads <> $chunk And $chunk <> "" And $threads <> "X" Then
-					$res = _ReplaceStringInFile($gogrepo, "HTTP_GAME_DOWNLOADER_THREADS = " & $chunk, "HTTP_GAME_DOWNLOADER_THREADS = " & $threads)
-					If $res < 1 Then
-						$threads = $chunk
-						IniWrite($inifle, "Downloading", "threads", $threads)
-					EndIf
-				ElseIf $chunk = "" Then
-					$threads = "X"
-					IniWrite($inifle, "Downloading", "threads", $threads)
-				ElseIf $threads = "X" Then
-					$threads = $chunk
-					IniWrite($inifle, "Downloading", "threads", $threads)
-				EndIf
-				$fdate = FileGetTime($gogrepo, 0, 1)
-				IniWrite($inifle, "gogrepo.py", "file_date", $fdate)
-			Else
-				$threads = IniRead($inifle, "Downloading", "threads", "")
-				If $threads = "" Then
-					$threads = "X"
-					IniWrite($inifle, "Downloading", "threads", $threads)
-				EndIf
-			EndIf
-		EndIf
-	EndIf
-	;
 	FillTheGamesList()
 	;
 	$all = 4
@@ -422,7 +328,6 @@ Func MainGUI()
 	;
 	$pid = ""
 	$tot = IniRead($downlist, "Downloads", "total", 0)
-	;
 	$window = $GOGRepoGUI
 
 
@@ -461,18 +366,28 @@ Func MainGUI()
 				$OSget = GUICtrlRead($Combo_OS)
 				$OS = StringReplace($OSget, " + ", " ")
 				$OS = StringLower($OS)
-				$title = GUICtrlRead($Input_title)
-				UpdateGUI()
-				If $updating = 1 Then
-					GUICtrlSetData($List_games, "")
-					GUICtrlSetData($Input_name, "")
-					GUICtrlSetData($Input_title, "")
-					GUICtrlSetData($Input_OS, "")
-					GUICtrlSetData($Input_extra, "")
-					_FileCreate($titlist)
-					ParseTheManifest()
-					FillTheGamesList()
+				FileChangeDir(@ScriptDir)
+				If $every = 1 Then
+					$pid = RunWait(@ComSpec & ' /k gogrepo.py update -os ' & $OS & ' -lang ' & $lang, @ScriptDir)
+					_FileWriteLog($logfle, "Updated manifest for all games.")
+				Else
+					$title = GUICtrlRead($Input_title)
+					If $title <> "" Then
+						$pid = RunWait(@ComSpec & ' /k gogrepo.py update -os ' & $OS & ' -lang ' & $lang & ' -id ' & $title, @ScriptDir)
+						_FileWriteLog($logfle, "Updated manifest for - " & $title & ".")
+					Else
+						MsgBox(262192, "Game Error", "Title is not selected!", $wait, $GOGRepoGUI)
+						ContinueLoop
+					EndIf
 				EndIf
+				GUICtrlSetData($List_games, "")
+				GUICtrlSetData($Input_name, "")
+				GUICtrlSetData($Input_title, "")
+				GUICtrlSetData($Input_OS, "")
+				GUICtrlSetData($Input_extra, "")
+				_FileCreate($titlist)
+				ParseTheManifest()
+				FillTheGamesList()
 				EnableDisableControls($GUI_ENABLE)
 			EndIf
 		Case $msg = $Button_setup
@@ -1434,77 +1349,61 @@ EndFunc ;=> QueueGUI
 
 Func SetupGUI()
 	; Script generated by GUIBuilder Prototype 0.9
-	Local $Button_attach, $Button_close, $Button_cookie, $Button_install, $Combo_lang, $Combo_langs, $Group_lang, $Group_threads
-	Local $Input_pass, $Input_threads, $Input_user, $Label_info, $Label_lang, $Label_langs, $Label_pass, $Label_threads, $Label_user
-	Local $Updown_threads
+	Local $Button_attach, $Button_close, $Button_cookie, $Button_install, $Combo_lang, $Combo_langs, $Group_lang, $Input_pass
+	Local $Input_user, $Label_info, $Label_lang, $Label_langs, $Label_pass, $Label_user
 	;
 	Local $combos, $langs, $long, $password, $username
 	;
-	$SetupGUI = GuiCreate("Setup - Python & Cookie etc", 230, 430, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
+	$SetupGUI = GuiCreate("Setup - Python & Cookie etc", 230, 410, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
 											+ $WS_VISIBLE + $WS_CLIPSIBLINGS, $WS_EX_TOPMOST, $GOGRepoGUI)
 	GUISetBkColor(0xFFFFB0, $SetupGUI)
 	;
 	; CONTROLS
 	$Label_info = GuiCtrlCreateLabel("Before using gogrepo.py to download your" _
-		& @LF & "games, update etc, you need a cookie file." _
-		& @LF & "You also need html5lib installed in Python." _
+		& @LF & "games, update etc, you need a cookie file." & @LF _
+		& @LF & "You also need html5lib installed in Python." & @LF _
 		& @LF & "Both require an active web connection." & @LF _
-		& @LF & "Please supply your GOG username (or email)" _
-		& @LF & "and password, to have it create a cookie file" _
-		& @LF & "to use with GOG." & @LF _
-		& @LF & "GOGRepo GUI does not store that detail.", 11, 10, 210, 130)
+		& @LF & "Please supply your username (or email) and" _
+		& @LF & "password, to have it create a cookie file to" _
+		& @LF & "use with GOG." & @LF _
+		& @LF & "GOGRepo GUI does not store that detail.", 13, 10, 210, 155)
 	;
-	$Button_install = GuiCtrlCreateButton("INSTALL html5lib && html2text", 10, 150, 210, 40)
+	$Button_install = GuiCtrlCreateButton("INSTALL html5lib && html2text", 10, 175, 210, 40)
 	GUICtrlSetFont($Button_install, 9, 600)
 	GUICtrlSetTip($Button_install, "Install html5lib & html2text in Python!")
 	;
-	$Group_lang = GuiCtrlCreateGroup("Language(s) - Select One Option", 10, 200, 210, 53)
-	$Label_lang = GuiCtrlCreateLabel("User", 20, 220, 37, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
+	$Group_lang = GuiCtrlCreateGroup("Language(s) - Select One Option", 10, 223, 210, 55)
+	$Label_lang = GuiCtrlCreateLabel("User", 20, 243, 38, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
 	GUICtrlSetBkColor($Label_lang, $COLOR_BLUE)
 	GUICtrlSetColor($Label_lang, $COLOR_WHITE)
-	GUICtrlSetFont($Label_lang, 7, 600, 0, "Small Fonts")
-	$Combo_lang = GUICtrlCreateCombo("", 57, 220, 34, 21)
+	$Combo_lang = GUICtrlCreateCombo("", 58, 243, 34, 21)
 	GUICtrlSetTip($Combo_lang, "User language!")
-	$Label_langs = GuiCtrlCreateLabel("Multi", 96, 220, 39, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
+	$Label_langs = GuiCtrlCreateLabel("Multi", 97, 243, 38, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
 	GUICtrlSetBkColor($Label_langs, $COLOR_BLUE)
 	GUICtrlSetColor($Label_langs, $COLOR_WHITE)
-	GUICtrlSetFont($Label_langs, 7, 600, 0, "Small Fonts")
-	$Combo_langs = GUICtrlCreateCombo("", 135, 220, 50, 21)
+	$Combo_langs = GUICtrlCreateCombo("", 135, 243, 50, 21)
 	GUICtrlSetTip($Combo_langs, "Multiple languages!")
-	$Button_attach = GuiCtrlCreateButton("+", 190, 220, 20, 20)
+	$Button_attach = GuiCtrlCreateButton("+", 190, 243, 20, 20)
 	GUICtrlSetFont($Button_attach, 9, 600)
 	GUICtrlSetTip($Button_attach, "Add a single language or combination (with CTRL to remove)!")
 	;
-	$Group_threads = GuiCtrlCreateGroup("", 10, 261, 210, 43)
-	$Label_threads = GuiCtrlCreateLabel("Downloading Threads", 20, 275, 152, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
-	GUICtrlSetBkColor($Label_threads, $COLOR_MONEYGREEN)
-	GUICtrlSetColor($Label_threads, $COLOR_BLACK)
-	GUICtrlSetFont($Label_threads, 8, 600)
-	$Input_threads = GuiCtrlCreateInput("", 172, 275, 37, 20)
-	GUICtrlSetTip($Input_threads, "Number of threads (files) to download with!")
-	$Updown_threads = GUICtrlCreateUpdown($Input_threads)
-	GUICtrlSetLimit($Updown_threads, 4, 1)
-	GUICtrlSetTip($Updown_threads, "Adjust the number of threads to download with!")
-	;
-	$Label_user = GuiCtrlCreateLabel("User or Email", 10, 315, 80, 20, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
+	$Label_user = GuiCtrlCreateLabel("User or Email", 10, 290, 75, 20, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
 	GUICtrlSetBkColor($Label_user, $COLOR_BLACK)
 	GUICtrlSetColor($Label_user, $COLOR_WHITE)
-	GUICtrlSetFont($Label_user, 7, 600, 0, "Small Fonts")
-	$Input_user = GuiCtrlCreateInput("", 90, 315, 130, 20)
+	$Input_user = GuiCtrlCreateInput("", 85, 290, 135, 20)
 	GUICtrlSetTip($Input_user, "Username or Email to access your GOG game library!")
 	;
-	$Label_pass = GuiCtrlCreateLabel("Password", 10, 340, 63, 20, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
+	$Label_pass = GuiCtrlCreateLabel("Password", 10, 320, 60, 20, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
 	GUICtrlSetBkColor($Label_pass, $COLOR_BLACK)
 	GUICtrlSetColor($Label_pass, $COLOR_WHITE)
-	GUICtrlSetFont($Label_pass, 7, 600, 0, "Small Fonts")
-	$Input_pass = GuiCtrlCreateInput("", 73, 340, 147, 20)
+	$Input_pass = GuiCtrlCreateInput("", 70, 320, 150, 20)
 	GUICtrlSetTip($Input_pass, "Password to access your GOG game library!")
 	;
-	$Button_cookie = GuiCtrlCreateButton("CREATE COOKIE", 10, 370, 140, 50)
+	$Button_cookie = GuiCtrlCreateButton("CREATE COOKIE", 10, 350, 140, 50)
 	GUICtrlSetFont($Button_cookie, 9, 600)
 	GUICtrlSetTip($Button_cookie, "Create or Update the cookie file!")
 	;
-	$Button_close = GuiCtrlCreateButton("EXIT", 160, 370, 60, 50, $BS_ICON)
+	$Button_close = GuiCtrlCreateButton("EXIT", 160, 350, 60, 50, $BS_ICON)
 	GUICtrlSetTip($Button_close, "Exit / Close / Quit the window!")
 	;
 	; SETTINGS
@@ -1531,13 +1430,6 @@ Func SetupGUI()
 	If $tot > 0 Then
 		GUICtrlSetState($Button_install, $GUI_DISABLE)
 		If $started = 1 Then GUICtrlSetState($Button_cookie, $GUI_DISABLE)
-	EndIf
-	;
-	If $threads = "X" Then
-		GUICtrlSetState($Input_threads, $GUI_DISABLE)
-		GUICtrlSetState($Updown_threads, $GUI_DISABLE)
-	Else
-		GUICtrlSetData($Input_threads, $threads)
 	EndIf
 	;
 	$window = $SetupGUI
@@ -1680,143 +1572,11 @@ Func SetupGUI()
 			GUISwitch($GOGRepoGUI)
 			GUICtrlSetData($Input_langs, $lang)
 			GUISwitch($SetupGUI)
-		Case $msg = $Updown_threads
-			; Adjust the number of threads to download with
-			$val = GUICtrlRead($Input_threads)
-			If FileExists($gogrepo) Then
-				$res = _ReplaceStringInFile($gogrepo, "HTTP_GAME_DOWNLOADER_THREADS = " & $threads, "HTTP_GAME_DOWNLOADER_THREADS = " & $val)
-				If $res > 0 Then
-					$threads = $val
-					IniWrite($inifle, "Downloading", "threads", $threads)
-				Else
-					GUICtrlSetData($Input_threads, $threads)
-				EndIf
-				$fdate = FileGetTime($gogrepo, 0, 1)
-				IniWrite($inifle, "gogrepo.py", "file_date", $fdate)
-			EndIf
 		Case Else
 			;;;
 		EndSelect
 	WEnd
 EndFunc ;=> SetupGUI
-
-Func UpdateGUI()
-	Local $Button_close, $Button_upnow, $Checkbox_lib, $Checkbox_new, $Checkbox_resume, $Checkbox_tag, $Input_language
-	Local $Input_OSes, $Label_lang
-	Local $newgames, $resume, $tagged
-	;
-	$UpdateGUI = GuiCreate("Update The Manifest", 230, 185, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
-															+ $WS_VISIBLE + $WS_CLIPSIBLINGS, $WS_EX_TOPMOST, $GOGRepoGUI)
-	GUISetBkColor(0xFFCE9D, $UpdateGUI)
-	;
-	; CONTROLS
-	$Checkbox_lib = GUICtrlCreateCheckbox("ALL Games", 10, 10, 75, 20)
-	;
-	$Label_lang = GuiCtrlCreateLabel("Language", 95, 10, 65, 20, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
-	GUICtrlSetBkColor($Label_lang, $COLOR_BLUE)
-	GUICtrlSetColor($Label_lang, $COLOR_WHITE)
-	GUICtrlSetFont($Label_lang, 7, 600, 0, "Small Fonts")
-	$Input_language = GUICtrlCreateInput("", 160, 10, 60, 20)
-	GUICtrlSetTip($Input_language, "Selected language(s)!")
-	;
-	$Label_OS = GuiCtrlCreateLabel("OS", 10, 40, 35, 20, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
-	GUICtrlSetBkColor($Label_OS, $COLOR_BLUE)
-	GUICtrlSetColor($Label_OS, $COLOR_WHITE)
-	GUICtrlSetFont($Label_OS, 7, 600, 0, "Small Fonts")
-	$Input_OSes = GUICtrlCreateInput("", 45, 40, 105, 20)
-	GUICtrlSetTip($Input_OSes, "Selected OS!")
-	;
-	$Checkbox_resume = GUICtrlCreateCheckbox("Resume", 162, 40, 55, 20)
-	GUICtrlSetTip($Checkbox_resume, "Enable resume mode for updating!")
-	;
-	$Checkbox_new = GUICtrlCreateCheckbox("Add New Games", 10, 70, 100, 20)
-	GUICtrlSetTip($Checkbox_new, "Add new games only to the manifest!")
-	;
-	$Checkbox_tag = GUICtrlCreateCheckbox("Use Update Tag", 124, 70, 95, 20)
-	GUICtrlSetTip($Checkbox_tag, "Update games with Update Tag!")
-	;
-	$Checkbox_skip = GUICtrlCreateCheckbox("Skip Hidden Games  (set in GOG Library)", 10, 95, 210, 20)
-	GUICtrlSetTip($Checkbox_skip, "Skip updating the manifest for hidden games!")
-	;
-	$Button_upnow = GuiCtrlCreateButton("UPDATE NOW", 10, 125, 140, 50)
-	GUICtrlSetFont($Button_upnow, 9, 600)
-	GUICtrlSetTip($Button_upnow, "Update the Manifest for specified!")
-	;
-	$Button_close = GuiCtrlCreateButton("EXIT", 160, 125, 60, 50, $BS_ICON)
-	GUICtrlSetTip($Button_close, "Exit / Close / Quit the window!")
-	;
-	; SETTINGS
-	GUICtrlSetImage($Button_close, $user, $icoX, 1)
-	;
-	If $every = 1 Then
-		GUICtrlSetState($Checkbox_lib, $every)
-	EndIf
-	GUICtrlSetState($Checkbox_lib, $GUI_DISABLE)
-	;
-	GUICtrlSetData($Input_language, $lang)
-	GUICtrlSetState($Input_language, $GUI_DISABLE)
-	;
-	GUICtrlSetData($Input_OSes, $OSget)
-	GUICtrlSetState($Input_OSes, $GUI_DISABLE)
-	;
-	$resume = IniRead($inifle, "Updating", "resume", "")
-	If $resume = "" Then
-		$resume = 4
-		IniWrite($inifle, "Updating", "resume", $resume)
-	EndIf
-	GUICtrlSetState($Checkbox_resume, $resume)
-	;
-	$newgames = IniRead($inifle, "Add New Games Only", "update", "")
-	If $newgames = "" Then
-		$newgames = 4
-		IniWrite($inifle, "Add New Games Only", "update", $newgames)
-	EndIf
-	GUICtrlSetState($Checkbox_new, $newgames)
-	;
-	$tagged = IniRead($inifle, "Update Tag", "use", "")
-	If $tagged = "" Then
-		$tagged = 4
-		IniWrite($inifle, "Update Tag", "use", $tagged)
-	EndIf
-	GUICtrlSetState($Checkbox_tag, $tagged)
-	;
-	$updating = ""
-	;
-	$window = $UpdateGUI
-
-
-	GuiSetState()
-	While 1
-		$msg = GuiGetMsg()
-		Select
-		Case $msg = $GUI_EVENT_CLOSE Or $msg = $Button_close
-			; Exit / Close / Quit the window
-			GUIDelete($UpdateGUI)
-			ExitLoop
-		Case $msg = $Button_upnow
-			; Update the Manifest for specified
-			FileChangeDir(@ScriptDir)
-			If $every = 1 Then
-				$updating = 1
-				$pid = RunWait(@ComSpec & ' /k gogrepo.py update -os ' & $OS & ' -lang ' & $lang, @ScriptDir)
-				_FileWriteLog($logfle, "Updated manifest for all games.")
-			Else
-				If $title <> "" Then
-					$updating = 1
-					$pid = RunWait(@ComSpec & ' /k gogrepo.py update -os ' & $OS & ' -lang ' & $lang & ' -id ' & $title, @ScriptDir)
-					_FileWriteLog($logfle, "Updated manifest for - " & $title & ".")
-				Else
-					MsgBox(262192, "Game Error", "Title is not selected!", $wait, $UpdateGUI)
-					ContinueLoop
-				EndIf
-			EndIf
-			GUIDelete($UpdateGUI)
-			ExitLoop
-		Case Else
-			;;;
-		EndSelect
-	WEnd
-EndFunc ;=> UpdateGUI
 
 
 Func AddGameToDownloadList()
