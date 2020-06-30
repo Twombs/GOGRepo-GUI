@@ -11,7 +11,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; FUNCTIONS
-; DownloadGUI(), MainGUI(), QueueGUI(), SetupGUI(), UpdateGUI()
+; MainGUI(), QueueGUI(), SetupGUI(), UpdateGUI()
 ; CheckIfPythonRunning(), CheckOnGameDownload(), CheckOnShutdown(), ClearDisableEnableRestore()
 ; DisableQueueButtons(), EnableDisableControls($state), FillTheGamesList(), GetWindowPosition()
 ; ParseTheManifest(), RemoveListEntry($num)
@@ -43,8 +43,8 @@ Global $Checkbox_win, $Combo_OS, $Combo_shutdown, $Group_done, $Group_download, 
 Global $Input_dest, $Input_destination, $Input_download, $Input_extra, $Input_lang, $Input_langs, $Input_name
 Global $Input_OP, $Input_OS, $Input_title, $List_done, $List_games, $List_waiting, $Pic_cover, $Progress_bar
 ;
-Global $a, $alpha, $ans, $array, $auto, $bigpic, $blackjpg, $c, $check, $chunk, $chunks, $cookies, $cover, $date
-Global $delay, $downlist, $every, $extras, $fdate, $file, $files, $flag, $game, $gamefold, $gamepic, $games, $gamesfle
+Global $a, $ans, $array, $auto, $bigpic, $blackjpg, $c, $check, $chunk, $chunks, $cookies, $cover, $date, $delay
+Global $downlist, $every, $extras, $fdate, $file, $files, $flag, $game, $gamefold, $gamepic, $games, $gamesfle
 Global $gogrepo, $GOGRepoGUI, $height, $icoD, $icoF, $icoI, $icoT, $icoX, $image, $imgfle, $ind, $infofle, $inifle
 Global $lang, $left, $line, $lines, $logfle, $manifest, $minimize, $name, $num, $open, $OS, $OSget, $pid, $QueueGUI
 Global $read, $res, $segment, $SetupGUI, $shell, $shutdown, $split, $started, $state, $stop, $style, $t, $text
@@ -82,7 +82,7 @@ Exit
 Func MainGUI()
 	Local $Group_cover, $Group_dest, $Group_down, $Group_update, $Label_cover, $Label_extra, $Label_OS, $Label_title
 	;
-	Local $add, $all, $dll, $exist, $gamesfold, $let, $mpos, $OSes, $pth, $show, $verify
+	Local $add, $all, $alpha, $dll, $exist, $gamesfold, $let, $mpos, $OSes, $pth, $show, $verify
 	;
 	$width = 590
 	$height = 405
@@ -91,7 +91,6 @@ Func MainGUI()
 	$style = $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU + $WS_VISIBLE + $WS_CLIPSIBLINGS + $WS_MINIMIZEBOX
 	$GOGRepoGUI = GuiCreate("GOGRepo GUI", $width, $height, $left, $top, $style, $WS_EX_TOPMOST)
 	GUISetBkColor($COLOR_SKYBLUE, $GOGRepoGUI)
-	GuiSetState(@SW_DISABLE, $GOGRepoGUI)
 	; CONTROLS
 	$Group_games = GuiCtrlCreateGroup("Games", 10, 10, 370, 323)
 	$List_games = GuiCtrlCreateList("", 20, 30, 350, 220)
@@ -175,15 +174,12 @@ Func MainGUI()
 	GUICtrlSetTip($Input_langs, "Download language(s)!")
 	;
 	$Group_dest = GuiCtrlCreateGroup("Download Destination - Games Folder", 10, $height - 63, 308, 52)
-	$Combo_dest = GUICtrlCreateCombo("", 20, $height - 43, 63, 21)
-	GUICtrlSetBkColor($Combo_dest, 0xFFFFB0)
-	GUICtrlSetTip($Combo_dest, "OS to download files for!")
-	$Input_dest = GUICtrlCreateInput("", 88, $height - 43, 117, 21)
+	$Input_dest = GUICtrlCreateInput("", 20, $height - 43, 185, 20)
 	;GUICtrlSetBkColor($Input_dest, 0xFFFFB0)
 	GUICtrlSetTip($Input_dest, "Destination path (main parent folder for games)!")
-	$Button_dest = GuiCtrlCreateButton("B", 210, $height - 43, 20, 21, $BS_ICON)
+	$Button_dest = GuiCtrlCreateButton("B", 210, $height - 43, 20, 20, $BS_ICON)
 	GUICtrlSetTip($Button_dest, "Browse to set the destination folder!")
-	$Checkbox_alpha = GUICtrlCreateCheckbox("Alpha", 235, $height - 43, 45, 21)
+	$Checkbox_alpha = GUICtrlCreateCheckbox("Alpha", 235, $height - 43, 45, 20)
 	GUICtrlSetTip($Checkbox_alpha, "Create alphanumeric sub-folder!")
 	$Button_fold = GuiCtrlCreateButton("Open", 285, $height - 44, 23, 22, $BS_ICON)
 	GUICtrlSetTip($Button_fold, "Open the selected destination folder!")
@@ -223,6 +219,8 @@ Func MainGUI()
 	GUICtrlSetImage($Button_exit, $user, $icoX, 1)
 	;
 	; SETTINGS
+	GuiSetState(@SW_DISABLE, $GOGRepoGUI)
+	;
 	If Not FileExists($cookies) Then
 		GUICtrlSetState($Button_down, $GUI_DISABLE)
 		GUICtrlSetState($Button_update, $GUI_DISABLE)
@@ -284,8 +282,6 @@ Func MainGUI()
 	EndIf
 	GUICtrlSetState($Checkbox_game, $files)
 	;
-	$dests = "Default|Specific"
-	GUICtrlSetData($Combo_dest, $dests, "Default")
 	$gamesfold = IniRead($inifle, "Main Games Folder", "path", "")
 	If $gamesfold = "" Then
 		$gamesfold = @ScriptDir & "\GAMES"
@@ -711,7 +707,15 @@ Func MainGUI()
 						Else
 							FileChangeDir(@ScriptDir)
 							If $all = 1 Then
-								DownloadGUI()
+								; Query which DOWNLOAD ALL method to use.
+								; METHOD 1 - Copy all titles (& their details) to Downloads list, providing interaction & control.
+								;
+								; METHOD 2 - Hand reins fully to 'gogrepo.py', and GUI remains disabled for duration.
+								EnableDisableControls($GUI_DISABLE)
+								$pid = RunWait(@ComSpec & ' /c gogrepo.py download "' & $gamefold & '"', @ScriptDir)
+								If $validate = 1 Then $pid = RunWait(@ComSpec & ' /k gogrepo.py verify "' & $gamefold & '"', @ScriptDir)
+								_FileWriteLog($logfle, "Downloaded all games.")
+								EnableDisableControls($GUI_ENABLE)
 							Else
 								$tot = IniRead($downlist, "Downloads", "total", 0)
 								While 1
@@ -976,85 +980,6 @@ Func MainGUI()
 		EndSelect
 	WEnd
 EndFunc ;=> MainGUI
-
-Func DownloadGUI()
-	; Query which DOWNLOAD ALL method to use.
-	Local $Button_close, $Button_inf, $Button_one, $Button_two, $Group_one, $Group_two, $Label_extra, $Label_one, $Label_two
-	;
-	$DownloadGUI = GuiCreate("Download ALL", 230, 400, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
-														+ $WS_VISIBLE + $WS_CLIPSIBLINGS, $WS_EX_TOPMOST, $GOGRepoGUI)
-	GUISetBkColor(0xCECEFF, $DownloadGUI)
-	GuiSetState(@SW_DISABLE, $DownloadGUI)
-	; CONTROLS
-	$Group_one = GuiCtrlCreateGroup("", 10, 5, 210, 160)
-	$Button_one = GuiCtrlCreateButton("METHOD ONE", 20, 25, 190, 40)
-	GUICtrlSetFont($Button_one, 9, 600)
-	GUICtrlSetTip($Button_one, "Download ALL Games using Method 1!")
-	$Label_one = GuiCtrlCreateLabel("This method only uses 'gogrepo.py'  to" _
-		& @LF & "download your games and extras. Any" _
-		& @LF & "queuing involved is not available to be" _
-		& @LF & "interacted with, plus the main program" _
-		& @LF & "window is disabled for the full duration." _
-		& @LF & "Download location is just a main one.", 23, 75, 187, 80)
-	;
-	$Group_two = GuiCtrlCreateGroup("", 10, 175, 210, 150)
-	$Button_two = GuiCtrlCreateButton("METHOD TWO", 20, 195, 190, 40)
-	GUICtrlSetFont($Button_two, 9, 600)
-	GUICtrlSetTip($Button_two, "Download ALL Games using Method 2!")
-	$Label_two = GuiCtrlCreateLabel("This method uses both gogrepo.py and" _
-		& @LF & "a queuing system you can interact with" _
-		& @LF & "to download all your games and extras." _
-		& @LF & "You can also have greater control over" _
-		& @LF & "the download location, individually.", 20, 245, 190, 70)
-	;
-	$Label_extra = GuiCtrlCreateLabel("Alphanumeric" _
-		& @LF & "folders are not" _
-		& @LF & "supported by" _
-		& @LF & "Method One.", 13, 338, 70, 75)
-	GUICtrlSetColor($Label_extra, $COLOR_RED)
-	;
-	$Button_inf = GuiCtrlCreateButton("Info", 90, 340, 60, 50, $BS_ICON)
-	GUICtrlSetTip($Button_inf, "Download ALL Information!")
-	;
-	$Button_close = GuiCtrlCreateButton("EXIT", 160, 340, 60, 50, $BS_ICON)
-	GUICtrlSetTip($Button_close, "Exit / Close / Quit the window!")
-	;
-	; SETTINGS
-	GUICtrlSetImage($Button_close, $user, $icoX, 1)
-	GUICtrlSetImage($Button_inf, $user, $icoI, 1)
-	;
-	If $alpha = 1 Then GUICtrlSetState($Button_one, $GUI_DISABLE)
-	;
-	$window = $DownloadGUI
-
-
-	GuiSetState(@SW_ENABLE, $DownloadGUI)
-	While 1
-		$msg = GuiGetMsg()
-		Select
-		Case $msg = $GUI_EVENT_CLOSE Or $msg = $Button_close
-			; Exit / Close / Quit the window
-			GUIDelete($DownloadGUI)
-			ExitLoop
-		Case $msg = $Button_two
-			; Download ALL Games using Method 2
-		Case $msg = $Button_one
-			; Download ALL Games using Method 1
-			; METHOD 1 - Copy all titles (& their details) to Downloads list, providing interaction & control.
-			EnableDisableControls($GUI_DISABLE)
-			$pid = RunWait(@ComSpec & ' /c gogrepo.py download "' & $gamefold & '"', @ScriptDir)
-			If $validate = 1 Then $pid = RunWait(@ComSpec & ' /k gogrepo.py verify "' & $gamefold & '"', @ScriptDir)
-			_FileWriteLog($logfle, "Downloaded all games.")
-			EnableDisableControls($GUI_ENABLE)
-		Case $msg = $Button_inf
-			; Download ALL Information
-		Case Else
-			;;;
-		EndSelect
-	WEnd
-	;
-	; METHOD 2 - Hand reins fully to 'gogrepo.py', and GUI remains disabled for duration.
-EndFunc ;=> DownloadGUI
 
 Func QueueGUI()
 	Local $Button_inf, $Button_quit, $Button_record, $Checkbox_dos, $Checkbox_start, $Checkbox_stop
