@@ -1773,7 +1773,7 @@ EndFunc ;=> SetupGUI
 Func UpdateGUI()
 	Local $Button_close, $Button_upnow, $Checkbox_every, $Checkbox_new, $Checkbox_resume, $Checkbox_tag, $Input_language
 	Local $Input_OSes, $Label_lang
-	Local $newgames, $params, $resume, $skiphid, $tagged
+	Local $newgames, $resume, $tagged
 	;
 	$UpdateGUI = GuiCreate("Update The Manifest", 230, 185, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
 															+ $WS_VISIBLE + $WS_CLIPSIBLINGS, $WS_EX_TOPMOST, $GOGRepoGUI)
@@ -1799,7 +1799,7 @@ Func UpdateGUI()
 	$Checkbox_resume = GUICtrlCreateCheckbox("Resume", 162, 40, 55, 20)
 	GUICtrlSetTip($Checkbox_resume, "Enable resume mode for updating!")
 	;
-	$Checkbox_new = GUICtrlCreateCheckbox("New Games Only", 10, 70, 100, 20)
+	$Checkbox_new = GUICtrlCreateCheckbox("Add New Games", 10, 70, 100, 20)
 	GUICtrlSetTip($Checkbox_new, "Add new games only to the manifest!")
 	;
 	$Checkbox_tag = GUICtrlCreateCheckbox("Use Update Tag", 124, 70, 95, 20)
@@ -1836,10 +1836,10 @@ Func UpdateGUI()
 	EndIf
 	GUICtrlSetState($Checkbox_resume, $resume)
 	;
-	$newgames = IniRead($inifle, "New Games Only", "add", "")
+	$newgames = IniRead($inifle, "Add New Games Only", "update", "")
 	If $newgames = "" Then
 		$newgames = 4
-		IniWrite($inifle, "New Games Only", "add", $newgames)
+		IniWrite($inifle, "Add New Games Only", "update", $newgames)
 	EndIf
 	GUICtrlSetState($Checkbox_new, $newgames)
 	;
@@ -1849,13 +1849,6 @@ Func UpdateGUI()
 		IniWrite($inifle, "Update Tag", "use", $tagged)
 	EndIf
 	GUICtrlSetState($Checkbox_tag, $tagged)
-	;
-	$skiphid = IniRead($inifle, "Hidden Games", "skip", "")
-	If $skiphid = "" Then
-		$skiphid = 4
-		IniWrite($inifle, "Hidden Games", "skip", $skiphid)
-	EndIf
-	GUICtrlSetState($Checkbox_skip, $skiphid)
 	;
 	$updating = ""
 	;
@@ -1872,20 +1865,15 @@ Func UpdateGUI()
 			ExitLoop
 		Case $msg = $Button_upnow
 			; Update the Manifest for specified
-			$params = " -skipknown -updateonly -resumemode resume -skiphidden"
-			If $newgames = 4 Then $params = StringReplace($params, " -skipknown", "")
-			If $tagged = 4 Then $params = StringReplace($params, " -updateonly", "")
-			If $resume = 4 Then $params = StringReplace($params, " -resumemode resume", "")
-			If $skiphid = 4 Then $params = StringReplace($params, " -skiphidden", "")
 			FileChangeDir(@ScriptDir)
 			If $all = 1 Then
 				$updating = 1
-				$pid = RunWait(@ComSpec & ' /k gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params, @ScriptDir)
+				$pid = RunWait(@ComSpec & ' /k gogrepo.py update -os ' & $OS & ' -lang ' & $lang, @ScriptDir)
 				_FileWriteLog($logfle, "Updated manifest for all games.")
 			Else
 				If $title <> "" Then
 					$updating = 1
-					$pid = RunWait(@ComSpec & ' /k gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -id ' & $title, @ScriptDir)
+					$pid = RunWait(@ComSpec & ' /k gogrepo.py update -os ' & $OS & ' -lang ' & $lang & ' -id ' & $title, @ScriptDir)
 					_FileWriteLog($logfle, "Updated manifest for - " & $title & ".")
 				Else
 					MsgBox(262192, "Game Error", "Title is not selected!", $wait, $UpdateGUI)
@@ -1894,38 +1882,6 @@ Func UpdateGUI()
 			EndIf
 			GUIDelete($UpdateGUI)
 			ExitLoop
-		Case $msg = $Checkbox_tag
-			; Update games with Update Tag
-			If GUICtrlRead($Checkbox_tag) = $GUI_CHECKED Then
-				$tagged = 1
-			Else
-				$tagged = 4
-			EndIf
-			IniWrite($inifle, "Update Tag", "use", $tagged)
-		Case $msg = $Checkbox_skip
-			; Skip updating the manifest for hidden games
-			If GUICtrlRead($Checkbox_skip) = $GUI_CHECKED Then
-				$skiphid = 1
-			Else
-				$skiphid = 4
-			EndIf
-			IniWrite($inifle, "Hidden Games", "skip", $skiphid)
-		Case $msg = $Checkbox_resume
-			; Enable resume mode for updating
-			If GUICtrlRead($Checkbox_resume) = $GUI_CHECKED Then
-				$resume = 1
-			Else
-				$resume = 4
-			EndIf
-			IniWrite($inifle, "Updating", "resume", $resume)
-		Case $msg = $Checkbox_new
-			; Add new games only to the manifest
-			If GUICtrlRead($Checkbox_new) = $GUI_CHECKED Then
-				$newgames = 1
-			Else
-				$newgames = 4
-			EndIf
-			IniWrite($inifle, "New Games Only", "add", $newgames)
 		Case Else
 			;;;
 		EndSelect
@@ -1934,7 +1890,6 @@ EndFunc ;=> UpdateGUI
 
 Func VerifyGUI()
 	Local $Button_close, $Button_verify, $Checkbox_delete, $Checkbox_every, $Checkbox_md5, $Checkbox_size, $Checkbox_zip
-	Local $delete, $md5, $params, $sizecheck, $zipcheck
 	;
 	$VerifyGUI = GuiCreate("Verify Game Files", 230, 140, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
 														+ $WS_VISIBLE + $WS_CLIPSIBLINGS, $WS_EX_TOPMOST, $GOGRepoGUI)
@@ -1970,33 +1925,6 @@ Func VerifyGUI()
 	EndIf
 	GUICtrlSetState($Checkbox_every, $GUI_DISABLE)
 	;
-	$sizecheck = IniRead($inifle, "Verify", "size", "")
-	If $sizecheck = "" Then
-		$sizecheck = 1
-		IniWrite($inifle, "Verify", "size", $sizecheck)
-	EndIf
-	GUICtrlSetState($Checkbox_size, $sizecheck)
-	;
-	$zipcheck = IniRead($inifle, "Verify", "zips", "")
-	If $zipcheck = "" Then
-		$zipcheck = 1
-		IniWrite($inifle, "Verify", "zips", $zipcheck)
-	EndIf
-	GUICtrlSetState($Checkbox_zip, $zipcheck)
-	;
-	$md5 = IniRead($inifle, "Verify", "md5", "")
-	If $md5 = "" Then
-		$md5 = 1
-		IniWrite($inifle, "Verify", "md5", $md5)
-	EndIf
-	GUICtrlSetState($Checkbox_md5, $md5)
-	;
-	$delete = IniRead($inifle, "Verify Failure", "delete", "")
-	If $delete = "" Then
-		$delete = 4
-		IniWrite($inifle, "Verify Failure", "delete", $delete)
-	EndIf
-	GUICtrlSetState($Checkbox_delete, $delete)
 	;
 	$window = $VerifyGUI
 
@@ -2011,18 +1939,13 @@ Func VerifyGUI()
 			ExitLoop
 		Case $msg = $Button_verify
 			; Verify the specified games
-			$params = " -skipmd5 -skipsize -skipzip -delete"
-			If $md5 = 1 Then $params = StringReplace($params, " -skipmd5", "")
-			If $sizecheck = 1 Then $params = StringReplace($params, " -skipsize", "")
-			If $zipcheck = 1 Then $params = StringReplace($params, " -skipzip", "")
-			If $delete = 4 Then $params = StringReplace($params, " -delete", "")
 			FileChangeDir(@ScriptDir)
 			If $all = 1 Then
 				If $alpha = 1 Then
 					For $a = 48 To 90
 						If $a < 58 Or $a > 64 Then
 							$let = Chr($a)
-							$pid = RunWait(@ComSpec & ' /k gogrepo.py verify' & $params & ' "' & $gamefold & "\" & $let & '"', @ScriptDir)
+							$pid = RunWait(@ComSpec & ' /k gogrepo.py verify "' & $gamefold & "\" & $let & '"', @ScriptDir)
 							_FileWriteLog($logfle, "Verified all games in " & $let & ".")
 							If $a < 90 Then
 								$ans = MsgBox(262177, "Verify Query", _
@@ -2036,45 +1959,13 @@ Func VerifyGUI()
 						EndIf
 					Next
 				Else
-					$pid = RunWait(@ComSpec & ' /k gogrepo.py verify' & $params & ' "' & $gamefold & '"', @ScriptDir)
+					$pid = RunWait(@ComSpec & ' /k gogrepo.py verify "' & $gamefold & '"', @ScriptDir)
 					_FileWriteLog($logfle, "Verified all games.")
 				EndIf
 			Else
-				$pid = RunWait(@ComSpec & ' /k gogrepo.py verify' & $params & ' -id ' & $title & ' "' & $gamefold & '"', @ScriptDir)
+				$pid = RunWait(@ComSpec & ' /k gogrepo.py verify -id ' & $title & ' "' & $gamefold & '"', @ScriptDir)
 				_FileWriteLog($logfle, "Verified - " & $title & ".")
 			EndIf
-		Case $msg = $Checkbox_zip
-			; Enable zip file verification
-			If GUICtrlRead($Checkbox_zip) = $GUI_CHECKED Then
-				$zipcheck = 1
-			Else
-				$zipcheck = 4
-			EndIf
-			IniWrite($inifle, "Verify", "zips", $zipcheck)
-		Case $msg = $Checkbox_size
-			; Enable file size verification
-			If GUICtrlRead($Checkbox_size) = $GUI_CHECKED Then
-				$sizecheck = 1
-			Else
-				$sizecheck = 4
-			EndIf
-			IniWrite($inifle, "Verify", "size", $sizecheck)
-		Case $msg = $Checkbox_md5
-			; Enable MD5 checksum verification
-			If GUICtrlRead($Checkbox_md5) = $GUI_CHECKED Then
-				$md5 = 1
-			Else
-				$md5 = 4
-			EndIf
-			IniWrite($inifle, "Verify", "md5", $md5)
-		Case $msg = $Checkbox_delete
-			; Delete if a file fails integrity check
-			If GUICtrlRead($Checkbox_delete) = $GUI_CHECKED Then
-				$delete = 1
-			Else
-				$delete = 4
-			EndIf
-			IniWrite($inifle, "Verify Failure", "delete", $delete)
 		Case Else
 			;;;
 		EndSelect
