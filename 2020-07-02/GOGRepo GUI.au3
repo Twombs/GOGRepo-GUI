@@ -44,11 +44,11 @@ Global $Group_waiting, $Input_dest, $Input_destination, $Input_download, $Input_
 Global $Input_name, $Input_OP, $Input_OS, $Input_title, $List_done, $List_games, $List_waiting, $Pic_cover, $Progress_bar
 ;
 Global $a, $all, $alpha, $ans, $array, $auto, $bigpic, $blackjpg, $c, $check, $chunk, $chunks, $cookies, $cover
-Global $date, $delay, $dest, $downlist, $DownloadGUI, $extras, $fdate, $file, $files, $flag, $game, $gamefold, $gamepic
-Global $games, $gamesfle, $gamesfold, $gogrepo, $GOGRepoGUI, $height, $icoD, $icoF, $icoI, $icoT, $icoX, $image, $imgfle, $ind
+Global $date, $delay, $downlist, $DownloadGUI, $extras, $fdate, $file, $files, $flag, $game, $gamefold, $gamepic
+Global $games, $gamesfle, $gogrepo, $GOGRepoGUI, $height, $icoD, $icoF, $icoI, $icoT, $icoX, $image, $imgfle, $ind
 Global $infofle, $inifle, $lang, $left, $let, $line, $lines, $logfle, $manifest, $minimize, $name, $num, $open
-Global $OS, $OSget, $path, $pid, $QueueGUI, $read, $res, $segment, $SetupGUI, $shell, $shutdown, $split, $started, $state
-Global $stop, $style, $t, $text, $textdump, $threads, $title, $titles, $titlist, $top, $tot, $type, $UpdateGUI, $updating
+Global $OS, $OSget, $pid, $QueueGUI, $read, $res, $segment, $SetupGUI, $shell, $shutdown, $split, $started, $state
+Global $stop, $style, $t, $text, $textdump, $threads, $title, $titles, $titlist, $top, $tot, $UpdateGUI, $updating
 Global $user, $val, $validate, $VerifyGUI, $verifying, $version, $wait, $width, $window, $winpos, $xpos, $ypos
 
 $bigpic = @ScriptDir & "\Big.jpg"
@@ -82,7 +82,7 @@ Exit
 Func MainGUI()
 	Local $Group_cover, $Group_dest, $Group_down, $Group_update, $Label_cover, $Label_extra, $Label_OS, $Label_title
 	;
-	Local $add, $dll, $exist, $mpos, $OSes, $pth, $show, $update, $verify
+	Local $add, $dll, $exist, $gamesfold, $mpos, $OSes, $pth, $show, $update, $verify
 	;
 	$width = 590
 	$height = 405
@@ -287,21 +287,13 @@ Func MainGUI()
 	;
 	$dests = "Default|Specific"
 	GUICtrlSetData($Combo_dest, $dests, "Default")
-	$dest = IniRead($inifle, "Main Games Folder", "path", "")
-	If $dest = "" Then
-		$dest = @ScriptDir & "\GAMES"
-		IniWrite($inifle, "Main Games Folder", "path", $dest)
-		If Not FileExists($dest) Then DirCreate($dest)
+	$gamesfold = IniRead($inifle, "Main Games Folder", "path", "")
+	If $gamesfold = "" Then
+		$gamesfold = @ScriptDir & "\GAMES"
+		IniWrite($inifle, "Main Games Folder", "path", $gamesfold)
+		If Not FileExists($gamesfold) Then DirCreate($gamesfold)
 	EndIf
-	GUICtrlSetData($Input_dest, $dest)
-	$gamesfold = $dest
-;~ 	$gamesfold = IniRead($inifle, "Main Games Folder", "path", "")
-;~ 	If $gamesfold = "" Then
-;~ 		$gamesfold = @ScriptDir & "\GAMES"
-;~ 		IniWrite($inifle, "Main Games Folder", "path", $gamesfold)
-;~ 		If Not FileExists($gamesfold) Then DirCreate($gamesfold)
-;~ 	EndIf
-;~ 	GUICtrlSetData($Input_dest, $gamesfold)
+	GUICtrlSetData($Input_dest, $gamesfold)
 	$alpha = IniRead($inifle, "Alphanumerical Game Folders", "use", "")
 	If $alpha = "" Then
 		$alpha = 4
@@ -646,29 +638,22 @@ Func MainGUI()
 				If $ans = 2 Then ContinueLoop
 				;
 				$title = GUICtrlRead($Input_title)
-				$name = GUICtrlRead($Input_name)
-				If ($title <> "" And $name <> "") Or $all = 1 Then
-					If $all = 1 Then
-						$gamesfold = $dest
-						$gamefold = $gamesfold
-					Else
-						$path = IniRead($gamesfle, $name, "path", "")
-						If $path = "" Then
-							$gamesfold = $dest
-						Else
-							$gamesfold = $path
-						EndIf
-						$gamefold = $gamesfold
+				If $title <> "" Or $all = 1 Then
+					$gamefold = $gamesfold
+					If $all = 4 Then
+						;MsgBox(262192, "Got Here 1", $title & @LF & $gamefold, $wait, $GOGRepoGUI)
 						If $alpha = 1 Then
 							$let = StringUpper(StringLeft($title, 1))
 							$gamefold = $gamefold & "\" & $let
 							;MsgBox(262192, "Got Here 2", $title & @LF & $gamefold, $wait, $GOGRepoGUI)
 						EndIf
+					;Else
 					EndIf
 					If Not FileExists($gamefold) And $verify = 4 Then
 						DirCreate($gamefold)
 					EndIf
 					If FileExists($gamefold) Then
+						;MsgBox(262192, "Game Folder", $title & @LF & $gamefold, $wait, $GOGRepoGUI)
 						If $verify = 1 Then
 							; Verify one or more games
 							EnableDisableControls($GUI_DISABLE)
@@ -776,80 +761,12 @@ Func MainGUI()
 				MsgBox(262192, "Program Error", "Required file 'gogrepo.py' not found!", $wait, $GOGRepoGUI)
 			EndIf
 		Case $msg = $Button_dest
-			; Browse to set the destination folder  $gamesfle
-			$type = GUICtrlRead($Combo_dest)
-			$title = GUICtrlRead($Input_title)
-			;MsgBox(262192, "Got Here 1", $type, 0, $GOGRepoGUI)
-			If $title = "" And $type = "Default" Then
-				;MsgBox(262192, "Got Here 2", $type, 0, $GOGRepoGUI)
-				$pth = FileSelectFolder("Browse to set the main games folder.", @ScriptDir, 7, $dest, $GOGRepoGUI)
-				If Not @error And StringMid($pth, 2, 2) = ":\" Then
-					$dest = $pth
-					IniWrite($inifle, "Main Games Folder", "path", $dest)
-					GUICtrlSetData($Input_dest, $dest)
-					$gamesfold = $dest
-				EndIf
-			ElseIf $title = "" Then
-				MsgBox(262192, "Game Error", "Title is not selected, and type of location is 'Specific'.", $wait, $GOGRepoGUI)
-			ElseIf $type = "Specific" Then
-				$name = GUICtrlRead($Input_name)
-				If $name = "" Then
-					MsgBox(262192, "Game Error", "Name not found for 'Specific'.", $wait, $GOGRepoGUI)
-				Else
-					$path = IniRead($gamesfle, $name, "path", "")
-					If $path = "" Then
-						$pth = $dest
-					Else
-						$pth = $path
-					EndIf
-					$pth = FileSelectFolder("Browse to set a specific game folder.", @ScriptDir, 7, $pth, $GOGRepoGUI)
-					If Not @error And StringMid($pth, 2, 2) = ":\" Then
-						IniWrite($gamesfle, $name, "path", $pth)
-						GUICtrlSetData($Input_dest, $pth)
-						;IniWrite($gamesfle, $name, "type", "Specific")
-						$gamesfold = $pth
-						$val = IniRead($downlist, $title, , "destination", "")
-						If $val <> "" And $val <> $gamesfold Then
-							$gamefold = $gamesfold
-							If $alpha = 1 Then
-								$let = StringUpper(StringLeft($title, 1))
-								$gamefold = $gamefold & "\" & $let
-								;MsgBox(262192, "Got Here 2", $title & @LF & $gamefold, $wait, $GOGRepoGUI)
-							EndIf
-							IniWrite($downlist, $title, "destination", $gamefold)
-						EndIf
-					EndIf
-				EndIf
-			ElseIf $type = "Default" Then
-				$name = GUICtrlRead($Input_name)
-				If $name = "" Then
-					MsgBox(262192, "Game Error", "Name not found for 'Default'.", $wait, $GOGRepoGUI)
-				Else
-					$path = IniRead($gamesfle, $name, "path", "")
-					If $path = "" Or $path = $dest Then
-						MsgBox(262192, "Browse Report", "Nothing to do, game is already set to use 'Default'.", $wait, $GOGRepoGUI)
-					Else
-						$delay = $wait * 3
-						$ans = MsgBox(262177, "Change Query", _
-							"Game download location is not 'Default'." & @LF & @LF & _
-							"Do you want to restore to 'Default'?", $delay, $GOGRepoGUI)
-						If $ans = 1 Then
-							IniDelete($gamesfle, $name, "path")
-							;IniDelete($gamesfle, $name, "type")
-							$gamesfold = $dest
-							$val = IniRead($downlist, $title, , "destination", "")
-							If $val <> "" And $val <> $gamesfold Then
-								$gamefold = $gamesfold
-								If $alpha = 1 Then
-									$let = StringUpper(StringLeft($title, 1))
-									$gamefold = $gamefold & "\" & $let
-									;MsgBox(262192, "Got Here 2", $title & @LF & $gamefold, $wait, $GOGRepoGUI)
-								EndIf
-								IniWrite($downlist, $title, "destination", $gamefold)
-							EndIf
-						EndIf
-					EndIf
-				EndIf
+			; Browse to set the destination folder
+			$pth = FileSelectFolder("Browse to set the main games folder.", @ScriptDir, 7, $gamesfold, $GOGRepoGUI)
+			If Not @error And StringMid($pth, 2, 2) = ":\" Then
+				 $gamesfold = $pth
+				IniWrite($inifle, "Main Games Folder", "path", $gamesfold)
+				GUICtrlSetData($Input_dest, $gamesfold)
 			EndIf
 		Case $msg = $Checkbox_verify
 			; Enable verifying one or all games
@@ -990,17 +907,6 @@ Func MainGUI()
 			GUICtrlSetData($Input_name, $name)
 			$title = IniRead($gamesfle, $name, "title", "error")
 			GUICtrlSetData($Input_title, $title)
-			;
-			$path = IniRead($gamesfle, $name, "path", "")
-			If $path = "" Then
-				GUICtrlSetData($Combo_dest, "Default")
-				$path = $dest
-			Else
-				GUICtrlSetData($Combo_dest, "Specific")
-			EndIf
-			$gamesfold = $path
-			GUICtrlSetData($Input_dest, $gamesfold)
-			;
 			$OS = IniRead($gamesfle, $name, "osextra", "")
 			If StringInStr($OS, "Extras") > 0 Then
 				$OS = StringReplace($OS, " + Extras", "")
