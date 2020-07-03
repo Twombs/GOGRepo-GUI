@@ -725,7 +725,6 @@ Func MainGUI()
 												;$flag = @SW_RESTORE
 												$flag = @SW_SHOW
 											EndIf
-											;$params = " -skipextras -skipgames -id savedir"
 											;$pid = Run(@ComSpec & ' /c gogrepo.py download -id ' & $title & ' "' & $gamefold & '"', @ScriptDir, $flag)
 											;AdlibRegister("CheckOnGameDownload", 3000)
 										Else
@@ -1070,7 +1069,6 @@ EndFunc ;=> MainGUI
 Func DownloadGUI()
 	; Query which DOWNLOAD ALL method to use.
 	Local $Button_close, $Button_inf, $Button_one, $Button_two, $Group_one, $Group_two, $Label_extra, $Label_one, $Label_two
-	Local $params, $pos
 	;
 	$DownloadGUI = GuiCreate("Download ALL", 230, 400, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
 														+ $WS_VISIBLE + $WS_CLIPSIBLINGS, $WS_EX_TOPMOST, $GOGRepoGUI)
@@ -1129,99 +1127,6 @@ Func DownloadGUI()
 			ExitLoop
 		Case $msg = $Button_two
 			; Download ALL Games using Method 2
-			SplashTextOn("", "Please Wait!" & @LF & "(List Building)", 200, 120, Default, Default, 33)
-			IniWrite($inifle, "Download ALL List", "begin", _Now())
-			;Sleep(3000)
-			If FileExists($titlist) Then
-				$res = _FileReadToArray($titlist, $array)
-				If $res = 1 Then
-					$tot = 0
-					$textdump = ""
-					$lines = "OS=" & $OSget
-					$lines = $lines & @CRLF & "files=" & $files
-					$lines = $lines & @CRLF & "extras=" & $extras
-					$lines = $lines & @CRLF & "language=" & $lang
-					$lines = $lines & @CRLF & "cover=" & $cover
-					For $a = 2 To $array[0]
-						$line = $array[$a]
-						If $line <> "" Then
-							$line = StringSplit($line, " | ", 1)
-							If $line[0] = 2 Then
-								$name = $line[1]
-								If $name <> "" Then
-									$line = $line[2]
-									If $line <> "" Then
-										$pos = StringInStr($line, ") - ", 0, -1)
-										If $pos > 0 Then
-											$image = StringMid($line, $pos + 4)
-											$image = StringStripWS($image, 8)
-											If StringLeft($image, 4) <> "http" Then $image = ""
-											$line = StringLeft($line, $pos - 1)
-											$pos = StringInStr($line, " (", 0, -1)
-											If $pos > 0 Then
-												$title = StringLeft($line, $pos - 1)
-												$title = StringStripWS($title, 8)
-												If $title <> "" Then
-													$tot = $tot + 1
-													$params = "rank=" & $tot
-													$path = IniRead($gamesfle, $name, "path", "")
-													If $path = "" Then
-														$gamesfold = $dest
-													Else
-														$gamesfold = $path
-													EndIf
-													$gamefold = $gamesfold
-													If $alpha = 1 Then
-														$let = StringUpper(StringLeft($title, 1))
-														$gamefold = $gamefold & "\" & $let
-														;MsgBox(262192, "Got Here 2", $title & @LF & $gamefold, $wait, $GOGRepoGUI)
-													EndIf
-													$params = $params & @CRLF & "destination=" & $gamefold
-													$params = $params & @CRLF & $lines
-													If $image <> "" Then
-														$params = $params & @CRLF & "image=" & $image
-													EndIf
-													$params = $params & @CRLF & "verify=" & $validate
-												EndIf
-											Else
-												$title = ""
-											EndIf
-										Else
-											$title = ""
-										EndIf
-										If $title <> "" Then
-											$title = "[" & $title & "]" & @CRLF
-											If $textdump = "" Then
-												$textdump = $title & $params
-											Else
-												$textdump = $textdump & @CRLF & $title & $params
-											EndIf
-										EndIf
-									EndIf
-								EndIf
-							EndIf
-						EndIf
-					Next
-					If $textdump <> "" Then
-						$textdump = "[Downloads]" & @CRLF & "total=" & $tot & @CRLF & $textdump
-						$file = FileOpen($downlist, 2)
-						If $file = -1 Then
-							MsgBox(262192, "Program Error", "Downloads list file could not be written to!", 0, $DownloadGUI)
-						Else
-							FileWrite($file, $textdump)
-						EndIf
-						FileClose($file)
-					EndIf
-				Else
-					MsgBox(262192, "Program Error", "Titles.txt file is empty!", 0, $DownloadGUI)
-				EndIf
-			Else
-				MsgBox(262192, "Program Error", "Titles.txt file is missing!", 0, $DownloadGUI)
-			EndIf
-			IniWrite($inifle, "Download ALL List", "finish", _Now())
-			SplashOff()
-			GUIDelete($DownloadGUI)
-			ExitLoop
 		Case $msg = $Button_one
 			; Download ALL Games using Method 1
 			; METHOD 1 - Copy all titles (& their details) to Downloads list, providing interaction & control.
@@ -1494,7 +1399,6 @@ Func QueueGUI()
 					;$flag = @SW_RESTORE
 					$flag = @SW_SHOW
 				EndIf
-				;$params = " -skipextras -skipgames -id savedir"
 				;$pid = Run(@ComSpec & ' /c gogrepo.py download -id ' & $title & ' "' & $gamefold & '"', @ScriptDir, $flag)
 				;AdlibRegister("CheckOnGameDownload", 3000)
 			EndIf
