@@ -634,6 +634,7 @@ Func MainGUI()
 			; Click to convert text in input field
 			$title = GUICtrlRead($Input_title)
 			If $title <> "" Then
+				$find = $title
 				$title = StringReplace($title, ":", "")
 				$title = StringReplace($title, ";", "")
 				$title = StringReplace($title, "?", "")
@@ -697,7 +698,7 @@ Func MainGUI()
 							EnableDisableControls($GUI_ENABLE)
 						ElseIf $update = 1 Then
 							; Update the manifest
-							$find = $title
+							;$find = $title
 							EnableDisableControls($GUI_DISABLE)
 							$OSget = GUICtrlRead($Combo_OS)
 							$OS = StringReplace($OSget, " + ", " ")
@@ -2141,6 +2142,7 @@ Func UpdateGUI()
 			ExitLoop
 		Case $msg = $Button_upnow
 			; Update the Manifest for specified
+			GuiSetState(@SW_HIDE, $UpdateGUI)
 			$params = " -skipknown -updateonly -resumemode resume -skiphidden"
 			If $newgames = 4 Then $params = StringReplace($params, " -skipknown", "")
 			If $tagged = 4 Then $params = StringReplace($params, " -updateonly", "")
@@ -2280,6 +2282,7 @@ Func VerifyGUI()
 			ExitLoop
 		Case $msg = $Button_verify
 			; Verify the specified games
+			GuiSetState(@SW_HIDE, $VerifyGUI)
 			$params = " -skipmd5 -skipsize -skipzip -delete"
 			If $md5 = 1 Then $params = StringReplace($params, " -skipmd5", "")
 			If $sizecheck = 1 Then $params = StringReplace($params, " -skipsize", "")
@@ -2312,6 +2315,8 @@ Func VerifyGUI()
 				$pid = RunWait(@ComSpec & ' /k gogrepo.py verify' & $params & ' -id ' & $title & ' "' & $gamefold & '"', @ScriptDir)
 				_FileWriteLog($logfle, "Verified - " & $title & ".")
 			EndIf
+			GUIDelete($VerifyGUI)
+			ExitLoop
 		Case $msg = $Checkbox_zip
 			; Enable zip file verification
 			If GUICtrlRead($Checkbox_zip) = $GUI_CHECKED Then
