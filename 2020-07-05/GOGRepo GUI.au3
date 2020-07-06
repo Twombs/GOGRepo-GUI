@@ -34,26 +34,23 @@
 
 _Singleton("gog-repo-gui-timboli")
 
-Global $Button_add, $Button_dest, $Button_down, $Button_exit, $Button_find, $Button_fix
-Global $Button_fold, $Button_info, $Button_log, $Button_more, $Button_move, $Button_movedown, $Button_moveup
-Global $Button_pic, $Button_queue, $Button_removall, $Button_remove, $Button_setup, $Button_start, $Button_stop
-Global $Checkbox_all, $Checkbox_alpha, $Checkbox_check, $Checkbox_cover, $Checkbox_extra, $Checkbox_files
-Global $Checkbox_game, $Checkbox_image, $Checkbox_linux, $Checkbox_other, $Checkbox_show, $Checkbox_test
-Global $Checkbox_update, $Checkbox_verify, $Checkbox_win, $Combo_dest, $Combo_OS, $Combo_shutdown, $Group_done
-Global $Group_download, $Group_games, $Group_waiting, $Input_dest, $Input_destination, $Input_download
-Global $Input_extra, $Input_lang, $Input_langs, $Input_name, $Input_OP, $Input_OS, $Input_title, $List_done
-Global $List_games, $List_waiting, $Pic_cover, $Progress_bar
-Global $Control_1, $Control_2, $Control_3, $Control_4
-;, $Button_edit
+Global $Button_add, $Button_dest, $Button_down, $Button_edit, $Button_exit, $Button_find, $Button_fix, $Button_fold, $Button_info
+Global $Button_log, $Button_more, $Button_move, $Button_movedown, $Button_moveup, $Button_pic, $Button_queue
+Global $Button_removall, $Button_remove, $Button_setup, $Button_start, $Button_stop, $Checkbox_all, $Checkbox_alpha
+Global $Checkbox_check, $Checkbox_cover, $Checkbox_extra, $Checkbox_files, $Checkbox_game, $Checkbox_image
+Global $Checkbox_linux, $Checkbox_other, $Checkbox_show, $Checkbox_test, $Checkbox_update, $Checkbox_verify
+Global $Checkbox_win, $Combo_dest, $Combo_OS, $Combo_shutdown, $Group_done, $Group_download, $Group_games
+Global $Group_waiting, $Input_dest, $Input_destination, $Input_download, $Input_extra, $Input_lang, $Input_langs
+Global $Input_name, $Input_OP, $Input_OS, $Input_title, $List_done, $List_games, $List_waiting, $Pic_cover, $Progress_bar
+;
 Global $a, $all, $alpha, $ans, $array, $auto, $bigpic, $blackjpg, $c, $check, $chunk, $chunks, $cookies, $cover
-Global $date, $delay, $delete, $dest, $done, $down, $downlist, $DownloadGUI, $drv, $extras, $fdate, $file, $files
-Global $flag, $game, $gamefold, $gamepic, $games, $gamesfle, $gamesfold, $gogrepo, $GOGRepoGUI, $height, $icoD
-Global $icoF, $icoI, $icoS, $icoT, $icoX, $image, $imgfle, $ind, $infofle, $inifle, $lang, $left, $let, $line
-Global $lines, $locations, $logfle, $manifest, $md5, $minimize, $name, $num, $open, $OS, $OSget, $path, $percent
-Global $pid, $progress, $QueueGUI, $read, $res, $segment, $SetupGUI, $shell, $shutdown, $sizecheck, $split, $started
-Global $state, $stop, $style, $t, $text, $textdump, $threads, $title, $titles, $titlist, $top, $tot, $type, $UpdateGUI
-Global $updated, $updating, $user, $val, $validate, $validation, $VerifyGUI, $verifying, $version, $wait, $width
-Global $window, $winpos, $xpos, $ypos, $zipcheck
+Global $date, $delay, $dest, $done, $downlist, $DownloadGUI, $extras, $fdate, $file, $files, $flag, $game, $gamefold
+Global $gamepic, $games, $gamesfle, $gamesfold, $gogrepo, $GOGRepoGUI, $height, $icoD, $icoF, $icoI, $icoS, $icoT, $icoX
+Global $image, $imgfle, $ind, $infofle, $inifle, $lang, $left, $let, $line, $lines, $locations, $logfle, $manifest
+Global $minimize, $name, $num, $open, $OS, $OSget, $path, $percent, $pid, $progress, $QueueGUI, $read, $res, $segment
+Global $SetupGUI, $shell, $shutdown, $split, $started, $state, $stop, $style, $t, $text, $textdump, $threads, $title
+Global $titles, $titlist, $top, $tot, $type, $UpdateGUI, $updated, $updating, $user, $val, $validate, $VerifyGUI
+Global $verifying, $version, $wait, $width, $window, $winpos, $xpos, $ypos
 
 $bigpic = @ScriptDir & "\Big.jpg"
 $blackjpg = @ScriptDir & "\Black.jpg"
@@ -433,33 +430,8 @@ Func MainGUI()
 	;
 	FillTheGamesList()
 	;
-	$sizecheck = IniRead($inifle, "Verify", "size", "")
-	If $sizecheck = "" Then
-		$sizecheck = 1
-		IniWrite($inifle, "Verify", "size", $sizecheck)
-	EndIf
-	;
-	$zipcheck = IniRead($inifle, "Verify", "zips", "")
-	If $zipcheck = "" Then
-		$zipcheck = 1
-		IniWrite($inifle, "Verify", "zips", $zipcheck)
-	EndIf
-	;
-	$md5 = IniRead($inifle, "Verify", "md5", "")
-	If $md5 = "" Then
-		$md5 = 1
-		IniWrite($inifle, "Verify", "md5", $md5)
-	EndIf
-	;
-	$delete = IniRead($inifle, "Verify Failure", "delete", "")
-	If $delete = "" Then
-		$delete = 4
-		IniWrite($inifle, "Verify Failure", "delete", $delete)
-	EndIf
-	;
 	$all = 4
 	$done = 0
-	$down = ""
 	$find = ""
 	$started = 4
 	$update = 4
@@ -619,7 +591,7 @@ Func MainGUI()
 		Case $msg = $Button_info
 			; Program Information
 			$delay = $wait * 5
-			$ans = MsgBox(262209, "Program Information", _
+			MsgBox(262208, "Program Information", _
 				"This program is a frontend GUI for 'gogrepo.py' (Python) program" & @LF & _
 				"that can get a manifest of your GOG.com games library, as well as" & @LF & _
 				"download your games, verify and update etc." & @LF & @LF & _
@@ -636,15 +608,7 @@ Func MainGUI()
 				"gogrepo.py needs to be in the same folder as GOGRepo GUI." & @LF & @LF & _
 				"BIG THANKS to those responsible for gogrepo.py." & @LF & _
 				"(woolymethodman, Kalanyr, etc)" & @LF & @LF & _
-				"© June 2020 - GOGRepo GUI created by Timboli." & @LF & @LF & _
-				"OK = More Information.", $delay, $GOGRepoGUI)
-			If $ans = 1 Then
-				MsgBox(262208, "Program Information (cont.)", _
-					"The FIND button has two search methods." & @LF & _
-					"(1) Look for an entry starting with the specified text." & @LF & _
-					"(2) Look for an entry that contains it (use with CTRL key)." & @LF & _
-					"", $delay, $GOGRepoGUI)
-			EndIf
+				"© June 2020 - GOGRepo GUI created by Timboli.", $delay, $GOGRepoGUI)
 		Case $msg = $Button_fold
 			; Open the selected Game folder
 			If FileExists($gamesfold) Then
@@ -689,11 +653,7 @@ Func MainGUI()
 			If $title <> "" Then
 				$find = $title
 				$ind = _GUICtrlListBox_GetCurSel($List_games)
-				If _IsPressed("11") Then
-					$ind = _GUICtrlListBox_FindInText($List_games, $title, $ind, True)
-				Else
-					$ind = _GUICtrlListBox_SelectString($List_games, $title, $ind)
-				EndIf
+				$ind = _GUICtrlListBox_SelectString($List_games, $title, $ind)
 				If $ind > -1 Then
 					_GUICtrlListBox_SetCurSel($List_games, $ind)
 					_GUICtrlListBox_ClickItem($List_games, $ind)
@@ -709,31 +669,28 @@ Func MainGUI()
 				$title = GUICtrlRead($Input_title)
 				$name = GUICtrlRead($Input_name)
 				If ($title <> "" And $name <> "") Or $all = 1 Then
-					$gamesfold = $dest
-					If $update = 4 And $gamesfold <> "" Then
-						If $all = 1 Then
-							$gamefold = $gamesfold
+					If $all = 1 Then
+						$gamesfold = $dest
+						$gamefold = $gamesfold
+					Else
+						;$path = IniRead($gamesfle, $name, "path", "")
+						$path = IniRead($locations, $name, "path", "")
+						If $path = "" Then
+							$gamesfold = $dest
 						Else
-							;$path = IniRead($gamesfle, $name, "path", "")
-							$path = IniRead($locations, $name, "path", "")
-							If $path <> "" Then
-								$gamesfold = $path
-							EndIf
-							$gamefold = $gamesfold
-							If $alpha = 1 Then
-								$let = StringUpper(StringLeft($title, 1))
-								$gamefold = $gamefold & "\" & $let
-								;MsgBox(262192, "Got Here 2", $title & @LF & $gamefold, $wait, $GOGRepoGUI)
-							EndIf
+							$gamesfold = $path
 						EndIf
-						$drv = StringLeft($gamefold, 3)
-						If FileExists($drv) Then
-							If Not FileExists($gamefold) And $verify = 4 Then
-								DirCreate($gamefold)
-							EndIf
+						$gamefold = $gamesfold
+						If $alpha = 1 Then
+							$let = StringUpper(StringLeft($title, 1))
+							$gamefold = $gamefold & "\" & $let
+							;MsgBox(262192, "Got Here 2", $title & @LF & $gamefold, $wait, $GOGRepoGUI)
 						EndIf
 					EndIf
-					If FileExists($gamefold) Or $update = 1 Then
+					If Not FileExists($gamefold) And $verify = 4 Then
+						DirCreate($gamefold)
+					EndIf
+					If FileExists($gamefold) Then
 						If $verify = 1 Then
 							; Verify one or more games
 							EnableDisableControls($GUI_DISABLE)
@@ -764,11 +721,6 @@ Func MainGUI()
 							FileChangeDir(@ScriptDir)
 							If $all = 1 Then
 								DownloadGUI()
-								_GUICtrlListBox_SetCurSel($List_games, -1)
-								GUICtrlSetData($Input_name, "")
-								GUICtrlSetData($Input_title, "")
-								GUICtrlSetData($Input_OS, "")
-								GUICtrlSetData($Input_extra, "")
 							Else
 								$tot = IniRead($downlist, "Downloads", "total", 0)
 								While 1
@@ -1155,7 +1107,7 @@ EndFunc ;=> MainGUI
 
 Func DownloadGUI()
 	; Query which DOWNLOAD ALL method to use.
-	Local $Button_close, $Button_inf, $Button_one, $Button_two, $Button_veryopts, $Group_one, $Group_two, $Label_one, $Label_two
+	Local $Button_close, $Button_inf, $Button_one, $Button_two, $Group_one, $Group_two, $Label_extra, $Label_one, $Label_two
 	Local $params, $pos
 	;
 	$DownloadGUI = GuiCreate("Download ALL", 230, 400, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
@@ -1184,11 +1136,13 @@ Func DownloadGUI()
 		& @LF & "You can also have greater control over" _
 		& @LF & "the download location, individually.", 20, 245, 190, 70)
 	;
-	$Button_veryopts = GuiCtrlCreateButton("Verify" & @LF & "Options", 10, 340, 75, 50, $BS_MULTILINE)
-	GUICtrlSetFont($Button_veryopts, 9, 600)
-	GUICtrlSetTip($Button_veryopts, "Set the Verify options for downloading!")
+	$Label_extra = GuiCtrlCreateLabel("Alphanumeric" _
+		& @LF & "folders are not" _
+		& @LF & "supported by" _
+		& @LF & "Method One.", 13, 338, 70, 75)
+	GUICtrlSetColor($Label_extra, $COLOR_RED)
 	;
-	$Button_inf = GuiCtrlCreateButton("Info", 95, 340, 55, 50, $BS_ICON)
+	$Button_inf = GuiCtrlCreateButton("Info", 90, 340, 60, 50, $BS_ICON)
 	GUICtrlSetTip($Button_inf, "Download ALL Information!")
 	;
 	$Button_close = GuiCtrlCreateButton("EXIT", 160, 340, 60, 50, $BS_ICON)
@@ -1211,14 +1165,8 @@ Func DownloadGUI()
 			; Exit / Close / Quit the window
 			GUIDelete($DownloadGUI)
 			ExitLoop
-		Case $msg = $Button_veryopts
-			; Set the Verify options for downloading
-			$down = 1
-			VerifyGUI()
-			$down = ""
 		Case $msg = $Button_two
 			; Download ALL Games using Method 2
-			; METHOD 2 - Copy all titles (& their details) to Downloads list, providing interaction & control.
 			SplashTextOn("", "Please Wait!" & @LF & "(List Building)", 200, 120, Default, Default, 33)
 			IniWrite($inifle, "Download ALL List", "begin", _Now())
 			;Sleep(3000)
@@ -1227,17 +1175,12 @@ Func DownloadGUI()
 				If $res = 1 Then
 					$tot = 0
 					$textdump = ""
-					;$lines = "OS=" & $OSget
-					;$lines = $lines & @CRLF & "files=" & $files
-					$lines = "files=" & $files
+					$lines = "OS=" & $OSget
+					$lines = $lines & @CRLF & "files=" & $files
 					$lines = $lines & @CRLF & "extras=" & $extras
 					$lines = $lines & @CRLF & "language=" & $lang
 					$lines = $lines & @CRLF & "cover=" & $cover
-					$validation = "md5=" & $md5
-					$validation = $validation & @CRLF & "size=" & $sizecheck
-					$validation = $validation & @CRLF & "zips=" & $zipcheck
-					$validation = $validation & @CRLF & "delete=" & $delete
-					For $a = 1 To $array[0]
+					For $a = 2 To $array[0]
 						$line = $array[$a]
 						If $line <> "" Then
 							$line = StringSplit($line, " | ", 1)
@@ -1273,16 +1216,11 @@ Func DownloadGUI()
 														;MsgBox(262192, "Got Here 2", $title & @LF & $gamefold, $wait, $GOGRepoGUI)
 													EndIf
 													$params = $params & @CRLF & "destination=" & $gamefold
-													;
-													$OS = IniRead($gamesfle, $name, "osextra", "")
-													$params = $params & @CRLF & "osextra=" & $OS
-													;
 													$params = $params & @CRLF & $lines
 													If $image <> "" Then
 														$params = $params & @CRLF & "image=" & $image
 													EndIf
 													$params = $params & @CRLF & "verify=" & $validate
-													$params = $params & @CRLF & $validation
 												EndIf
 											Else
 												$title = ""
@@ -1325,7 +1263,7 @@ Func DownloadGUI()
 			ExitLoop
 		Case $msg = $Button_one
 			; Download ALL Games using Method 1
-			; METHOD 1 - Hand reins fully to 'gogrepo.py', and GUI remains disabled for duration.
+			; METHOD 1 - Copy all titles (& their details) to Downloads list, providing interaction & control.
 			EnableDisableControls($GUI_DISABLE)
 			$pid = RunWait(@ComSpec & ' /c gogrepo.py download "' & $gamefold & '"', @ScriptDir)
 			If $validate = 1 Then $pid = RunWait(@ComSpec & ' /k gogrepo.py verify "' & $gamefold & '"', @ScriptDir)
@@ -1333,20 +1271,17 @@ Func DownloadGUI()
 			EnableDisableControls($GUI_ENABLE)
 		Case $msg = $Button_inf
 			; Download ALL Information
-			$delay = $wait * 3
-			MsgBox(262208, "Download ALL Information", _
-				"Alphanumeric folders are not supported by Method One." & @LF & _
-				".", $delay, $DownloadGUI)
 		Case Else
 			;;;
 		EndSelect
 	WEnd
+	;
+	; METHOD 2 - Hand reins fully to 'gogrepo.py', and GUI remains disabled for duration.
 EndFunc ;=> DownloadGUI
 
 Func QueueGUI()
-	Local $Button_inf, $Button_quit, $Button_record, $Checkbox_delete, $Checkbox_dos, $Checkbox_md5
-	Local $Checkbox_size, $Checkbox_start, $Checkbox_stop, $Checkbox_zip, $Group_auto, $Group_info
-	Local $Group_lang, $Group_progress, $Group_shutdown, $Group_stop
+	Local $Button_inf, $Button_quit, $Button_record, $Checkbox_dos, $Checkbox_start, $Checkbox_stop
+	Local $Group_auto, $Group_info, $Group_progress, $Group_shutdown, $Group_stop
 	;
 	Local $params, $restart, $section, $shutopts, $swap, $templog
 	;
@@ -1358,26 +1293,18 @@ Func QueueGUI()
 	GUICtrlSetBkColor($Input_download, 0xBBFFBB)
 	GUICtrlSetTip($Input_download, "Game Name!")
 	;
-	$Group_waiting = GuiCtrlCreateGroup("Games To Download", 10, 75, 370, 180)
-	$List_waiting = GuiCtrlCreateList("", 20, 95, 350, 100, $WS_BORDER + $WS_VSCROLL)
+	$Group_waiting = GuiCtrlCreateGroup("Games To Download", 10, 75, 370, 167)
+	$List_waiting = GuiCtrlCreateList("", 20, 95, 350, 110, $WS_BORDER + $WS_VSCROLL)
 	GUICtrlSetBkColor($List_waiting, 0xB9FFFF)
 	GUICtrlSetTip($List_waiting, "List of games waiting to download!")
-	$Input_destination = GUICtrlCreateInput("", 20, 200, 295, 20)
+	$Input_destination = GUICtrlCreateInput("", 20, 210, 295, 20)
 	GUICtrlSetBkColor($Input_destination, 0xBBFFBB)
 	GUICtrlSetTip($Input_destination, "Destination path!")
-	$Checkbox_check = GUICtrlCreateCheckbox("Verify", 325, 200, 45, 20)
+	$Checkbox_check = GUICtrlCreateCheckbox("Verify", 325, 210, 45, 20)
 	GUICtrlSetTip($Checkbox_check, "Verify the download!")
-	$Checkbox_md5 = GUICtrlCreateCheckbox("MD5 Check", 20, 225, 80, 20)
-	GUICtrlSetTip($Checkbox_md5, "Enable MD5 checksum verification!")
-	$Checkbox_size = GUICtrlCreateCheckbox("File Size", 110, 225, 60, 20)
-	GUICtrlSetTip($Checkbox_size, "Enable file size verification!")
-	$Checkbox_zip = GUICtrlCreateCheckbox("Zip Files", 180, 225, 60, 20)
-	GUICtrlSetTip($Checkbox_zip, "Enable zip file verification!")
-	$Checkbox_delete = GUICtrlCreateCheckbox("Delete File On Failure", 250, 225, 125, 20)
-	GUICtrlSetTip($Checkbox_delete, "Delete if a file fails integrity check!")
 	;
-	$Group_done = GuiCtrlCreateGroup("Downloads Finished", 10, 264, 370, 131)
-	$List_done = GuiCtrlCreateList("", 20, 284, 350, 100, $WS_BORDER + $WS_VSCROLL)
+	$Group_done = GuiCtrlCreateGroup("Downloads Finished", 10, 252, 370, 143)
+	$List_done = GuiCtrlCreateList("", 20, 272, 350, 110, $WS_BORDER + $WS_VSCROLL)
 	GUICtrlSetBkColor($List_done, 0xFFFFCA)
 	GUICtrlSetTip($List_done, "List of games that have finished downloading!")
 	;
@@ -1397,21 +1324,21 @@ Func QueueGUI()
 	GUICtrlSetFont($Checkbox_dos, 7, 400, 0, "Small Fonts")
 	GUICtrlSetTip($Checkbox_dos, "Minimize the gogrepo.py DOS Console when it starts!")
 	;
-	$Group_stop = GuiCtrlCreateGroup("Stop After", 390, 75, 122, 51)
+	$Group_stop = GuiCtrlCreateGroup("Stop After", 390, 75, 122, 55)
 	$Checkbox_stop = GUICtrlCreateCheckbox("Current Download", 400, 95, 102, 20)
 	GUICtrlSetTip($Checkbox_stop, "Stop after current download!")
 	;
-	$Button_add = GuiCtrlCreateButton("ADD" & @LF & "STOP", 522, 80, 58, 46, $BS_MULTILINE)
+	$Button_add = GuiCtrlCreateButton("ADD" & @LF & "STOP", 522, 80, 58, 50, $BS_MULTILINE)
 	GUICtrlSetFont($Button_add, 7, 600, 0, "Small Fonts")
 	GUICtrlSetTip($Button_add, "Add a stop before selected entry!")
 	;
-	$Button_moveup = GuiCtrlCreateButton("UP", 390, 138, 50, 51, $BS_ICON)
+	$Button_moveup = GuiCtrlCreateButton("UP", 390, 140, 50, 50, $BS_ICON)
 	GUICtrlSetTip($Button_moveup, "Move selected entry up the list!")
 	;
-	$Button_movedown = GuiCtrlCreateButton("DOWN", 390, 199, 50, 51, $BS_ICON)
+	$Button_movedown = GuiCtrlCreateButton("DOWN", 390, 200, 50, 50, $BS_ICON)
 	GUICtrlSetTip($Button_movedown, "Move selected entry down the list!")
 	;
-	$Button_removall = GuiCtrlCreateButton("Remove ALL", 450, 138, 80, 24)
+	$Button_removall = GuiCtrlCreateButton("Remove ALL", 450, 140, 80, 22)
 	GUICtrlSetFont($Button_removall, 7, 600, 0, "Small Fonts")
 	GUICtrlSetTip($Button_removall, "Remove all downloads from the list!")
 	;
@@ -1419,25 +1346,27 @@ Func QueueGUI()
 	GUICtrlSetFont($Button_remove, 8, 600)
 	GUICtrlSetTip($Button_remove, "Remove selected entry from the list!")
 	;
-	$Group_lang = GuiCtrlCreateGroup("", 450, 208, 80, 42)
-	$Input_lang = GUICtrlCreateInput("", 460, 222, 60, 20, $ES_CENTER + $ES_READONLY)
-	GUICtrlSetBkColor($Input_lang, 0xD7D700)
-	GUICtrlSetTip($Input_lang, "Language for selected entry!")
+	$Button_edit = GuiCtrlCreateButton("UPDATE" & @LF & "Selected", 450, 211, 80, 39, $BS_MULTILINE)
+	GUICtrlSetFont($Button_edit, 8, 600)
+	GUICtrlSetTip($Button_edit, "Update download options for selected entry!")
 	;
-	$Group_progress = GuiCtrlCreateGroup("", 540, 133, 40, 117)
-	$Progress_bar = GUICtrlCreateProgress(550, 148, 20, 92, $PBS_SMOOTH + $PBS_VERTICAL)
+	$Group_progress = GuiCtrlCreateGroup("", 540, 135, 40, 115)
+	$Progress_bar = GUICtrlCreateProgress(550, 150, 20, 90, $PBS_SMOOTH + $PBS_VERTICAL)
 	GUICtrlSetData($Progress_bar, 0)
 	;
-	$Group_info = GuiCtrlCreateGroup("Download Entry Options", 390, 258, 190, 75)
-	$Input_OP = GUICtrlCreateInput("", 400, 278, 170, 20, $ES_CENTER + $ES_READONLY)
-	GUICtrlSetBkColor($Input_OP, 0xD7D700)
+	$Group_info = GuiCtrlCreateGroup("Download Entry Information", 390, 258, 190, 75)
+	$Input_OP = GUICtrlCreateInput("", 400, 278, 90, 20, $ES_READONLY)
+	GUICtrlSetBkColor($Input_OP, 0xBBFFBB)
 	GUICtrlSetTip($Input_OP, "OS to download!")
-	$Checkbox_files = GUICtrlCreateCheckbox("Game", 402, 303, 50, 20)
+	$Checkbox_files = GUICtrlCreateCheckbox("Game Files", 500, 278, 70, 20)
 	GUICtrlSetTip($Checkbox_files, "Download game files!")
-	$Checkbox_other = GUICtrlCreateCheckbox("Extras", 463, 303, 50, 20)
+	$Checkbox_other = GUICtrlCreateCheckbox("Extras", 400, 303, 50, 20)
 	GUICtrlSetTip($Checkbox_other, "Download extras files!")
-	$Checkbox_image = GUICtrlCreateCheckbox("Cover", 524, 303, 45, 20)
+	$Checkbox_image = GUICtrlCreateCheckbox("Cover", 460, 303, 45, 20)
 	GUICtrlSetTip($Checkbox_image, "Download cover file!")
+	$Input_lang = GUICtrlCreateInput("", 515, 303, 55, 20, $ES_READONLY)
+	GUICtrlSetBkColor($Input_lang, 0xBBFFBB)
+	GUICtrlSetTip($Input_lang, "Language for selected entry!")
 	;
 	$Group_shutdown = GuiCtrlCreateGroup("Shutdown", $width - 198, $height - 65, 101, 55)
 	$Combo_shutdown = GUICtrlCreateCombo("", $width - 188, $height - 45, 81, 21)
@@ -1455,11 +1384,6 @@ Func QueueGUI()
 	;
 	; SETTINGS
 	GuiSetState(@SW_DISABLE, $QueueGUI)
-	;
-	$Control_1 = $Checkbox_md5
-	$Control_2 = $Checkbox_size
-	$Control_3 = $Checkbox_zip
-	$Control_4 = $Checkbox_delete
 	;
 	GUICtrlSetImage($Button_moveup, $shell, -247, 1)
 	GUICtrlSetImage($Button_movedown, $shell, -248, 1)
@@ -1523,11 +1447,6 @@ Func QueueGUI()
 	GUICtrlSetState($Button_moveup, $GUI_DISABLE)
 	GUICtrlSetState($Button_movedown, $GUI_DISABLE)
 	;
-	GUICtrlSetState($Checkbox_md5, $GUI_DISABLE)
-	GUICtrlSetState($Checkbox_size, $GUI_DISABLE)
-	GUICtrlSetState($Checkbox_zip, $GUI_DISABLE)
-	GUICtrlSetState($Checkbox_delete, $GUI_DISABLE)
-	;
 	;$done = 1
 	;$tots = 194
 	$progress = $done + $tot
@@ -1539,7 +1458,6 @@ Func QueueGUI()
 	;
 	$restart = ""
 	$window = $QueueGUI
-
 
 	GuiSetState(@SW_ENABLE, $QueueGUI)
 	While 1
@@ -1765,6 +1683,9 @@ Func QueueGUI()
 						& "the REMOVE Selected button.", 5, $QueueGUI)
 				EndIf
 			EndIf
+		Case $msg = $Button_edit
+			; Update download options for selected entry
+			MsgBox(262192, "Program Advice", "This feature not yet enabled!", 2, $QueueGUI)
 		Case $msg = $Button_add
 			; Add a stop before selected entry
 			$title = GUICtrlRead($List_waiting)
@@ -1830,7 +1751,7 @@ Func QueueGUI()
 				Else
 					GUICtrlSetState($Button_movedown, $GUI_DISABLE)
 				EndIf
-				$val = IniRead($downlist, $title, "osextra", "")
+				$val = IniRead($downlist, $title, "OS", "")
 				GUICtrlSetData($Input_OP, $val)
 				$val = IniRead($downlist, $title, "files", "")
 				GUICtrlSetState($Checkbox_files, $val)
@@ -1840,33 +1761,10 @@ Func QueueGUI()
 				GUICtrlSetData($Input_lang, $val)
 				$val = IniRead($downlist, $title, "cover", "")
 				GUICtrlSetState($Checkbox_image, $val)
-				$val = IniRead($downlist, $title, "destination", "")
-				GUICtrlSetData($Input_destination, $val)
 				$val = IniRead($downlist, $title, "verify", "")
 				GUICtrlSetState($Checkbox_check, $val)
-				If $val = 1 Then
-					GUICtrlSetState($Checkbox_md5, $GUI_ENABLE)
-					GUICtrlSetState($Checkbox_size, $GUI_ENABLE)
-					GUICtrlSetState($Checkbox_zip, $GUI_ENABLE)
-					GUICtrlSetState($Checkbox_delete, $GUI_ENABLE)
-					$val = IniRead($downlist, $title, "md5", "")
-					GUICtrlSetState($Checkbox_md5, $val)
-					$val = IniRead($downlist, $title, "size", "")
-					GUICtrlSetState($Checkbox_size, $val)
-					$val = IniRead($downlist, $title, "zips", "")
-					GUICtrlSetState($Checkbox_zip, $val)
-					$val = IniRead($downlist, $title, "delete", "")
-					GUICtrlSetState($Checkbox_delete, $val)
-				Else
-					GUICtrlSetState($Checkbox_md5, $GUI_UNCHECKED)
-					GUICtrlSetState($Checkbox_size, $GUI_UNCHECKED)
-					GUICtrlSetState($Checkbox_zip, $GUI_UNCHECKED)
-					GUICtrlSetState($Checkbox_delete, $GUI_UNCHECKED)
-					GUICtrlSetState($Checkbox_md5, $GUI_DISABLE)
-					GUICtrlSetState($Checkbox_size, $GUI_DISABLE)
-					GUICtrlSetState($Checkbox_zip, $GUI_DISABLE)
-					GUICtrlSetState($Checkbox_delete, $GUI_DISABLE)
-				EndIf
+				$val = IniRead($downlist, $title, "destination", "")
+				GUICtrlSetData($Input_destination, $val)
 			EndIf
 		Case Else
 			;;;
@@ -2253,15 +2151,13 @@ Func UpdateGUI()
 			FileChangeDir(@ScriptDir)
 			If $all = 1 Then
 				$updating = 1
-				_FileWriteLog($logfle, "Updated manifest for all games.")
 				$pid = RunWait(@ComSpec & ' /k gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params, @ScriptDir)
-				_FileWriteLog($logfle, "Updated finished.")
+				_FileWriteLog($logfle, "Updated manifest for all games.")
 			Else
 				If $title <> "" Then
 					$updating = 1
-					_FileWriteLog($logfle, "Updated manifest for - " & $title & ".")
 					$pid = RunWait(@ComSpec & ' /k gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -id ' & $title, @ScriptDir)
-					_FileWriteLog($logfle, "Updated finished.")
+					_FileWriteLog($logfle, "Updated manifest for - " & $title & ".")
 				Else
 					MsgBox(262192, "Game Error", "Title is not selected!", $wait, $UpdateGUI)
 					ContinueLoop
@@ -2309,10 +2205,10 @@ EndFunc ;=> UpdateGUI
 
 Func VerifyGUI()
 	Local $Button_close, $Button_verify, $Checkbox_delete, $Checkbox_every, $Checkbox_md5, $Checkbox_size, $Checkbox_zip
-	Local $params
+	Local $delete, $md5, $params, $sizecheck, $zipcheck
 	;
 	$VerifyGUI = GuiCreate("Verify Game Files", 230, 140, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
-														+ $WS_VISIBLE + $WS_CLIPSIBLINGS, $WS_EX_TOPMOST, $window)
+														+ $WS_VISIBLE + $WS_CLIPSIBLINGS, $WS_EX_TOPMOST, $GOGRepoGUI)
 	GUISetBkColor(0xD7D700, $VerifyGUI)
 	;
 	; CONTROLS
@@ -2345,12 +2241,33 @@ Func VerifyGUI()
 	EndIf
 	GUICtrlSetState($Checkbox_every, $GUI_DISABLE)
 	;
+	$sizecheck = IniRead($inifle, "Verify", "size", "")
+	If $sizecheck = "" Then
+		$sizecheck = 1
+		IniWrite($inifle, "Verify", "size", $sizecheck)
+	EndIf
 	GUICtrlSetState($Checkbox_size, $sizecheck)
-	GUICtrlSetState($Checkbox_zip, $zipcheck)
-	GUICtrlSetState($Checkbox_md5, $md5)
-	GUICtrlSetState($Checkbox_delete, $delete)
 	;
-	If $down = 1 Then GUICtrlSetState($Button_verify, $GUI_DISABLE)
+	$zipcheck = IniRead($inifle, "Verify", "zips", "")
+	If $zipcheck = "" Then
+		$zipcheck = 1
+		IniWrite($inifle, "Verify", "zips", $zipcheck)
+	EndIf
+	GUICtrlSetState($Checkbox_zip, $zipcheck)
+	;
+	$md5 = IniRead($inifle, "Verify", "md5", "")
+	If $md5 = "" Then
+		$md5 = 1
+		IniWrite($inifle, "Verify", "md5", $md5)
+	EndIf
+	GUICtrlSetState($Checkbox_md5, $md5)
+	;
+	$delete = IniRead($inifle, "Verify Failure", "delete", "")
+	If $delete = "" Then
+		$delete = 4
+		IniWrite($inifle, "Verify Failure", "delete", $delete)
+	EndIf
+	GUICtrlSetState($Checkbox_delete, $delete)
 	;
 	$window = $VerifyGUI
 
@@ -2670,7 +2587,6 @@ Func CheckOnShutdown()
 EndFunc ;=> CheckOnShutdown
 
 Func ClearDisableEnableRestore()
-	GUICtrlSetData($Group_waiting, "Games To Download")
 	GUICtrlSetData($List_waiting, "")
 	GUICtrlSetData($Input_OP, "")
 	GUICtrlSetData($Input_lang, "")
@@ -2681,14 +2597,6 @@ Func ClearDisableEnableRestore()
 	GUICtrlSetState($Checkbox_check, $GUI_UNCHECKED)
 	GUICtrlSetState($Button_moveup, $GUI_DISABLE)
 	GUICtrlSetState($Button_movedown, $GUI_DISABLE)
-	GUICtrlSetState($Control_1, $GUI_UNCHECKED)
-	GUICtrlSetState($Control_2, $GUI_UNCHECKED)
-	GUICtrlSetState($Control_3, $GUI_UNCHECKED)
-	GUICtrlSetState($Control_4, $GUI_UNCHECKED)
-	GUICtrlSetState($Control_1, $GUI_DISABLE)
-	GUICtrlSetState($Control_2, $GUI_DISABLE)
-	GUICtrlSetState($Control_3, $GUI_DISABLE)
-	GUICtrlSetState($Control_4, $GUI_DISABLE)
 	DisableQueueButtons()
 	;
 	GUISwitch($GOGRepoGUI)
@@ -2705,7 +2613,7 @@ Func DisableQueueButtons()
 	GUICtrlSetState($Button_add, $GUI_DISABLE)
 	GUICtrlSetState($Button_removall, $GUI_DISABLE)
 	GUICtrlSetState($Button_remove, $GUI_DISABLE)
-	;GUICtrlSetState($Button_edit, $GUI_DISABLE)
+	GUICtrlSetState($Button_edit, $GUI_DISABLE)
 EndFunc ;=> DisableQueueButtons
 
 Func EnableDisableControls($state)
@@ -2758,11 +2666,9 @@ Func FillTheGamesList()
 				$line = $array[$a]
 				If $line <> "" Then
 					$line = StringSplit($line, " | ", 1)
-					If $line[0] = 2 Then
-						$name = $line[1]
-						GUICtrlSetData($List_games, $name)
-						$games = $games + 1
-					EndIf
+					$name = $line[1]
+					GUICtrlSetData($List_games, $name)
+					$games = $games + 1
 				EndIf
 			Next
 			If $games > 0 Then GUICtrlSetData($Group_games, "Games  (" & $games & ")")
