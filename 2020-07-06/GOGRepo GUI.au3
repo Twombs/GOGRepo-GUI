@@ -13,8 +13,8 @@
 ; FUNCTIONS
 ; DownloadGUI(), MainGUI(), QueueGUI(), SetupGUI(), UpdateGUI(), VerifyGUI()
 ; CheckIfPythonRunning(), CheckOnGameDownload(), CheckOnShutdown(), ClearDisableEnableRestore()
-; DisableQueueButtons(), EnableDisableControls($state), FillTheGamesList(), GetAllowedName()
-; GetWindowPosition(), ParseTheManifest(), RemoveListEntry($num), ReplaceForeignCharacters($text)
+; DisableQueueButtons(), EnableDisableControls($state), FillTheGamesList(), GetWindowPosition()
+; ParseTheManifest(), RemoveListEntry($num)
 
 #include <Constants.au3>
 #include <GUIConstantsEx.au3>
@@ -43,19 +43,18 @@ Global $Checkbox_update, $Checkbox_verify, $Checkbox_win, $Combo_dest, $Combo_OS
 Global $Group_download, $Group_games, $Group_waiting, $Input_dest, $Input_destination, $Input_download
 Global $Input_extra, $Input_lang, $Input_langs, $Input_name, $Input_OP, $Input_OS, $Input_title, $List_done
 Global $List_games, $List_waiting, $Pic_cover, $Progress_bar
-Global $Control_1, $Control_2, $Control_3, $Control_4, $Control_5
-;
-Global $a, $addlist, $alf, $all, $alpha, $ans, $array, $auto, $bigpic, $blackjpg, $c, $check, $chunk, $chunks
-Global $cookies, $cover, $date, $delay, $delete, $dest, $done, $down, $downall, $downlist, $DownloadGUI, $drv
-Global $extras, $fdate, $file, $files, $flag, $game, $gamefold, $gamepic, $games, $gamesfle, $gamesfold, $gogrepo
-Global $GOGRepoGUI, $height, $icoD, $icoF, $icoI, $icoS, $icoT, $icoX, $image, $imgfle, $ind, $infofle, $inifle
-Global $lang, $last, $latest, $left, $line, $lines, $locations, $logfle, $manifest, $md5, $minimize, $name, $num
-Global $open, $OS, $OSget, $path, $percent, $pid, $progress, $QueueGUI, $read, $res, $segment, $SetupGUI, $shell
-Global $shutdown, $sizecheck, $split, $started, $state, $stop, $style, $t, $text, $textdump, $threads, $title
-Global $titles, $titlist, $top, $tot, $type, $updated, $UpdateGUI, $updating, $user, $val, $validate, $validation
-Global $VerifyGUI, $verifying, $version, $wait, $width, $window, $winpos, $xpos, $ypos, $zipcheck
+Global $Control_1, $Control_2, $Control_3, $Control_4
+;, $Button_edit
+Global $a, $all, $alpha, $ans, $array, $auto, $bigpic, $blackjpg, $c, $check, $chunk, $chunks, $cookies, $cover
+Global $date, $delay, $delete, $dest, $done, $down, $downlist, $DownloadGUI, $drv, $extras, $fdate, $file, $files
+Global $flag, $game, $gamefold, $gamepic, $games, $gamesfle, $gamesfold, $gogrepo, $GOGRepoGUI, $height, $icoD
+Global $icoF, $icoI, $icoS, $icoT, $icoX, $image, $imgfle, $ind, $infofle, $inifle, $lang, $left, $let, $line
+Global $lines, $locations, $logfle, $manifest, $md5, $minimize, $name, $num, $open, $OS, $OSget, $path, $percent
+Global $pid, $progress, $QueueGUI, $read, $res, $segment, $SetupGUI, $shell, $shutdown, $sizecheck, $split, $started
+Global $state, $stop, $style, $t, $text, $textdump, $threads, $title, $titles, $titlist, $top, $tot, $type, $UpdateGUI
+Global $updated, $updating, $user, $val, $validate, $validation, $VerifyGUI, $verifying, $version, $wait, $width
+Global $window, $winpos, $xpos, $ypos, $zipcheck
 
-$addlist = @ScriptDir & "\Added.txt"
 $bigpic = @ScriptDir & "\Big.jpg"
 $blackjpg = @ScriptDir & "\Black.jpg"
 $cookies = @ScriptDir & "\gog-cookies.dat"
@@ -97,21 +96,18 @@ Func MainGUI()
 	$height = 405
 	$left = IniRead($inifle, "Program Window", "left", @DesktopWidth - $width - 25)
 	$top = IniRead($inifle, "Program Window", "top", @DesktopHeight - $height - 30)
-	$style = $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU + $WS_CLIPSIBLINGS + $WS_MINIMIZEBOX
+	$style = $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU + $WS_VISIBLE + $WS_CLIPSIBLINGS + $WS_MINIMIZEBOX
 	$GOGRepoGUI = GuiCreate("GOGRepo GUI", $width, $height, $left, $top, $style, $WS_EX_TOPMOST)
 	GUISetBkColor($COLOR_SKYBLUE, $GOGRepoGUI)
-	;GuiSetState(@SW_DISABLE, $GOGRepoGUI)
+	GuiSetState(@SW_DISABLE, $GOGRepoGUI)
 	; CONTROLS
 	$Group_games = GuiCtrlCreateGroup("Games", 10, 10, 370, 323)
 	$List_games = GuiCtrlCreateList("", 20, 30, 350, 220)
 	GUICtrlSetBkColor($List_games, 0xBBFFBB)
 	GUICtrlSetTip($List_games, "List of games!")
-	$Input_name = GUICtrlCreateInput("", 20, 250, 305, 20)
+	$Input_name = GUICtrlCreateInput("", 20, 250, 350, 20)
 	GUICtrlSetBkColor($Input_name, 0xFFFFB0)
 	GUICtrlSetTip($Input_name, "Game Name!")
-	$Button_last = GuiCtrlCreateButton("Last", 330, 249, 40, 22)
-	GUICtrlSetFont($Button_last, 7, 600, 0, "Small Fonts")
-	GUICtrlSetTip($Button_last, "Find the latest added game(s)!")
 	$Label_title = GuiCtrlCreateLabel("Title", 20, 275, 38, 20, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN + $SS_NOTIFY)
 	GUICtrlSetBkColor($Label_title, $COLOR_BLUE)
 	GUICtrlSetColor($Label_title, $COLOR_WHITE)
@@ -461,22 +457,10 @@ Func MainGUI()
 		IniWrite($inifle, "Verify Failure", "delete", $delete)
 	EndIf
 	;
-	$downall = IniRead($inifle, "Download ALL", "activated", "")
-	If $downall = "" Then
-		$downall = 4
-		IniWrite($inifle, "Download ALL", "activated", $downall)
-	EndIf
-	If $downall = 1 Then
-		GUICtrlSetState($Checkbox_all, $GUI_DISABLE)
-		GUICtrlSetState($Checkbox_update, $GUI_DISABLE)
-		GUICtrlSetState($Checkbox_verify, $GUI_DISABLE)
-	EndIf
-	;
 	$all = 4
 	$done = 0
 	$down = ""
 	$find = ""
-	$last = ""
 	$started = 4
 	$update = 4
 	$verify = 4
@@ -488,8 +472,7 @@ Func MainGUI()
 	$window = $GOGRepoGUI
 
 
-	;GuiSetState(@SW_ENABLE, $GOGRepoGUI)
-	GuiSetState(@SW_SHOWNORMAL, $GOGRepoGUI)
+	GuiSetState(@SW_ENABLE, $GOGRepoGUI)
 	While 1
 		$msg = GuiGetMsg()
 		Select
@@ -524,11 +507,6 @@ Func MainGUI()
 			QueueGUI()
 			$window = $GOGRepoGUI
 			GuiSetState(@SW_SHOW, $GOGRepoGUI)
-			If $downall = 4 Then
-				GUICtrlSetState($Checkbox_all, $GUI_ENABLE)
-				GUICtrlSetState($Checkbox_update, $GUI_ENABLE)
-				GUICtrlSetState($Checkbox_verify, $GUI_ENABLE)
-			EndIf
 		Case $msg = $Button_pic
 			; Download the selected image
 			$name = GUICtrlRead($Input_name)
@@ -638,35 +616,6 @@ Func MainGUI()
 		Case $msg = $Button_log
 			; View the record log file
 			If FileExists($logfle) Then ShellExecute($logfle)
-		Case $msg = $Button_last
-			; Find the latest added game(s)
-			If _IsPressed("11") Then $last = ""
-			If FileExists($addlist) Then
-				$res = _FileReadToArray($addlist, $latest)
-				If $res = 1 Then
-					If $last = "" Then
-						$last = $latest[0]
-						$name = $latest[$last]
-					Else
-						If $last > 1 Then
-							$last = $last - 1
-						Else
-							$last = $latest[0]
-						EndIf
-						$name = $latest[$last]
-					EndIf
-					;GUICtrlSetData($Input_name, $name)
-					$ind = _GUICtrlListBox_SelectString($List_games, $name, -1)
-					If $ind > -1 Then
-						_GUICtrlListBox_SetCurSel($List_games, $ind)
-						_GUICtrlListBox_ClickItem($List_games, $ind)
-					EndIf
-				Else
-					MsgBox(262192, "Read Error", "Added.txt file not read!", $wait, $GOGRepoGUI)
-				EndIf
-			Else
-				MsgBox(262192, "File Error", "Added.txt file not found!", $wait, $GOGRepoGUI)
-			EndIf
 		Case $msg = $Button_info
 			; Program Information
 			$delay = $wait * 5
@@ -704,8 +653,8 @@ Func MainGUI()
 				If $title <> "" Then
 					$gamefold = $gamesfold
 					If $alpha = 1 Then
-						$alf = StringUpper(StringLeft($title, 1))
-						$gamefold = $gamefold & "\" & $alf
+						$let = StringUpper(StringLeft($title, 1))
+						$gamefold = $gamefold & "\" & $let
 					EndIf
 					$gamefold = $gamefold & "\" & $title
 					If FileExists($gamefold) Then
@@ -772,8 +721,8 @@ Func MainGUI()
 							EndIf
 							$gamefold = $gamesfold
 							If $alpha = 1 Then
-								$alf = StringUpper(StringLeft($title, 1))
-								$gamefold = $gamefold & "\" & $alf
+								$let = StringUpper(StringLeft($title, 1))
+								$gamefold = $gamefold & "\" & $let
 								;MsgBox(262192, "Got Here 2", $title & @LF & $gamefold, $wait, $GOGRepoGUI)
 							EndIf
 						EndIf
@@ -820,26 +769,6 @@ Func MainGUI()
 								GUICtrlSetData($Input_title, "")
 								GUICtrlSetData($Input_OS, "")
 								GUICtrlSetData($Input_extra, "")
-								If $downall = 1 Then
-									$all = 4
-									GUICtrlSetState($Checkbox_all, $all)
-									GUICtrlSetState($Checkbox_all, $GUI_DISABLE)
-									$buttitle = "Down" & @LF & "One"
-									GUICtrlSetTip($Button_down, "Download the selected game!")
-									GUICtrlSetData($Button_down, $buttitle)
-									GUICtrlSetState($Checkbox_update, $GUI_DISABLE)
-									GUICtrlSetState($Checkbox_verify, $GUI_DISABLE)
-									GetWindowPosition()
-									GuiSetState(@SW_HIDE, $GOGRepoGUI)
-									QueueGUI()
-									$window = $GOGRepoGUI
-									GuiSetState(@SW_SHOW, $GOGRepoGUI)
-									If $downall = 4 Then
-										GUICtrlSetState($Checkbox_all, $GUI_ENABLE)
-										GUICtrlSetState($Checkbox_update, $GUI_ENABLE)
-										GUICtrlSetState($Checkbox_verify, $GUI_ENABLE)
-									EndIf
-								EndIf
 							Else
 								$tot = IniRead($downlist, "Downloads", "total", 0)
 								While 1
@@ -859,17 +788,12 @@ Func MainGUI()
 											IniWrite($inifle, "Current Download", "destination", $gamefold)
 											IniWrite($inifle, "Current Download", "files", $files)
 											IniWrite($inifle, "Current Download", "extras", $extras)
-											;IniWrite($inifle, "Current Download", "extras", $lang)
+											IniWrite($inifle, "Current Download", "verify", $validate)
 											IniWrite($inifle, "Current Download", "cover", $cover)
 											If $cover = 1 Then
 												$image = IniRead($gamesfle, $name, "image", "")
 												IniWrite($inifle, "Current Download", "image", $image)
 											EndIf
-											IniWrite($inifle, "Current Download", "verify", $validate)
-											IniWrite($inifle, "Current Download", "md5", $md5)
-											IniWrite($inifle, "Current Download", "size", $sizecheck)
-											IniWrite($inifle, "Current Download", "zips", $zipcheck)
-											IniWrite($inifle, "Current Download", "delete", $delete)
 											CheckOnShutdown()
 											If $minimize = 1 Then
 												$flag = @SW_MINIMIZE
@@ -969,8 +893,8 @@ Func MainGUI()
 						If $val <> "" And $val <> $gamesfold Then
 							$gamefold = $gamesfold
 							If $alpha = 1 Then
-								$alf = StringUpper(StringLeft($title, 1))
-								$gamefold = $gamefold & "\" & $alf
+								$let = StringUpper(StringLeft($title, 1))
+								$gamefold = $gamefold & "\" & $let
 								;MsgBox(262192, "Got Here 2", $title & @LF & $gamefold, $wait, $GOGRepoGUI)
 							EndIf
 							IniWrite($downlist, $title, "destination", $gamefold)
@@ -1000,8 +924,8 @@ Func MainGUI()
 							If $val <> "" And $val <> $gamesfold Then
 								$gamefold = $gamesfold
 								If $alpha = 1 Then
-									$alf = StringUpper(StringLeft($title, 1))
-									$gamefold = $gamefold & "\" & $alf
+									$let = StringUpper(StringLeft($title, 1))
+									$gamefold = $gamefold & "\" & $let
 									;MsgBox(262192, "Got Here 2", $title & @LF & $gamefold, $wait, $GOGRepoGUI)
 								EndIf
 								IniWrite($downlist, $title, "destination", $gamefold)
@@ -1344,8 +1268,8 @@ Func DownloadGUI()
 													EndIf
 													$gamefold = $gamesfold
 													If $alpha = 1 Then
-														$alf = StringUpper(StringLeft($title, 1))
-														$gamefold = $gamefold & "\" & $alf
+														$let = StringUpper(StringLeft($title, 1))
+														$gamefold = $gamefold & "\" & $let
 														;MsgBox(262192, "Got Here 2", $title & @LF & $gamefold, $wait, $GOGRepoGUI)
 													EndIf
 													$params = $params & @CRLF & "destination=" & $gamefold
@@ -1388,10 +1312,6 @@ Func DownloadGUI()
 							FileWrite($file, $textdump)
 						EndIf
 						FileClose($file)
-						$downall = 1
-						IniWrite($inifle, "Download ALL", "activated", $downall)
-						$auto = 4
-						IniWrite($inifle, "Start Downloading", "auto", $auto)
 					EndIf
 				Else
 					MsgBox(262192, "Program Error", "Titles.txt file is empty!", 0, $DownloadGUI)
@@ -1408,14 +1328,7 @@ Func DownloadGUI()
 			; METHOD 1 - Hand reins fully to 'gogrepo.py', and GUI remains disabled for duration.
 			EnableDisableControls($GUI_DISABLE)
 			$pid = RunWait(@ComSpec & ' /c gogrepo.py download "' & $gamefold & '"', @ScriptDir)
-			If $validate = 1 Then
-				$params = " -skipmd5 -skipsize -skipzip -delete"
-				If $md5 = 1 Then $params = StringReplace($params, " -skipmd5", "")
-				If $sizecheck = 1 Then $params = StringReplace($params, " -skipsize", "")
-				If $zipcheck = 1 Then $params = StringReplace($params, " -skipzip", "")
-				If $delete = 4 Then $params = StringReplace($params, " -delete", "")
-				$pid = RunWait(@ComSpec & ' /k gogrepo.py verify' & $params & ' "' & $gamefold & '"', @ScriptDir)
-			EndIf
+			If $validate = 1 Then $pid = RunWait(@ComSpec & ' /k gogrepo.py verify "' & $gamefold & '"', @ScriptDir)
 			_FileWriteLog($logfle, "Downloaded all games.")
 			EnableDisableControls($GUI_ENABLE)
 		Case $msg = $Button_inf
@@ -1437,7 +1350,7 @@ Func QueueGUI()
 	;
 	Local $params, $restart, $section, $shutopts, $swap, $templog
 	;
-	$QueueGUI = GuiCreate("QUEUE & Options", $width, $height, $left, $top, $style + $WS_VISIBLE, $WS_EX_TOPMOST)
+	$QueueGUI = GuiCreate("QUEUE & Options", $width, $height, $left, $top, $style, $WS_EX_TOPMOST)
 	GUISetBkColor(0xFFD5FF, $QueueGUI)
 	; CONTROLS
 	$Group_download = GuiCtrlCreateGroup("Current Download", 10, 10, 370, 55)
@@ -1547,7 +1460,6 @@ Func QueueGUI()
 	$Control_2 = $Checkbox_size
 	$Control_3 = $Checkbox_zip
 	$Control_4 = $Checkbox_delete
-	$Control_5 = $Checkbox_start
 	;
 	GUICtrlSetImage($Button_moveup, $shell, -247, 1)
 	GUICtrlSetImage($Button_movedown, $shell, -248, 1)
@@ -1567,13 +1479,9 @@ Func QueueGUI()
 		WinSetTitle($QueueGUI, "", "QUEUE & Options - " & $shutdown & " is ENABLED")
 	EndIf
 	;
-	;If $auto = 1 And $started = 1 Then
-	If $started = 1 Then
+	If $auto = 1 And $started = 1 Then
 		$title = IniRead($inifle, "Current Download", "title", "")
 		GUICtrlSetData($Input_download, $title)
-	EndIf
-	If $downall = 1 Then
-		GUICtrlSetState($Checkbox_start, $GUI_DISABLE)
 	EndIf
 	;
 	If FileExists($downlist) Then
@@ -1717,22 +1625,19 @@ Func QueueGUI()
 					$val = IniRead($downlist, $title, "extras", "")
 					IniWrite($inifle, "Current Download", "extras", $val)
 					If $val = 1 Then $params = StringReplace($params, " -skipextras", "")
+					;$validate = IniRead($downlist, $title, "verify", "")
+					;IniWrite($inifle, "Current Download", "verify", $validate)
+					$val = IniRead($downlist, $title, "verify", "")
+					IniWrite($inifle, "Current Download", "verify", $val)
+					;$cover = IniRead($downlist, $title, "cover", "")
+					;IniWrite($inifle, "Current Download", "cover", $cover)
+					;If $cover = 1 Then
 					$val = IniRead($downlist, $title, "cover", "")
 					IniWrite($inifle, "Current Download", "cover", $val)
 					If $val = 1 Then
 						$image = IniRead($downlist, $title, "image", "")
 						IniWrite($inifle, "Current Download", "image", $image)
 					EndIf
-					$val = IniRead($downlist, $title, "verify", "")
-					IniWrite($inifle, "Current Download", "verify", $val)
-					$val = IniRead($downlist, $title, "md5", "")
-					IniWrite($inifle, "Current Download", "md5", $val)
-					$val = IniRead($downlist, $title, "size", "")
-					IniWrite($inifle, "Current Download", "size", $val)
-					$val = IniRead($downlist, $title, "zips", "")
-					IniWrite($inifle, "Current Download", "zips", $val)
-					$val = IniRead($downlist, $title, "delete", "")
-					IniWrite($inifle, "Current Download", "delete", $val)
 					RemoveListEntry(0)
 				EndIf
 				CheckOnShutdown()
@@ -1770,9 +1675,6 @@ Func QueueGUI()
 				FileDelete($downlist)
 				$tot = 0
 				ClearDisableEnableRestore()
-				$downall = 4
-				IniWrite($inifle, "Download ALL", "activated", $downall)
-				GUICtrlSetState($Checkbox_start, $GUI_ENABLE)
 			EndIf
 		Case $msg = $Button_record
 			; Log Record
@@ -2474,12 +2376,12 @@ Func VerifyGUI()
 				If $alpha = 1 Then
 					For $a = 48 To 90
 						If $a < 58 Or $a > 64 Then
-							$alf = Chr($a)
-							$pid = RunWait(@ComSpec & ' /k gogrepo.py verify' & $params & ' "' & $gamefold & "\" & $alf & '"', @ScriptDir)
-							_FileWriteLog($logfle, "Verified all games in " & $alf & ".")
+							$let = Chr($a)
+							$pid = RunWait(@ComSpec & ' /k gogrepo.py verify' & $params & ' "' & $gamefold & "\" & $let & '"', @ScriptDir)
+							_FileWriteLog($logfle, "Verified all games in " & $let & ".")
 							If $a < 90 Then
 								$ans = MsgBox(262177, "Verify Query", _
-									"The games in alphanumeric folder " & $alf & " have just been processed." & @LF & @LF & _
+									"The games in alphanumeric folder " & $let & " have just been processed." & @LF & @LF & _
 									"Do you want to continue checking the remaining alphanumeric" & @LF & _
 									"folder games?", 0, $VerifyGUI)
 								If $ans = 2 Then
@@ -2541,9 +2443,7 @@ Func AddGameToDownloadList()
 	IniWrite($downlist, "Downloads", "total", $tot)
 	IniWrite($downlist, $title, "rank", $tot)
 	IniWrite($downlist, $title, "destination", $gamefold)
-	;IniWrite($downlist, $title, "OS", $OSget)
-	$OS = IniRead($gamesfle, $name, "osextra", "")
-	IniWrite($downlist, $title, "osextra", $OS)
+	IniWrite($downlist, $title, "OS", $OSget)
 	IniWrite($downlist, $title, "files", $files)
 	IniWrite($downlist, $title, "extras", $extras)
 	IniWrite($downlist, $title, "language", $lang)
@@ -2553,10 +2453,6 @@ Func AddGameToDownloadList()
 		IniWrite($downlist, $title, "image", $image)
 	EndIf
 	IniWrite($downlist, $title, "verify", $validate)
-	IniWrite($downlist, $title, "md5", $md5)
-	IniWrite($downlist, $title, "size", $sizecheck)
-	IniWrite($downlist, $title, "zips", $zipcheck)
-	IniWrite($downlist, $title, "delete", $delete)
 EndFunc ;=> AddGameToDownloadList
 
 Func CheckIfPythonRunning()
@@ -2583,16 +2479,6 @@ Func CheckOnGameDownload()
 			$val = IniRead($inifle, "Current Download", "verify", "")
 			If $val = 1 And $verifying = "" Then
 				$verifying = 1
-				$params = " -skipmd5 -skipsize -skipzip -delete"
-				$val = IniRead($inifle, "Current Download", "md5", "")
-				If $val = 1 Then $params = StringReplace($params, " -skipmd5", "")
-				$val = IniRead($inifle, "Current Download", "size", "")
-				If $val = 1 Then $params = StringReplace($params, " -skipsize", "")
-				$val = IniRead($inifle, "Current Download", "zips", "")
-				If $val = 1 Then $params = StringReplace($params, " -skipzip", "")
-				$val = IniRead($inifle, "Current Download", "delete", "")
-				If $val = 4 Then $params = StringReplace($params, " -delete", "")
-				;
 				$val = IniRead($inifle, "Current Download", "destination", "")
 				If $minimize = 1 Then
 					$flag = @SW_MINIMIZE
@@ -2600,8 +2486,7 @@ Func CheckOnGameDownload()
 					;$flag = @SW_RESTORE
 					$flag = @SW_SHOW
 				EndIf
-				_FileWriteLog($logfle, "Verified - " & $title & ".")
-				$pid = Run(@ComSpec & ' /k gogrepo.py verify' & $params & ' -id ' & $title & ' "' & $val & '"', @ScriptDir, $flag)
+				$pid = Run(@ComSpec & ' /k gogrepo.py verify -id ' & $title & ' "' & $val & '"', @ScriptDir, $flag)
 				Return
 			Else
 				$verifying = ""
@@ -2649,22 +2534,19 @@ Func CheckOnGameDownload()
 								$val = IniRead($downlist, $title, "extras", "")
 								IniWrite($inifle, "Current Download", "extras", $val)
 								If $val = 1 Then $params = StringReplace($params, " -skipextras", "")
+								;$validate = IniRead($downlist, $title, "verify", "")
+								;IniWrite($inifle, "Current Download", "verify", $validate)
+								$val = IniRead($downlist, $title, "verify", "")
+								IniWrite($inifle, "Current Download", "verify", $val)
+								;$cover = IniRead($downlist, $title, "cover", "")
+								;IniWrite($inifle, "Current Download", "cover", $cover)
+								;If $cover = 1 Then
 								$val = IniRead($downlist, $title, "cover", "")
 								IniWrite($inifle, "Current Download", "cover", $val)
 								If $val = 1 Then
 									$image = IniRead($downlist, $title, "image", "")
 									IniWrite($inifle, "Current Download", "image", $image)
 								EndIf
-								$val = IniRead($downlist, $title, "verify", "")
-								IniWrite($inifle, "Current Download", "verify", $val)
-								$val = IniRead($downlist, $title, "md5", "")
-								IniWrite($inifle, "Current Download", "md5", $val)
-								$val = IniRead($downlist, $title, "size", "")
-								IniWrite($inifle, "Current Download", "size", $val)
-								$val = IniRead($downlist, $title, "zips", "")
-								IniWrite($inifle, "Current Download", "zips", $val)
-								$val = IniRead($downlist, $title, "delete", "")
-								IniWrite($inifle, "Current Download", "delete", $val)
 								If $minimize = 1 Then
 									$flag = @SW_MINIMIZE
 								Else
@@ -2807,7 +2689,6 @@ Func ClearDisableEnableRestore()
 	GUICtrlSetState($Control_2, $GUI_DISABLE)
 	GUICtrlSetState($Control_3, $GUI_DISABLE)
 	GUICtrlSetState($Control_4, $GUI_DISABLE)
-	GUICtrlSetState($Control_5, $GUI_ENABLE)
 	DisableQueueButtons()
 	;
 	GUISwitch($GOGRepoGUI)
@@ -2824,6 +2705,7 @@ Func DisableQueueButtons()
 	GUICtrlSetState($Button_add, $GUI_DISABLE)
 	GUICtrlSetState($Button_removall, $GUI_DISABLE)
 	GUICtrlSetState($Button_remove, $GUI_DISABLE)
+	;GUICtrlSetState($Button_edit, $GUI_DISABLE)
 EndFunc ;=> DisableQueueButtons
 
 Func EnableDisableControls($state)
@@ -2888,16 +2770,6 @@ Func FillTheGamesList()
 	EndIf
 EndFunc ;=> FillTheGamesList
 
-Func GetAllowedName()
-	$name = StringReplace($name, Chr(150), "-")
-	$name = StringReplace($name, Chr(151), "-")
-	$name = StringReplace($name, Chr(175), "-")
-	$name = StringReplace($name, "–", "-")
-	$name = ReplaceForeignCharacters($name)
-	$name = ReplaceOtherCharacters($name)
-	$name = StringStripWS($name, 7)
-EndFunc ;=> GetAllowedName
-
 Func GetWindowPosition()
 	$winpos = WinGetPos($GOGRepoGUI, "")
 	$left = $winpos[0]
@@ -2930,7 +2802,6 @@ Func ParseTheManifest()
 		$chunk = StringSplit($read, $split, 1)
 		$chunks = $chunk[0]
 		If $chunks > 1 Then
-			$latest = ""
 			$lines = ""
 			$textdump = ""
 			For $c = 2 To $chunks
@@ -2994,7 +2865,10 @@ Func ParseTheManifest()
 						$name = $check[2]
 						$check = StringSplit($name, "',", 1)
 						$name = $check[1]
-						GetAllowedName()
+						$name = StringReplace($name, Chr(150), "-")
+						$name = StringReplace($name, Chr(151), "-")
+						$name = StringReplace($name, Chr(175), "-")
+						$name = StringReplace($name, "–", "-")
 					Else
 						; Cover rarer scenario of double quotes instead of single ones.
 						$check = StringSplit($segment, "'long_title': ", 1)
@@ -3002,23 +2876,23 @@ Func ParseTheManifest()
 							$name = $check[2]
 							$check = StringSplit($name, '",', 1)
 							$name = StringReplace($check[1], '"', '')
-							GetAllowedName()
+							$name = StringReplace($name, Chr(150), "-")
+							$name = StringReplace($name, Chr(151), "-")
+							$name = StringReplace($name, Chr(175), "-")
+							$name = StringReplace($name, "–", "-")
 						EndIf
 					EndIf
-					;
+					;FileWriteLine($file, $name & " | " & $title & $extras & $image)
 					$line = $name & " | " & $title & $extras & $image
 					If $lines = "" Then
 						$lines = $line
 					Else
 						$lines = $lines & @CRLF & $line
 					EndIf
-					;
-					If $latest = "" Then
-						$latest = $name
-					Else
-						$latest = $latest & @CRLF & $name
-					EndIf
-					;
+					;IniWrite($gamesfle, $title, "title", $title)
+					;IniWrite($gamesfle, $title, "name", $name)
+					;IniWrite($gamesfle, $title, "osextra", $OS)
+					;IniWrite($gamesfle, $title, "image", $image)
 					$text = "[" & $name & "]" & @CRLF
 					$text = $text & "title=" & $title & @CRLF
 					$text = $text & "name=" & $name & @CRLF
@@ -3041,12 +2915,6 @@ Func ParseTheManifest()
 				FileClose($open)
 				$textdump = ""
 			EndIf
-			If $latest <> "" Then
-				$open = FileOpen($addlist, 2)
-				FileWriteLine($open, $latest)
-				FileClose($open)
-				$latest = ""
-			EndIf
 			If $lines <> "" Then
 				$lines = StringSplit($lines, @CRLF, 1)
 				_ArraySort($lines, 0, 1)
@@ -3060,7 +2928,7 @@ Func ParseTheManifest()
 		FileWriteLine($file, "List Completed on " & $date)
 		FileClose($file)
 		$read = ""
-		;$textdump = ""
+		$textdump = ""
 		SplashOff()
 	EndIf
 EndFunc ;=> ParseTheManifest
@@ -3092,47 +2960,7 @@ Func RemoveListEntry($num)
 		GUICtrlSetData($Group_waiting, "Games To Download")
 		;
 		ClearDisableEnableRestore()
-		$downall = 4
-		IniWrite($inifle, "Download ALL", "activated", $downall)
 	EndIf
 	IniWrite($downlist, "Downloads", "total", $tot)
 EndFunc ;=> RemoveListEntry
 
-Func ReplaceForeignCharacters($text)
-	Local $char, $let, $p, $pair, $pairs
-	$pairs = "À,A|Á,A|Â,A|Ã,A|Ä,A|Å,A|Æ,AE|Ç,C|È,E|É,E|Ê,E|Ë,E|Ì,I|Í,I|Î,I|Ï,I|Ð,D|Ñ,N|Ò,O|Ó,O|Ô,O|Õ,O|Ö,O|×,x|Ø,O|Ù,U|Ú,U|Û,U|Ü,U|Ý,Y|ß,B|" _
-		& "à,a|á,a|â,a|ã,a|ä,a|å,a|æ,ae|ç,c|è,e|é,e|ê,e|ë,e|ì,i|í,i|î,i|ï,i|ð,o|ñ,n|ò,o|ó,o|ô,o|õ,o|ö,o|ø,o|ù,u|ú,u|û,u|ü,u|ý,y|ÿ,y"
-	$pairs = StringSplit($pairs, "|", 1)
-	For $p = 1 To $pairs[0]
-		$pair = $pairs[$p]
-		$pair = StringSplit($pair, ",", 1)
-		$char = $pair[1]
-		$let = $pair[2]
-		$text = StringReplace($text, $char, $let, 0, 1)
-	Next
-	Return $text
-EndFunc ;=> ReplaceForeignCharacters
-
-Func ReplaceOtherCharacters($text)
-	Local $char, $l, $len, $let
-	$let = StringLeft($text, 1)
-	If $let = "'" Or $let = '"' Then $text = StringTrimLeft($text, 1)
-	$let = StringRight($text, 1)
-	If $let = "'" Or $let = '"' Then $text = StringTrimRight($text, 1)
-	;
-	$text = StringReplace($text, "[", "{")
-	$text = StringReplace($text, "]", "}")
-	$text = StringReplace($text, "|", " ")
-	;
-	$name = ""
-	$len = StringLen($text)
-	For $l = 1 To $len
-		$let = StringMid($text, $l, 1)
-		$char = Asc($let)
-		If $char > 31 And $char < 127 Then
-			$name = $name & $let
-		EndIf
-	Next
-	$text = $name
-	Return $text
-EndFunc ;=> ReplaceOtherCharacters
