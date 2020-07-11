@@ -15,8 +15,7 @@
 ;
 ; BackupManifestEtc(), CheckForConnection(), CheckIfPythonRunning(), CheckOnGameDownload(), CheckOnShutdown()
 ; ClearDisableEnableRestore(), DisableQueueButtons(), EnableDisableControls($state), FillTheGamesList()
-; GetAllowedName(), GetTheSize(), GetWindowPosition(), ParseTheManifest(), RemoveListEntry($num)
-; ReplaceForeignCharacters($text), ShowCorrectImage()
+; GetAllowedName(), GetWindowPosition(), ParseTheManifest(), RemoveListEntry($num), ReplaceForeignCharacters($text)
 
 #include <Constants.au3>
 #include <GUIConstantsEx.au3>
@@ -44,9 +43,9 @@ Global $Checkbox_all, $Checkbox_alpha, $Checkbox_check, $Checkbox_cover, $Checkb
 Global $Checkbox_game, $Checkbox_image, $Checkbox_linux, $Checkbox_other, $Checkbox_show, $Checkbox_test
 Global $Checkbox_update, $Checkbox_verify, $Checkbox_win, $Combo_dest, $Combo_OS, $Combo_shutdown, $Group_done
 Global $Group_download, $Group_games, $Group_waiting, $Input_dest, $Input_destination, $Input_download
-Global $Input_extra, $Input_lang, $Input_langs, $Input_name, $Input_OP, $Input_OS, $Input_title, $Item_content
-Global $Item_forum, $Item_library, $Item_store, $Label_added, $Label_cover, $List_done, $List_games, $List_waiting
-Global $Menu_list, $Pic_cover, $Progress_bar, $Control_1, $Control_2, $Control_3, $Control_4, $Control_5
+Global $Input_extra, $Input_lang, $Input_langs, $Input_name, $Input_OP, $Input_OS, $Input_title, $Item_forum
+Global $Item_library, $Item_store, $Label_added, $List_done, $List_games, $List_waiting, $Menu_list
+Global $Pic_cover, $Progress_bar, $Control_1, $Control_2, $Control_3, $Control_4, $Control_5
 ;
 Global $a, $addlist, $alf, $all, $alpha, $ans, $array, $auto, $backups, $bigpic, $blackjpg, $c, $check, $chunk
 Global $chunks, $cnt, $connection, $cookies, $cover, $date, $delay, $delete, $dest, $done, $down, $downall
@@ -54,9 +53,9 @@ Global $downlist, $DownloadGUI, $drv, $extras, $fdate, $file, $files, $finished,
 Global $gamepic, $games, $gamesfle, $gamesfold, $gogrepo, $GOGRepoGUI, $height, $icoD, $icoF, $icoI, $icoS, $icoT
 Global $icoX, $image, $imgfle, $ind, $infofle, $inifle, $lang, $last, $latest, $left, $line, $lines, $locations
 Global $logfle, $manifest, $md5, $minimize, $name, $num, $open, $OS, $OSextras, $OSget, $path, $percent, $pid
-Global $progress, $QueueGUI, $read, $res, $segment, $SetupGUI, $shell, $shutdown, $size, $sizecheck, $split
-Global $started, $state, $stop, $store, $style, $t, $text, $textdump, $threads, $title, $titles, $titlist, $top
-Global $tot, $total, $type, $update, $updated, $UpdateGUI, $updating, $user, $val, $validate, $validation, $verify
+Global $progress, $QueueGUI, $read, $res, $segment, $SetupGUI, $shell, $shutdown, $sizecheck, $split, $started
+Global $state, $stop, $store, $style, $t, $text, $textdump, $threads, $title, $titles, $titlist, $top, $tot
+Global $total, $type, $update, $updated, $UpdateGUI, $updating, $user, $val, $validate, $validation, $verify
 Global $VerifyGUI, $verifying, $version, $wait, $width, $window, $winpos, $xpos, $ypos, $zipcheck
 
 $addlist = @ScriptDir & "\Added.txt"
@@ -95,9 +94,9 @@ EndIf
 Exit
 
 Func MainGUI()
-	Local $Group_added, $Group_cover, $Group_dest, $Group_down, $Group_update, $Label_extra, $Label_OS, $Label_title
+	Local $Group_added, $Group_cover, $Group_dest, $Group_down, $Group_update, $Label_cover, $Label_extra, $Label_OS, $Label_title
 	;
-	Local $add, $content, $dll, $exist, $find, $fold, $mpos, $OSes, $pth, $show
+	Local $add, $dll, $exist, $find, $mpos, $OSes, $pth, $show
 	;
 	$width = 590
 	$height = 405
@@ -246,9 +245,6 @@ Func MainGUI()
 	$Item_forum = GUICtrlCreateMenuItem("Go to Forum page", $Menu_list)
 	GUICtrlCreateMenuItem("", $Menu_list)
 	$Item_library = GUICtrlCreateMenuItem("Go to Library page", $Menu_list)
-	GUICtrlCreateMenuItem("", $Menu_list)
-	GUICtrlCreateMenuItem("", $Menu_list)
-	$Item_content = GUICtrlCreateMenuItem("Folder Content", $Menu_list)
 	;
 	; OS SETTINGS
 	$user = @SystemDir & "\user32.dll"
@@ -567,57 +563,27 @@ Func MainGUI()
 			If $name <> "" Then
 				$image = IniRead($gamesfle, $name, "image", "")
 				If $image <> "" Then
-					$delay = $wait * 2
-					$ans = MsgBox(262177 + 256, "Save Query", _
-						"Save cover image to game folder?" & @LF & @LF & _
-						"CANCEL = Save to program folder.", $delay, $GOGRepoGUI)
 					SplashTextOn("", "Saving!", 200, 120, Default, Default, 33)
-					If $ans = 1 Then
-						$gamepic = ""
-						$title = GUICtrlRead($Input_title)
-						If $title <> "" Then
-							$gamesfold = GUICtrlRead($Input_dest)
-							$gamefold = $gamesfold & "\" & $title
-							If $alpha = 1 Then
-								$alf = StringUpper(StringLeft($title, 1))
-								$gamefold = $gamefold & "\" & $alf
-							EndIf
-							If FileExists($gamefold) Then
-								$gamepic = $gamefold & "\Folder.jpg"
-							Else
-								MsgBox(262192, "Save Error", "Game folder not found!", 2, $GOGRepoGUI)
-							EndIf
-						Else
-							MsgBox(262192, "Title Error", "A game is not selected!", 2, $GOGRepoGUI)
-						EndIf
-					Else
-						$gamepic = $name & ".jpg"
-						$gamepic = StringReplace($gamepic, ": ", " - ")
-						$gamepic = StringReplace($gamepic, "?", "")
-						$gamepic = StringReplace($gamepic, "*", "")
-						$gamepic = StringReplace($gamepic, "|", "")
-						$gamepic = StringReplace($gamepic, "/", "")
-						$gamepic = StringReplace($gamepic, "\", "")
-						$gamepic = StringReplace($gamepic, "<", "")
-						$gamepic = StringReplace($gamepic, ">", "")
-						$gamepic = StringReplace($gamepic, '"', '')
-						$gamepic = @ScriptDir & "\" & $gamepic
-					EndIf
-					If $gamepic <> "" Then
-						InetGet($image, $gamepic, 1, 0)
+					$gamepic = $name & ".jpg"
+					$gamepic = StringReplace($gamepic, ": ", " - ")
+					$gamepic = StringReplace($gamepic, "?", "")
+					$gamepic = StringReplace($gamepic, "*", "")
+					$gamepic = StringReplace($gamepic, "|", "")
+					$gamepic = StringReplace($gamepic, "/", "")
+					$gamepic = StringReplace($gamepic, "\", "")
+					$gamepic = StringReplace($gamepic, "<", "")
+					$gamepic = StringReplace($gamepic, ">", "")
+					$gamepic = StringReplace($gamepic, '"', '')
+					$gamepic = @ScriptDir & "\" & $gamepic
+					InetGet($image, $gamepic, 1, 0)
+					If Not FileExists($gamepic) Then
+						InetGet($image, $gamepic, 0, 0)
 						If Not FileExists($gamepic) Then
-							InetGet($image, $gamepic, 0, 0)
-							If Not FileExists($gamepic) Then
-								InetGet($image, $gamepic, 0, 1)
-							EndIf
+							InetGet($image, $gamepic, 0, 1)
 						EndIf
 					EndIf
 					SplashOff()
-				Else
-					MsgBox(262192, "Save Error", "Cover image URL not found!", 2, $GOGRepoGUI)
 				EndIf
-			Else
-				MsgBox(262192, "Title Error", "A game is not selected!", $wait, $GOGRepoGUI)
 			EndIf
 		Case $msg = $Button_move
 			; Relocate game files
@@ -689,21 +655,6 @@ Func MainGUI()
 								$chunk = StringReplace($chunk, "</p>'<br>", "</p>")
 								$chunk = StringReplace($chunk, '</p>"<br>', "</p>")
 								$chunk = StringReplace($chunk, "<br></p>", "</p>")
-								;
-								$segment = StringSplit($chunk, "'size': ", 1)
-								If $segment[0] > 1 Then
-									For $s = 1 To $segment[0]
-										$number = $segment[$s]
-										$number = StringSplit($number, ",", 1)
-										$number = $number[1]
-										If StringIsDigit($number) Then
-											$size = $number
-											GetTheSize()
-											$chunk = StringReplace($chunk, "'size': " & $number, "'size': " & $size)
-										EndIf
-									Next
-								EndIf
-								;
 								$chunk = $html & @CRLF & "<pre>" & $chunk & "</pre>" & @CRLF & "</body>" & @CRLF & "</html>"
 								SplashOff()
 								;MsgBox(262208, "Game Information From Manifest - " & $title, $chunk, $wait, $GOGRepoGUI)
@@ -1087,12 +1038,7 @@ Func MainGUI()
 			;MsgBox(262192, "Got Here 1", $type, 0, $GOGRepoGUI)
 			If $title = "" And $type = "Default" Then
 				;MsgBox(262192, "Got Here 2", $type, 0, $GOGRepoGUI)
-				If $dest = "" Then
-					$fold = @ScriptDir
-				Else
-					$fold = $dest
-				EndIf
-				$pth = FileSelectFolder("Browse to set the main games folder.", $fold, 7, $dest, $GOGRepoGUI)
+				$pth = FileSelectFolder("Browse to set the main games folder.", @ScriptDir, 7, $dest, $GOGRepoGUI)
 				If Not @error And StringMid($pth, 2, 2) = ":\" Then
 					$dest = $pth
 					IniWrite($inifle, "Main Games Folder", "path", $dest)
@@ -1225,7 +1171,6 @@ Func MainGUI()
 			; Show the cover image
 			If GUICtrlRead($Checkbox_show) = $GUI_CHECKED Then
 				$show = 1
-				ShowCorrectImage()
 			Else
 				$show = 4
 				GUICtrlSetImage($Pic_cover, $blackjpg)
@@ -1325,33 +1270,6 @@ Func MainGUI()
 			Else
 				MsgBox(262192, "Title Error", "A game is not selected!", $wait, $GOGRepoGUI)
 			EndIf
-		Case $msg = $Item_content
-			; Folder Content - Game
-			$name = GUICtrlRead($List_games)
-			$title = GUICtrlRead($Input_title)
-			If $name <> "" And $title <> "" Then
-				$gamesfold = GUICtrlRead($Input_dest)
-				$gamefold = $gamesfold & "\" & $title
-				If $alpha = 1 Then
-					$alf = StringUpper(StringLeft($title, 1))
-					$gamefold = $gamefold & "\" & $alf
-				EndIf
-				If FileExists($gamefold) Then
-					$size = DirGetSize($gamefold)
-					GetTheSize()
-					$content = _FileListToArray($gamefold, "*", 1, False)
-					If IsArray($content) Then
-						$content = "Contains " & $content[0] & " files." & @LF & @LF & _ArrayToString($content, @LF, 1) & @LF & @LF & $size
-					Else
-						$content = "Nothing Found!"
-					EndIf
-				Else
-					$content = "No such folder!"
-				EndIf
-				MsgBox(262208, "Game Folder Content", $gamefold & @LF & $content, $wait, $GOGRepoGUI)
-			Else
-				MsgBox(262192, "Title Error", "A game is not selected!", $wait, $GOGRepoGUI)
-			EndIf
 		Case $msg = $Label_title
 			; Click to restore last search text to Title input field
 			GUICtrlSetData($Input_title, $find)
@@ -1388,8 +1306,22 @@ Func MainGUI()
 				GUICtrlSetData($Input_extra, "")
 			EndIf
 			If $show = 1 Then
-				ShowCorrectImage()
+				$image = IniRead($gamesfle, $name, "image", "")
+				If $image <> "" Then
+					GUICtrlSetData($Label_cover, "Please Wait")
+					$image = StringTrimRight($image, 4) & "_196.jpg"
+					FileDelete($imgfle)
+					InetGet($image, $imgfle, 1, 0)
+					If FileExists($imgfle) Then
+						GUICtrlSetImage($Pic_cover, $imgfle)
+					Else
+						GUICtrlSetImage($Pic_cover, $blackjpg)
+					EndIf
+				Else
+					GUICtrlSetImage($Pic_cover, $blackjpg)
+				EndIf
 			EndIf
+			GUICtrlSetData($Label_cover, "")
 		Case $msg = $Pic_cover
 			; Cover Image - Click For Large Preview
 			If $imgfle <> "" Then
@@ -3354,24 +3286,6 @@ Func GetAllowedName()
 	$name = StringStripWS($name, 7)
 EndFunc ;=> GetAllowedName
 
-Func GetTheSize()
-	If $size < 1024 Then
-		$size = $size & " bytes"
-	ElseIf $size < 1048576 Then
-		$size = $size / 1024
-		$size =  Round($size) & " Kb"
-	ElseIf $size < 1073741824 Then
-		$size = $size / 1048576
-		$size =  Round($size, 1) & " Mb"
-	ElseIf $size < 1099511627776 Then
-		$size = $size / 1073741824
-		$size = Round($size, 2) & " Gb"
-	Else
-		$size = $size / 1099511627776
-		$size = Round($size, 3) & " Tb"
-	EndIf
-EndFunc ;=> GetTheSize
-
 Func GetWindowPosition()
 	$winpos = WinGetPos($GOGRepoGUI, "")
 	$left = $winpos[0]
@@ -3627,21 +3541,3 @@ Func ReplaceOtherCharacters($text)
 	$text = $name
 	Return $text
 EndFunc ;=> ReplaceOtherCharacters
-
-Func ShowCorrectImage()
-	$image = IniRead($gamesfle, $name, "image", "")
-	If $image <> "" Then
-		GUICtrlSetData($Label_cover, "Please Wait")
-		$image = StringTrimRight($image, 4) & "_196.jpg"
-		FileDelete($imgfle)
-		InetGet($image, $imgfle, 1, 0)
-		If FileExists($imgfle) Then
-			GUICtrlSetImage($Pic_cover, $imgfle)
-		Else
-			GUICtrlSetImage($Pic_cover, $blackjpg)
-		EndIf
-		GUICtrlSetData($Label_cover, "")
-	Else
-		GUICtrlSetImage($Pic_cover, $blackjpg)
-	EndIf
-EndFunc ;=> ShowCorrectImage
