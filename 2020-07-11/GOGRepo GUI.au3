@@ -14,8 +14,8 @@
 ; DownloadGUI(), MainGUI(), QueueGUI(), SetupGUI(), UpdateGUI(), VerifyGUI()
 ;
 ; BackupManifestEtc(), CheckForConnection(), CheckIfPythonRunning(), CheckOnGameDownload(), CheckOnShutdown()
-; ClearDisableEnableRestore(), CreateListOfGames($for, $file), DisableQueueButtons(), EnableDisableControls($state)
-; FillTheGamesList(), GetAllowedName(), GetTheSize(), GetWindowPosition(), ParseTheManifest(), RemoveListEntry($num)
+; ClearDisableEnableRestore(), DisableQueueButtons(), EnableDisableControls($state), FillTheGamesList()
+; GetAllowedName(), GetTheSize(), GetWindowPosition(), ParseTheManifest(), RemoveListEntry($num)
 ; ReplaceForeignCharacters($text), ShowCorrectImage()
 
 #include <Constants.au3>
@@ -44,19 +44,14 @@ Global $Checkbox_all, $Checkbox_alpha, $Checkbox_check, $Checkbox_cover, $Checkb
 Global $Checkbox_game, $Checkbox_image, $Checkbox_linux, $Checkbox_other, $Checkbox_show, $Checkbox_test
 Global $Checkbox_update, $Checkbox_verify, $Checkbox_win, $Combo_dest, $Combo_OS, $Combo_shutdown, $Group_done
 Global $Group_download, $Group_games, $Group_waiting, $Input_dest, $Input_destination, $Input_download
-Global $Input_extra, $Input_lang, $Input_langs, $Input_name, $Input_OP, $Input_OS, $Input_title, $Label_added
-Global $Label_cover, $List_done, $List_games, $List_waiting, $Pic_cover, $Progress_bar
-;
-Global $Menu_games, $Menu_linux, $Menu_list, $Menu_mac, $Menu_windows, $Item_allsort, $Item_allunsort
-Global $Item_content, $Item_forum, $Item_library, $Item_linsort, $Item_linunsort, $Item_macsort, $Item_macunsort
-Global $Item_store, $Item_winsort, $Item_winunsort
-;
-Global $Control_1, $Control_2, $Control_3, $Control_4, $Control_5
+Global $Input_extra, $Input_lang, $Input_langs, $Input_name, $Input_OP, $Input_OS, $Input_title, $Item_content
+Global $Item_forum, $Item_library, $Item_store, $Label_added, $Label_cover, $List_done, $List_games, $List_waiting
+Global $Menu_list, $Pic_cover, $Progress_bar, $Control_1, $Control_2, $Control_3, $Control_4, $Control_5
 ;
 Global $a, $addlist, $alf, $all, $alpha, $ans, $array, $auto, $backups, $bigpic, $blackjpg, $c, $check, $chunk
 Global $chunks, $cnt, $connection, $cookies, $cover, $date, $delay, $delete, $dest, $done, $down, $downall
-Global $downlist, $DownloadGUI, $drv, $extras, $fdate, $file, $files, $finished, $flag, $for, $forum, $game
-Global $gamefold, $gamepic, $games, $gamesfle, $gamesfold, $gogrepo, $GOGRepoGUI, $height, $icoD, $icoF, $icoI, $icoS, $icoT
+Global $downlist, $DownloadGUI, $drv, $extras, $fdate, $file, $files, $finished, $flag, $forum, $game, $gamefold
+Global $gamepic, $games, $gamesfle, $gamesfold, $gogrepo, $GOGRepoGUI, $height, $icoD, $icoF, $icoI, $icoS, $icoT
 Global $icoX, $image, $imgfle, $ind, $infofle, $inifle, $lang, $last, $latest, $left, $line, $lines, $locations
 Global $logfle, $manifest, $md5, $minimize, $name, $num, $open, $OS, $OSextras, $OSget, $path, $percent, $pid
 Global $progress, $QueueGUI, $read, $res, $segment, $SetupGUI, $shell, $shutdown, $size, $sizecheck, $split
@@ -254,23 +249,6 @@ Func MainGUI()
 	GUICtrlCreateMenuItem("", $Menu_list)
 	GUICtrlCreateMenuItem("", $Menu_list)
 	$Item_content = GUICtrlCreateMenuItem("Folder Content", $Menu_list)
-	GUICtrlCreateMenuItem("", $Menu_list)
-	GUICtrlCreateMenuItem("", $Menu_list)
-	$Menu_games = GUICtrlCreateMenu("ALL Games", $Menu_list)
-	$Item_allsort = GUICtrlCreateMenuItem("Sorted List", $Menu_games)
-	$Item_allunsort = GUICtrlCreateMenuItem("Unsorted List", $Menu_games)
-	GUICtrlCreateMenuItem("", $Menu_list)
-	$Menu_linux = GUICtrlCreateMenu("Linux Games", $Menu_list)
-	$Item_linsort = GUICtrlCreateMenuItem("Sorted List", $Menu_linux)
-	$Item_linunsort = GUICtrlCreateMenuItem("Unsorted List", $Menu_linux)
-	GUICtrlCreateMenuItem("", $Menu_list)
-	$Menu_mac = GUICtrlCreateMenu("MAC Games", $Menu_list)
-	$Item_macsort = GUICtrlCreateMenuItem("Sorted List", $Menu_mac)
-	$Item_macunsort = GUICtrlCreateMenuItem("Unsorted List", $Menu_mac)
-	GUICtrlCreateMenuItem("", $Menu_list)
-	$Menu_windows = GUICtrlCreateMenu("Windows Games (only)", $Menu_list)
-	$Item_winsort = GUICtrlCreateMenuItem("Sorted List", $Menu_windows)
-	$Item_winunsort = GUICtrlCreateMenuItem("Unsorted List", $Menu_windows)
 	;
 	; OS SETTINGS
 	$user = @SystemDir & "\user32.dll"
@@ -1317,12 +1295,6 @@ Func MainGUI()
 			; OS to download files for
 			$OSget = GUICtrlRead($Combo_OS)
 			IniWrite($inifle, "Download Options", "OS", $OSget)
-		Case $msg = $Item_winunsort
-			; Windows Games - Unsorted List
-			CreateListOfGames("Windows", $addlist)
-		Case $msg = $Item_winsort
-			; Windows Games - Sorted List
-			CreateListOfGames("Windows", $titlist)
 		Case $msg = $Item_store
 			; Go to Store page
 			$name = GUICtrlRead($List_games)
@@ -1337,18 +1309,6 @@ Func MainGUI()
 			Else
 				MsgBox(262192, "Title Error", "A game is not selected!", $wait, $GOGRepoGUI)
 			EndIf
-		Case $msg = $Item_macunsort
-			; MAC Games - Unsorted List
-			CreateListOfGames("Mac", $addlist)
-		Case $msg = $Item_macsort
-			; MAC Games - Sorted List
-			CreateListOfGames("Mac", $titlist)
-		Case $msg = $Item_linunsort
-			; Linux Games - Unsorted List
-			CreateListOfGames("Linux", $addlist)
-		Case $msg = $Item_linsort
-			; Linux Games - Sorted List
-			CreateListOfGames("Linux", $titlist)
 		Case $msg = $Item_library
 			; Go to Library page
 			ShellExecute("https://www.gog.com/account")
@@ -1392,12 +1352,6 @@ Func MainGUI()
 			Else
 				MsgBox(262192, "Title Error", "A game is not selected!", $wait, $GOGRepoGUI)
 			EndIf
-		Case $msg = $Item_allunsort
-			; ALL Games - Unsorted List
-			CreateListOfGames("ALL", $addlist)
-		Case $msg = $Item_allsort
-			; ALL Games - Sorted List
-			CreateListOfGames("ALL", $titlist)
 		Case $msg = $Label_title
 			; Click to restore last search text to Title input field
 			GUICtrlSetData($Input_title, $find)
@@ -3318,75 +3272,6 @@ Func ClearDisableEnableRestore()
 	;GUICtrlSetState($Button_setup, $GUI_ENABLE)
 	GUISwitch($QueueGUI)
 EndFunc ;=> ClearDisableEnableRestore
-
-Func CreateListOfGames($for, $file)
-	Local $i, $item, $items, $listtxt, $names, $sorted, $sum
-	$names = ""
-	$sum = 0
-	If $file = $titlist Then
-		$sorted = "Sorted"
-		If FileExists($titlist) Then
-			SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
-			$items = _GUICtrlListBox_GetCount($List_games)
-			For $i = 0 To ($items - 1)
-				$item = _GUICtrlListBox_GetText($List_games, $i)
-				If $item <> "" Then
-					$val = IniRead($gamesfle, $item, "osextra", "")
-					If ($for = "ALL" And $val <> "") Or StringInStr($val, $for) > 0 Then
-						If $for = "Windows" Then
-							If StringInStr($val, "Linux") > 0 Or StringInStr($val, "MAC") > 0 Then ContinueLoop
-						EndIf
-						$sum = $sum + 1
-						If $names = "" Then
-							$names = $item
-						Else
-							$names = $names & @CRLF & $item
-						EndIf
-					EndIf
-				EndIf
-			Next
-			SplashOff()
-		EndIf
-	ElseIf $file = $addlist Then
-		$sorted = "Unsorted"
-		If FileExists($addlist) Then
-			SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
-			$res = _FileReadToArray($addlist, $array)
-			If $res = 1 Then
-				For $a = 1 To $array[0]
-					$item = $array[$a]
-					If $item <> "" Then
-						$val = IniRead($gamesfle, $item, "osextra", "")
-						If ($for = "ALL" And $val <> "") Or StringInStr($val, $for) > 0 Then
-							If $for = "Windows" Then
-								If StringInStr($val, "Linux") > 0 Or StringInStr($val, "MAC") > 0 Then ContinueLoop
-							EndIf
-							$val = IniRead($gamesfle, $item, "title", "")
-							$item = "(" & $val & ") " & $item
-							$sum = $sum + 1
-							If $names = "" Then
-								$names = $item
-							Else
-								$names = $names & @CRLF & $item
-							EndIf
-						EndIf
-					EndIf
-				Next
-			EndIf
-			SplashOff()
-		EndIf
-	EndIf
-	If $names = "" Then
-		MsgBox(262192, "List Result", "No games found for the specified OS!", $wait, $GOGRepoGUI)
-	Else
-		$listtxt = @ScriptDir & "\" & $for & " Games " & $sorted & ".txt"
-		_FileCreate($listtxt)
-		If $for = "Windows" Then $for = "Windows Only"
-		FileWrite($listtxt, "(" & $sum & " - " & $for & " Games)" & @CRLF & @CRLF & $names)
-		GUISetState(@SW_MINIMIZE, $GOGRepoGUI)
-		ShellExecute($listtxt)
-	EndIf
-EndFunc ;=> CreateListOfGames
 
 Func DisableQueueButtons()
 	If $started = 4 Then GUICtrlSetState($Button_stop, $GUI_DISABLE)
