@@ -27,20 +27,31 @@ _Singleton("gog-repo-progress-timboli")
 Global $Edit_console, $Label_files, $Label_percent, $Label_size, $Label_status, $Label_title, $Progress_bar
 ;
 Global $cnt, $complete, $count, $done, $downlist, $download, $err, $exit, $extras, $file, $files, $gamefold
-Global $gogrepo, $inifle, $num, $out, $outfle, $output, $params, $percent, $pid, $progress, $ProgressGUI
-Global $results, $ret, $size, $status, $style, $title, $width
+Global $gogrepo, $inifle, $num, $out, $outfle, $output, $params, $percent, $pid, $process, $progress
+Global $ProgressGUI, $results, $ret, $size, $status, $style, $titfold, $title, $width
 
 $downlist = @ScriptDir & "\Downloads.ini"
 $gogrepo = @ScriptDir & "\gogrepo.py"
 $inifle = @ScriptDir & "\Settings.ini"
 $outfle = @ScriptDir & "\Output.txt"
 
-$status = "Downloading"
+If $Cmdline[0] = 0 Then
+	$status = ""
+Else
+	$status = $Cmdline[1]
+	If $status = "Download" Then
+		$status = "Downloading"
+	ElseIf $status = "Verify" Then
+		$status = "Verifying"
+	Else
+		$status = ""
+	EndIf
+EndIf
 
 If FileExists($gogrepo) Then
 	$width = 600
 	$style = $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU + $WS_CLIPSIBLINGS + $WS_MINIMIZEBOX + $WS_SIZEBOX
-	$ProgressGUI = GuiCreate("Download Progress", $width, 160, Default, Default, $style, $WS_EX_TOPMOST)
+	$ProgressGUI = GuiCreate("Floating Progress", $width, 160, Default, Default, $style, $WS_EX_TOPMOST)
 	GUISetBkColor($COLOR_SKYBLUE, $ProgressGUI)
 	; CONTROLS
 	$Label_status = GUICtrlCreateLabel($status, 10, 10, 80, 20, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
@@ -78,32 +89,32 @@ If FileExists($gogrepo) Then
 	GUICtrlSetResizing($Label_percent, $GUI_DOCKBOTTOM + $GUI_DOCKSIZE)
 	;
 	; SETTINGS
-	$title = ""
+	;$title = ""
 	;$title = "memoranda"
-	$gamefold = "G:\GOG\GoG"
-	$files = 1
-	$extras = 1
-	;$title = IniRead($inifle, "Current Download", "title", "")
+	;$gamefold = "G:\GOG\GoG"
+	;If $title <> "" Then
+	;	$titfold = $gamefold & "\" & $title
+	;	If FileExists($titfold) Then DirRemove($titfold, 1)
+	;EndIf
+	;$files = 1
+	;$extras = 1
+	$title = IniRead($inifle, "Current Download", "title", "")
 	GUICtrlSetData($Label_title, $title)
-	;$gamefold = IniRead($inifle, "Current Download", "destination", "")
-	;$files = IniRead($inifle, "Current Download", "files", "")
-	;$extras = IniRead($inifle, "Current Download", "extras", "")
-	If $title <> "" Then
-		$titfold = $gamefold & "\" & $title
-		If FileExists($titfold) Then DirRemove($titfold, 1)
-	EndIf
+	$gamefold = IniRead($inifle, "Current Download", "destination", "")
+	$files = IniRead($inifle, "Current Download", "files", "")
+	$extras = IniRead($inifle, "Current Download", "extras", "")
 	$pid = 0
 	$exit = ""
 	;
 	; Example
-	GUICtrlSetData($Label_title, "memoranda")
-	GUICtrlSetData($Label_files, "1 of 7")
-	GUICtrlSetData($Label_size, "735.24MB")
-	$text = "21:23:38 |    577.8MB      5.0MB/s  1x  memoranda/setup_memoranda_gog-4_(11000).exe"
-	$text = $text & @CRLF & "21:23:38 | 0.56GB remaining"
-	GUICtrlSetData($Edit_console, "setup_memoranda_gog-4_(11000).exe" & @CRLF & $text)
-	GUICtrlSetData($Label_percent, "33%")
-	GUICtrlSetData($Progress_bar, 33)
+;~ 	GUICtrlSetData($Label_title, "memoranda")
+;~ 	GUICtrlSetData($Label_files, "1 of 7")
+;~ 	GUICtrlSetData($Label_size, "735.24MB")
+;~ 	$text = "21:23:38 |    577.8MB      5.0MB/s  1x  memoranda/setup_memoranda_gog-4_(11000).exe"
+;~ 	$text = $text & @CRLF & "21:23:38 | 0.56GB remaining"
+;~ 	GUICtrlSetData($Edit_console, "setup_memoranda_gog-4_(11000).exe" & @CRLF & $text)
+;~ 	GUICtrlSetData($Label_percent, "33%")
+;~ 	GUICtrlSetData($Progress_bar, 33)
 	;
 	Opt("GUIOnEventMode", 1)
 	;
@@ -115,167 +126,178 @@ If FileExists($gogrepo) Then
 		; Start downloading and monitor
 		If $title <> "" Then
 			If $gamefold <> "" Then
-				$file = FileOpen($outfle, 2)
-				GUICtrlSetData($Edit_console, "Starting ....")
-				Local $params = " -skipextras -skipgames"
-				If $files = 1 Then $params = StringReplace($params, " -skipgames", "")
-				If $extras = 1 Then $params = StringReplace($params, " -skipextras", "")
-				$ret = Run(@ComSpec & ' /c gogrepo.py download' & $params & ' -id ' & $title & ' "' & $gamefold & '"', @ScriptDir, @SW_HIDE, $STDERR_MERGED)
-				$pid = $ret
-				$complete = ""
-				$count = 0
-				$download = ""
-				$num = 0
-				$results = ""
-				$size = 0
-				$title = ""
-				While 1
-					$out = StdoutRead($ret)
-					If @error Then
-						; Exit the loop if the process closes or StdoutRead returns an error.
-						; NOTE - If process closes without error, then two Exitloops should occur, without getting an error $val.
-						While 1
-							$out = StderrRead($ret)
-							If @error Then
-								; Exit the loop if the process closes or StderrRead returns an error.
-								ExitLoop
-							EndIf
-							MsgBox($MB_SYSTEMMODAL, "Stderr Read:", $out)
-							$err = 1
-						WEnd
-						;If $out <> "" Then $results &= $out
-						;If $out <> "" Then FileWriteLine($file, "LAST = " & $out)
-						ExitLoop
-					Else
-						$out = StringStripWS($out, 3)
-						If $out <> "" Then
-							FileWriteLine($file, $out)
-							$results &= @CRLF & $out
-							$results = StringStripWS($results, 1)
-							If $size = 0 Then
-								GUICtrlSetData($Progress_bar, 0)
-								If StringInStr($out, "  1x  ") > 0 Then
-									$size = StringSplit($out, "  1x  ", 1)
-									$download = $size[2]
-									$download = StringSplit($download, "/", 1)
-									$download = $download[2]
-									If StringInStr($download, " remaining") > 0 Then
-										$download = StringSplit($download, " remaining", 1)
-										$download = $download[1]
-										$download = StringSplit($download, @CRLF, 1)
-										$download = $download[1]
-									EndIf
-									$size = $size[1]
-									$size = StringSplit($size, "|", 1)
-									$size = $size[2]
-									$size = StringStripWS($size, 1)
-									$size = StringSplit($size, " ", 1)
-									$size = $size[1]
-									GUICtrlSetData($Label_size, $size)
-									$size = StringRegExpReplace($size, "\D", "")
-									If $count = 0 Then
-										$count = StringSplit($results, "     download   ", 1)
-										$count = $count[0] - 1
-									EndIf
-									$num = $num + 1
-									GUICtrlSetData($Label_files, $num & " of " & $count)
+				If $status = "Downloading" Then
+					$file = FileOpen($outfle, 2)
+					GUICtrlSetData($Edit_console, "Starting ....")
+					Local $params = " -skipextras -skipgames"
+					If $files = 1 Then $params = StringReplace($params, " -skipgames", "")
+					If $extras = 1 Then $params = StringReplace($params, " -skipextras", "")
+					$ret = Run(@ComSpec & ' /c gogrepo.py download' & $params & ' -id ' & $title & ' "' & $gamefold & '"', @ScriptDir, @SW_HIDE, $STDERR_MERGED)
+					$pid = $ret
+					IniWrite($inifle, "Current Download", "pid", $pid)
+					$complete = ""
+					$count = 0
+					$download = ""
+					$num = 0
+					$results = ""
+					$size = 0
+					$title = ""
+					While 1
+						$out = StdoutRead($ret)
+						If @error Then
+							; Exit the loop if the process closes or StdoutRead returns an error.
+							; NOTE - If process closes without error, then two Exitloops should occur, without getting an error $val.
+							While 1
+								$out = StderrRead($ret)
+								If @error Then
+									; Exit the loop if the process closes or StderrRead returns an error.
+									ExitLoop
 								EndIf
-							Else
-								If StringInStr($out, "  1x  ") > 0 Then
-									$done = StringSplit($out, "  1x  ", 1)
-									$done = $done[1]
-									$done = StringSplit($done, "|", 1)
-									$done = $done[2]
-									$done = StringStripWS($done, 1)
-									$done = StringSplit($done, " ", 1)
-									$done = $done[1]
-									$done = StringRegExpReplace($done, "\D", "")
-									If $percent <> "100%" Then
-										$progress = $size - $done
-										$percent = ($progress / $size) * 100
-										GUICtrlSetData($Progress_bar, $percent)
-										$percent = Floor($percent) & "%"
-										If $done = "0.0" Then
-											$percent = "100%"
+								MsgBox($MB_SYSTEMMODAL, "Stderr Read:", $out)
+								$err = 1
+							WEnd
+							;If $out <> "" Then $results &= $out
+							;If $out <> "" Then FileWriteLine($file, "LAST = " & $out)
+							ExitLoop
+						Else
+							$out = StringStripWS($out, 3)
+							If $out <> "" Then
+								FileWriteLine($file, $out)
+								$results &= @CRLF & $out
+								$results = StringStripWS($results, 1)
+								If $size = 0 Then
+									GUICtrlSetData($Progress_bar, 0)
+									If StringInStr($out, "  1x  ") > 0 Then
+										$size = StringSplit($out, "  1x  ", 1)
+										$download = $size[2]
+										$download = StringSplit($download, "/", 1)
+										$download = $download[2]
+										If StringInStr($download, " remaining") > 0 Then
+											$download = StringSplit($download, " remaining", 1)
+											$download = $download[1]
+											$download = StringSplit($download, @CRLF, 1)
+											$download = $download[1]
 										EndIf
-										If $percent = "100%" Then $complete = 1
-										GUICtrlSetData($Label_percent, $percent)
-										GUICtrlSetTip($Progress_bar, $percent)
+										$size = $size[1]
+										$size = StringSplit($size, "|", 1)
+										$size = $size[2]
+										$size = StringStripWS($size, 1)
+										$size = StringSplit($size, " ", 1)
+										$size = $size[1]
+										GUICtrlSetData($Label_size, $size)
+										$size = StringRegExpReplace($size, "\D", "")
+										If $count = 0 Then
+											$count = StringSplit($results, "     download   ", 1)
+											$count = $count[0] - 1
+										EndIf
+										$num = $num + 1
+										GUICtrlSetData($Label_files, $num & " of " & $count)
 									EndIf
-								ElseIf $complete = 1 Then
-									GUICtrlSetData($Progress_bar, 100)
-									GUICtrlSetData($Label_percent, "100%")
-									Sleep(150)
-									$complete = ""
-									$size = 0
-									$results = ""
-									$percent = 0
-									GUICtrlSetData($Edit_console, "")
-								EndIf
-							EndIf
-							$results = StringReplace($results, @CRLF, @CR)
-							$results = StringReplace($results, @LF, @CR)
-							$results = StringReplace($results, @CR, @CRLF)
-							If $size = 0 And $num < 1 Then
-								If StringInStr($results, " remaining") < 1 Then
-									$output = $results
 								Else
-									$output = ""
-								EndIf
-							Else
-								$output = StringSplit($results, @CRLF, 1)
-								$cnt = $output[0]
-								If $cnt > 1 Then
-									$first = $output[$cnt - 1]
-									$second = $output[$cnt]
-									$output = ""
-									If $download <> "" Then
-										$output = $download & @CRLF
-									EndIf
-									If $first <> "" Then
-										If StringInStr($first, " remaining") < 1 Then
-											$output = $output & $first & @CRLF
-										EndIf
-									EndIf
-									If $second <> "" Then
-										If StringInStr($second, " remaining") > 0 Then
-											$first = StringSplit($second, " remaining", 1)
-											If $first[0] > 2 Then
-												$second = $first[2] & " remaining"
-												$second = StringStripWS($second, 3)
+									If StringInStr($out, "  1x  ") > 0 Then
+										$done = StringSplit($out, "  1x  ", 1)
+										$done = $done[1]
+										$done = StringSplit($done, "|", 1)
+										$done = $done[2]
+										$done = StringStripWS($done, 1)
+										$done = StringSplit($done, " ", 1)
+										$done = $done[1]
+										$done = StringRegExpReplace($done, "\D", "")
+										If $percent <> "100%" Then
+											$progress = $size - $done
+											$percent = ($progress / $size) * 100
+											GUICtrlSetData($Progress_bar, $percent)
+											$percent = Floor($percent) & "%"
+											If $done = "0.0" Then
+												$percent = "100%"
 											EndIf
+											If $percent = "100%" Then $complete = 1
+											GUICtrlSetData($Label_percent, $percent)
+											GUICtrlSetTip($Progress_bar, $percent)
 										EndIf
-										$output = $output & $second
+									ElseIf $complete = 1 Then
+										GUICtrlSetData($Progress_bar, 100)
+										GUICtrlSetData($Label_percent, "100%")
+										Sleep(150)
+										$complete = ""
+										$size = 0
+										$results = ""
+										$percent = 0
+										GUICtrlSetData($Edit_console, "")
 									EndIf
-								Else
+								EndIf
+								$results = StringReplace($results, @CRLF, @CR)
+								$results = StringReplace($results, @LF, @CR)
+								$results = StringReplace($results, @CR, @CRLF)
+								If $size = 0 And $num < 1 Then
 									If StringInStr($results, " remaining") < 1 Then
 										$output = $results
 									Else
 										$output = ""
 									EndIf
+								Else
+									$output = StringSplit($results, @CRLF, 1)
+									$cnt = $output[0]
+									If $cnt > 1 Then
+										$first = $output[$cnt - 1]
+										$second = $output[$cnt]
+										$output = ""
+										If $download <> "" Then
+											$output = $download & @CRLF
+										EndIf
+										If $first <> "" Then
+											If StringInStr($first, " remaining") < 1 Then
+												$output = $output & $first & @CRLF
+											EndIf
+										EndIf
+										If $second <> "" Then
+											If StringInStr($second, " remaining") > 0 Then
+												$first = StringSplit($second, " remaining", 1)
+												If $first[0] > 2 Then
+													$second = $first[2] & " remaining"
+													$second = StringStripWS($second, 3)
+												EndIf
+											EndIf
+											$output = $output & $second
+										EndIf
+									Else
+										If StringInStr($results, " remaining") < 1 Then
+											$output = $results
+										Else
+											$output = ""
+										EndIf
+									EndIf
+								EndIf
+								GUICtrlSetData($Edit_console, "")
+								GUICtrlSetData($Edit_console, "")
+								GUICtrlSetData($Edit_console, $output)
+								If StringInStr($output, "total time:") > 0 Then
+									Sleep(2000)
 								EndIf
 							EndIf
-							GUICtrlSetData($Edit_console, "")
-							GUICtrlSetData($Edit_console, "")
-							GUICtrlSetData($Edit_console, $output)
-							If StringInStr($output, "total time:") > 0 Then
-								Sleep(2000)
+						EndIf
+						If $exit = 1 Then
+							If $pid <> 0 Then
+								If ProcessExists($pid) Then ProcessClose($pid)
+								; Need to be careful doing these. Perhaps check for number of instances.
+								If ProcessExists("py.exe") Then
+									$process = ProcessList("py.exe")
+									If $process[0] = 1 Then ProcessClose("py.exe")
+								EndIf
+								If ProcessExists("Python.exe") Then
+									$process = ProcessList("Python.exe")
+									If $process[0] = 1 Then ProcessClose("Python.exe")
+								EndIf
 							EndIf
+							GUIDelete($ProgressGUI)
+							ExitLoop 2
 						EndIf
-					EndIf
-					If $exit = 1 Then
-						If $pid <> 0 Then
-							ProcessClose($pid)
-							ProcessClose("py.exe")
-							ProcessClose("Python.exe")
-						EndIf
-						GUIDelete($ProgressGUI)
-						ExitLoop 2
-					EndIf
-				WEnd
-				FileWriteLine($file, $size)
-				FileClose($file)
-				ExitLoop
+					WEnd
+					FileWriteLine($file, $size)
+					FileClose($file)
+					ExitLoop
+				ElseIf $status = "Verifying" Then
+				EndIf
 			EndIf
 		EndIf
 		Sleep(10)
@@ -292,7 +314,11 @@ Exit
 
 Func CloseEvent()
 	; Exit / Close / Quit the program
-	$exit = 1
+	If $status = "" Then
+		$exit = 1
+	Else
+		MsgBox(262192, "Close Error", "Use the QUEUE window STOP button!", 3, $ProgressGUI)
+	EndIf
 EndFunc ;=> CloseEvent
 
 Func KeepWidth()

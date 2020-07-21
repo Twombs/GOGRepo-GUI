@@ -53,13 +53,13 @@ Global $Item_store, $Item_winsort, $Item_winunsort
 ;
 Global $Control_1, $Control_2, $Control_3, $Control_4, $Control_5
 ;
-Global $a, $addlist, $alf, $all, $alpha, $ans, $array, $auto, $backups, $bargui, $bigpic, $blackjpg, $c, $check
-Global $chunk, $chunks, $cnt, $connection, $cookies, $cover, $date, $delay, $delete, $dest, $done, $down, $downall
+Global $a, $addlist, $alf, $all, $alpha, $ans, $array, $auto, $backups, $bigpic, $blackjpg, $c, $check, $chunk
+Global $chunks, $cnt, $connection, $cookies, $cover, $date, $delay, $delete, $dest, $done, $down, $downall
 Global $downlist, $DownloadGUI, $drv, $extras, $fdate, $file, $files, $finished, $flag, $for, $forum, $game
 Global $gamefold, $gamepic, $games, $gamesfle, $gamesfold, $gogrepo, $GOGRepoGUI, $height, $icoD, $icoF, $icoI, $icoS, $icoT
 Global $icoX, $image, $imgfle, $ind, $infofle, $inifle, $lang, $last, $latest, $left, $line, $lines, $locations
 Global $logfle, $manifest, $md5, $minimize, $name, $num, $open, $OS, $OSextras, $OSget, $path, $percent, $pid
-Global $progbar, $progress, $QueueGUI, $read, $res, $segment, $SetupGUI, $shell, $shutdown, $size, $sizecheck, $split
+Global $progress, $QueueGUI, $read, $res, $segment, $SetupGUI, $shell, $shutdown, $size, $sizecheck, $split
 Global $started, $state, $stop, $store, $style, $t, $text, $textdump, $threads, $title, $titles, $titlist, $top
 Global $tot, $total, $type, $update, $updated, $UpdateGUI, $updating, $user, $val, $validate, $validation, $verify
 Global $VerifyGUI, $verifying, $version, $wait, $width, $window, $winpos, $xpos, $ypos, $zipcheck
@@ -79,24 +79,10 @@ $inifle = @ScriptDir & "\Settings.ini"
 $locations = @ScriptDir & "\Locations.ini"
 $logfle = @ScriptDir & "\Record.log"
 $manifest = @ScriptDir & "\gog-manifest.dat"
-$progbar = @ScriptDir & "\Reporun.exe"
 $titlist = @ScriptDir & "\Titles.txt"
 $version = "v1.0"
 
 If Not FileExists($titlist) Then _FileCreate($titlist)
-
-$bargui = IniRead($inifle, "Floating Progress Bar GUI", "use", "")
-If FileExists($progbar) Then
-	If $bargui = "" Then
-		$bargui = 4
-		IniWrite($inifle, "Floating Progress Bar GUI", "use", $bargui)
-	EndIf
-Else
-	If $bargui = 1 Or $bargui = "" Then
-		$bargui = 4
-		IniWrite($inifle, "Floating Progress Bar GUI", "use", $bargui)
-	EndIf
-EndIf
 
 If FileExists($titlist) Then
 	$updated = IniRead($inifle, "Program", "updated", "")
@@ -1030,14 +1016,10 @@ Func MainGUI()
 														;$flag = @SW_RESTORE
 														$flag = @SW_SHOW
 													EndIf
-													If $bargui = 1 And FileExists($progbar) Then
-														$pid = ShellExecute($progbar, "Download", @ScriptDir, "open", $flag)
-													Else
-														Local $params = " -skipextras -skipgames"
-														If $files = 1 Then $params = StringReplace($params, " -skipgames", "")
-														If $extras = 1 Then $params = StringReplace($params, " -skipextras", "")
-														$pid = Run(@ComSpec & ' /c gogrepo.py download' & $params & ' -id ' & $title & ' "' & $gamefold & '"', @ScriptDir, $flag)
-													EndIf
+													Local $params = " -skipextras -skipgames"
+													If $files = 1 Then $params = StringReplace($params, " -skipgames", "")
+													If $extras = 1 Then $params = StringReplace($params, " -skipextras", "")
+													$pid = Run(@ComSpec & ' /c gogrepo.py download' & $params & ' -id ' & $title & ' "' & $gamefold & '"', @ScriptDir, $flag)
 													AdlibRegister("CheckOnGameDownload", 3000)
 												Else
 													MsgBox(262192, "Auto Start Error", "Due to no web connection, you will need to de-select the" _
@@ -1704,7 +1686,7 @@ Func QueueGUI()
 	Local $Checkbox_size, $Checkbox_start, $Checkbox_stop, $Checkbox_zip, $Group_auto, $Group_info
 	Local $Group_lang, $Group_progress, $Group_shutdown, $Group_stop
 	;
-	Local $count, $current, $params, $process, $restart, $section, $shutopts, $swap, $templog
+	Local $count, $current, $params, $restart, $section, $shutopts, $swap, $templog
 	;
 	$QueueGUI = GuiCreate("QUEUE & Options", $width, $height, $left, $top, $style + $WS_VISIBLE, $WS_EX_TOPMOST)
 	GUISetBkColor(0xFFD5FF, $QueueGUI)
@@ -1945,43 +1927,12 @@ Func QueueGUI()
 				$started = 4
 				$wait = 0
 				AdlibUnRegister("CheckOnGameDownload")
-				SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
-				If $pid <> 0 Then
-					If ProcessExists($pid) Then
-						ProcessClose($pid)
-						ProcessWaitClose($pid, 10)
-					EndIf
-				EndIf
-				If $bargui = 1 Then
-					$pid = IniRead($inifle, "Current Download", "pid", "")
-					If $pid <> "" Then
-						If $pid <> 0 Then
-							If ProcessExists($pid) Then
-								ProcessClose($pid)
-								ProcessWaitClose($pid, 10)
-							EndIf
-						EndIf
-					EndIf
-				EndIf
-				SplashOff()
-				; Need to be careful doing these. Perhaps query & check for number of instances.
-				$ans = MsgBox(262177, "Processes Close Query", _
-					"Do you also want to close any running" & @LF & _
-					"'py.exe' and 'Python.exe' process?", $wait, $QueueGUI)
-				If $ans = 1 Then
-					If ProcessExists("py.exe") Then
-						$process = ProcessList("py.exe")
-						If $process[0] = 1 Then ProcessClose("py.exe")
-					EndIf
-					If ProcessExists("Python.exe") Then
-						$process = ProcessList("Python.exe")
-						If $process[0] = 1 Then ProcessClose("Python.exe")
-					EndIf
-				EndIf
+				If ProcessExists($pid) Then ProcessClose($pid)
 				;
 				; Add some code to restore game title to downloads list, after querying user.
 				; NOTE - If input field is not cleared, there is potential to restart title.
 				;
+				ProcessWaitClose($pid, 10)
 				If ProcessExists($pid) = 0 Then
 					GUICtrlSetState($Button_start, $GUI_ENABLE)
 					GUICtrlSetState($Button_stop, $GUI_DISABLE)
@@ -2074,11 +2025,7 @@ Func QueueGUI()
 						;$flag = @SW_RESTORE
 						$flag = @SW_SHOW
 					EndIf
-					If $bargui = 1 And FileExists($progbar) Then
-						$pid = ShellExecute($progbar, "Download", @ScriptDir, "open", $flag)
-					Else
-						$pid = Run(@ComSpec & ' /c gogrepo.py download' & $params & ' -id ' & $current & ' "' & $gamefold & '"', @ScriptDir, $flag)
-					EndIf
+					$pid = Run(@ComSpec & ' /c gogrepo.py download' & $params & ' -id ' & $current & ' "' & $gamefold & '"', @ScriptDir, $flag)
 					AdlibRegister("CheckOnGameDownload", 3000)
 				EndIf
 			EndIf
@@ -2344,7 +2291,7 @@ Func SetupGUI()
 	; Script generated by GUIBuilder Prototype 0.9
 	Local $Button_attach, $Button_close, $Button_cookie, $Button_install, $Combo_lang, $Combo_langs, $Group_lang, $Group_threads
 	Local $Input_pass, $Input_threads, $Input_user, $Label_info, $Label_lang, $Label_langs, $Label_pass, $Label_threads, $Label_user
-	Local $Updown_threads, $Checkbox_progress
+	Local $Updown_threads
 	;
 	Local $combos, $langs, $long, $password, $username
 	;
@@ -2384,19 +2331,15 @@ Func SetupGUI()
 	GUICtrlSetTip($Button_attach, "Add a single language or combination (with CTRL to remove)!")
 	;
 	$Group_threads = GuiCtrlCreateGroup("", 10, 261, 210, 43)
-	;$Label_threads = GuiCtrlCreateLabel("Downloading Threads", 20, 275, 152, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
-	$Label_threads = GuiCtrlCreateLabel("Download Threads", 20, 275, 130, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
+	$Label_threads = GuiCtrlCreateLabel("Downloading Threads", 20, 275, 152, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
 	GUICtrlSetBkColor($Label_threads, $COLOR_MONEYGREEN)
 	GUICtrlSetColor($Label_threads, $COLOR_BLACK)
 	GUICtrlSetFont($Label_threads, 8, 600)
-	$Input_threads = GuiCtrlCreateInput("", 150, 275, 37, 20)
+	$Input_threads = GuiCtrlCreateInput("", 172, 275, 37, 20)
 	GUICtrlSetTip($Input_threads, "Number of threads (files) to download with!")
 	$Updown_threads = GUICtrlCreateUpdown($Input_threads)
 	GUICtrlSetLimit($Updown_threads, 4, 1)
 	GUICtrlSetTip($Updown_threads, "Adjust the number of threads to download with!")
-	;
-	$Checkbox_progress = GUICtrlCreateCheckbox("", 195, 275, 20, 20)
-	GUICtrlSetTip($Checkbox_progress, "Enable use of floating Progress Bar GUI!")
 	;
 	$Label_user = GuiCtrlCreateLabel("User or Email", 10, 315, 80, 20, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
 	GUICtrlSetBkColor($Label_user, $COLOR_BLACK)
@@ -2452,12 +2395,6 @@ Func SetupGUI()
 	Else
 		GUICtrlSetData($Input_threads, $threads)
 	EndIf
-	If $threads = 1 Then
-		If Not FileExists($progbar) Then GUICtrlSetState($Checkbox_progress, $GUI_DISABLE)
-	Else
-		GUICtrlSetState($Checkbox_progress, $GUI_DISABLE)
-	EndIf
-	GUICtrlSetState($Checkbox_progress, $bargui)
 	;
 	$window = $SetupGUI
 
@@ -2571,14 +2508,6 @@ Func SetupGUI()
 			GUISwitch($GOGRepoGUI)
 			GUICtrlSetData($Input_langs, $lang)
 			GUISwitch($SetupGUI)
-		Case $msg = $Checkbox_progress
-			; Enable use of floating Progress Bar GUI
-			If GUICtrlRead($Checkbox_progress) = $GUI_CHECKED Then
-				$bargui = 1
-			Else
-				$bargui = 4
-			EndIf
-			IniWrite($inifle, "Floating Progress Bar GUI", "use", $bargui)
 		Case $msg = $Combo_langs
 			; Multiple languages
 			$val = GUICtrlRead($Combo_langs)
@@ -2620,16 +2549,6 @@ Func SetupGUI()
 				EndIf
 				$fdate = FileGetTime($gogrepo, 0, 1)
 				IniWrite($inifle, "gogrepo.py", "file_date", $fdate)
-				If $threads = 1 And FileExists($progbar) Then
-					GUICtrlSetState($Checkbox_progress, $GUI_ENABLE)
-				Else
-					GUICtrlSetState($Checkbox_progress, $GUI_DISABLE)
-					If $bargui = 1 Then
-						$bargui = 4
-						IniWrite($inifle, "Floating Progress Bar GUI", "use", $bargui)
-						GUICtrlSetState($Checkbox_progress, $bargui)
-					EndIf
-				EndIf
 			EndIf
 		Case Else
 			;;;
@@ -3235,11 +3154,7 @@ Func CheckOnGameDownload()
 										;$flag = @SW_RESTORE
 										$flag = @SW_SHOW
 									EndIf
-									If $bargui = 1 And FileExists($progbar) Then
-										$pid = ShellExecute($progbar, "Download", @ScriptDir, "open", $flag)
-									Else
-										$pid = Run(@ComSpec & ' /c gogrepo.py download' & $params & ' -id ' & $current & ' "' & $gamefold & '"', @ScriptDir, $flag)
-									EndIf
+									$pid = Run(@ComSpec & ' /c gogrepo.py download' & $params & ' -id ' & $current & ' "' & $gamefold & '"', @ScriptDir, $flag)
 									If $window = $QueueGUI Then
 										GUICtrlSetData($Input_download, $current)
 										;$progress = $done + $tot
