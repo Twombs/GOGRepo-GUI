@@ -27,8 +27,9 @@ _Singleton("gog-repo-progress-timboli")
 Global $Edit_console, $Label_files, $Label_percent, $Label_size, $Label_status, $Label_title, $Progress_bar
 ;
 Global $cnt, $complete, $count, $done, $downlist, $download, $err, $exit, $extras, $file, $files, $gamefold
-Global $gogrepo, $inifle, $num, $out, $outfle, $output, $params, $percent, $pid, $process, $progress
-Global $ProgressGUI, $results, $ret, $size, $status, $style, $titfold, $title, $width
+Global $gogrepo, $height, $inifle, $left, $minimize, $num, $out, $outfle, $output, $params, $percent, $pid
+Global $process, $progress, $ProgressGUI, $results, $ret, $size, $status, $style, $titfold, $title, $top
+Global $width, $winpos
 
 $downlist = @ScriptDir & "\Downloads.ini"
 $gogrepo = @ScriptDir & "\gogrepo.py"
@@ -49,9 +50,14 @@ Else
 EndIf
 
 If FileExists($gogrepo) Then
+	$minimize = IniRead($inifle, "Progress Bar Or Console", "minimize", "")
+	$height = 160
 	$width = 600
 	$style = $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU + $WS_CLIPSIBLINGS + $WS_MINIMIZEBOX + $WS_SIZEBOX
-	$ProgressGUI = GuiCreate("Floating Progress", $width, 160, Default, Default, $style, $WS_EX_TOPMOST)
+	If $minimize = 1 Then $style = $style + $WS_MINIMIZE
+	$left = IniRead($inifle, "Progress Window", "left", 2)
+	$top = IniRead($inifle, "Progress Window", "top", @DesktopHeight - $height - 100)
+	$ProgressGUI = GuiCreate("Floating Progress", $width, 160, $left, $top, $style, $WS_EX_TOPMOST)
 	GUISetBkColor($COLOR_SKYBLUE, $ProgressGUI)
 	; CONTROLS
 	$Label_status = GUICtrlCreateLabel($status, 10, 10, 80, 20, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
@@ -158,7 +164,7 @@ If FileExists($gogrepo) Then
 							WEnd
 							;If $out <> "" Then $results &= $out
 							;If $out <> "" Then FileWriteLine($file, "LAST = " & $out)
-							ExitLoop
+							ExitLoop 2
 						Else
 							$out = StringStripWS($out, 3)
 							If $out <> "" Then
@@ -280,13 +286,22 @@ If FileExists($gogrepo) Then
 							If $pid <> 0 Then
 								If ProcessExists($pid) Then ProcessClose($pid)
 								; Need to be careful doing these. Perhaps check for number of instances.
-								If ProcessExists("py.exe") Then
-									$process = ProcessList("py.exe")
-									If $process[0] = 1 Then ProcessClose("py.exe")
-								EndIf
-								If ProcessExists("Python.exe") Then
-									$process = ProcessList("Python.exe")
-									If $process[0] = 1 Then ProcessClose("Python.exe")
+								$ans = MsgBox(262177, "Processes Close Query", _
+									"Do you also want to close any running" & @LF & _
+									"'py.exe' and 'Python.exe' process?", $wait, $QueueGUI)
+								If $ans = 1 Then
+									If ProcessExists("py.exe") Then
+										$process = ProcessList("py.exe")
+										If @error <> 1 Then
+											If $process[0][0] = 1 Then ProcessClose("py.exe")
+										EndIf
+									EndIf
+									If ProcessExists("Python.exe") Then
+										$process = ProcessList("Python.exe")
+										If @error <> 1 Then
+											If $process[0][0] = 1 Then ProcessClose("Python.exe")
+										EndIf
+									EndIf
 								EndIf
 							EndIf
 							GUIDelete($ProgressGUI)
@@ -302,10 +317,26 @@ If FileExists($gogrepo) Then
 		EndIf
 		Sleep(10)
 		If $exit = 1 Then
-			GUIDelete($ProgressGUI)
 			ExitLoop
 		EndIf
 	WEnd
+	$winpos = WinGetPos($ProgressGUI, "")
+	$left = $winpos[0]
+	If $left < 0 Then
+		$left = 2
+	ElseIf $left > @DesktopWidth - $width Then
+		$left = @DesktopWidth - $width - 25
+	EndIf
+	IniWrite($inifle, "Progress Window", "left", $left)
+	$top = $winpos[1]
+	If $top < 0 Then
+		$top = 2
+	ElseIf $top > @DesktopHeight - $height - 40 Then
+		$top = @DesktopHeight - $height - 100
+	EndIf
+	IniWrite($inifle, "Progress Window", "top", $top)
+	;
+	GUIDelete($ProgressGUI)
 Else
 	MsgBox(262192, "Program Error", "The 'gogrepo.py' file could not be found!", 0)
 EndIf

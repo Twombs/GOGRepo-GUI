@@ -56,8 +56,8 @@ Global $Control_1, $Control_2, $Control_3, $Control_4, $Control_5
 Global $a, $addlist, $alf, $all, $alpha, $ans, $array, $auto, $backups, $bargui, $bigpic, $blackjpg, $c, $check
 Global $chunk, $chunks, $cnt, $connection, $cookies, $cover, $date, $delay, $delete, $dest, $done, $down, $downall
 Global $downlist, $DownloadGUI, $drv, $extras, $fdate, $file, $files, $finished, $flag, $for, $forum, $game
-Global $gamefold, $gamepic, $games, $gamesfle, $gamesfold, $gogrepo, $GOGRepoGUI, $height, $icoD, $icoF, $icoI, $icoS, $icoT
-Global $icoX, $image, $imgfle, $ind, $infofle, $inifle, $lang, $last, $latest, $left, $line, $lines, $locations
+Global $gamefold, $gamepic, $games, $gamesfle, $gamesfold, $gogrepo, $GOGRepoGUI, $height, $icoD, $icoF, $icoI, $icoS
+Global $icoT, $icoX, $image, $imgfle, $ind, $infofle, $inifle, $lang, $last, $latest, $left, $line, $lines, $locations
 Global $logfle, $manifest, $md5, $minimize, $name, $num, $open, $OS, $OSextras, $OSget, $path, $percent, $pid
 Global $progbar, $progress, $QueueGUI, $read, $res, $segment, $SetupGUI, $shell, $shutdown, $size, $sizecheck, $split
 Global $started, $state, $stop, $store, $style, $t, $text, $textdump, $threads, $title, $titles, $titlist, $top
@@ -545,8 +545,57 @@ Func MainGUI()
 	$verify = 4
 	$wait = 0
 	;
+	$minimize = 4
+	IniWrite($inifle, "Progress Bar Or Console", "minimize", $minimize)
+	;
 	$pid = ""
 	$tot = IniRead($downlist, "Downloads", "total", 0)
+	If $tot > 0 Then
+		$tot = IniReadSectionNames($downlist)
+		$tot = $tot[0] - 1
+		If $tot = 0 Then
+			IniWrite($downlist, "Downloads", "total", $tot)
+		EndIf
+	EndIf
+	$title = IniRead($inifle, "Current Download", "title", "")
+	If $title <> "" Then
+		$ans = MsgBox(262177 + 256, "Restore Query", _
+			"It appears that the last download did not complete." & @LF & @LF & _
+			$title & @LF & @LF & _
+			"Do you want to restore it to the download list?" & @LF & @LF & _
+			"OK = Restore & Disable any 'Auto' start." & @LF & _
+			"CANCEL = Ignore & Remove the record.", 0, $GOGRepoGUI)
+		If $ans = 1 Then
+			$tot = $tot + 1
+			IniWrite($downlist, "Downloads", "total", $tot)
+			IniWrite($downlist, $title, "rank", $tot)
+			$gamefold = IniRead($inifle, "Current Download", "destination", "")
+			IniWrite($downlist, $title, "destination", $gamefold)
+			$files = IniRead($inifle, "Current Download", "files", "")
+			IniWrite($downlist, $title, "files", $files)
+			$extras = IniRead($inifle, "Current Download", "extras", "")
+			IniWrite($downlist, $title, "extras", $extras)
+			$cover = IniRead($inifle, "Current Download", "cover", "")
+			IniWrite($downlist, $title, "cover", $cover)
+			$image = IniRead($inifle, "Current Download", "image", "")
+			IniWrite($downlist, $title, "image", $image)
+			$validate = IniRead($inifle, "Current Download", "verify", "")
+			IniWrite($downlist, $title, "verify", $validate)
+			$md5 = IniRead($inifle, "Current Download", "md5", "")
+			IniWrite($downlist, $title, "md5", $md5)
+			$sizecheck = IniRead($inifle, "Current Download", "size", "")
+			IniWrite($downlist, $title, "size", $sizecheck)
+			$zipcheck = IniRead($inifle, "Current Download", "zips", "")
+			IniWrite($downlist, $title, "zips", $zipcheck)
+			$delete = IniRead($inifle, "Current Download", "delete", "")
+			IniWrite($downlist, $title, "delete", $delete)
+			If $auto = 1 Then
+				$auto = 4
+				IniWrite($inifle, "Start Downloading", "auto", $auto)
+			EndIf
+		EndIf
+		IniDelete($inifle, "Current Download")
+	EndIf
 	$total = $tot
 	If $total > 0 Then
 		GUICtrlSetData($Label_added, $total)
@@ -592,7 +641,8 @@ Func MainGUI()
 			QueueGUI()
 			$window = $GOGRepoGUI
 			GuiSetState(@SW_SHOW, $GOGRepoGUI)
-			If $downall = 4 And $started = 4 Then
+			; And $total = 0
+			If $downall = 4 And $started = 4 And ($pid = "" Or $pid = 0) Then
 				GUICtrlSetState($Checkbox_all, $GUI_ENABLE)
 				GUICtrlSetState($Checkbox_update, $GUI_ENABLE)
 				GUICtrlSetState($Checkbox_verify, $GUI_ENABLE)
@@ -1095,16 +1145,18 @@ Func MainGUI()
 									If $total > 0 Then
 										;GUICtrlSetBkColor($Label_added, $COLOR_BLACK)
 										;GUICtrlSetColor($Label_added, $COLOR_WHITE)
-										If $started = 1 Then
-											GUICtrlSetBkColor($Label_added, $COLOR_RED)
-										Else
-											GUICtrlSetBkColor($Label_added, $COLOR_GREEN)
-										EndIf
 										GUICtrlSetData($Label_added, $total)
-										GUICtrlSetState($Checkbox_update, $GUI_DISABLE)
-										GUICtrlSetState($Checkbox_verify, $GUI_DISABLE)
-										GUICtrlSetState($Checkbox_all, $GUI_DISABLE)
-										;GUICtrlSetState($Button_setup, $GUI_DISABLE)
+										If $total = 1 Then
+											If $started = 1 Then
+												GUICtrlSetBkColor($Label_added, $COLOR_RED)
+											Else
+												GUICtrlSetBkColor($Label_added, $COLOR_GREEN)
+											EndIf
+											GUICtrlSetState($Checkbox_update, $GUI_DISABLE)
+											GUICtrlSetState($Checkbox_verify, $GUI_DISABLE)
+											GUICtrlSetState($Checkbox_all, $GUI_DISABLE)
+											;GUICtrlSetState($Button_setup, $GUI_DISABLE)
+										EndIf
 									EndIf
 								EndIf
 							EndIf
@@ -1917,6 +1969,9 @@ Func QueueGUI()
 	;$percent = $percent * 100
 	;;$percent = Round($percent)
 	If $percent > 0 Then
+		$progress = $total
+		$percent = (($done * 100) + $done) / ($progress + ($progress * 100))
+		$percent = $percent * 100
 		GUICtrlSetData($Progress_bar, $percent)
 		GUICtrlSetTip($Progress_bar, Round($percent, 1) & "%")
 	EndIf
@@ -1950,6 +2005,8 @@ Func QueueGUI()
 					If ProcessExists($pid) Then
 						ProcessClose($pid)
 						ProcessWaitClose($pid, 10)
+					Else
+						$pid = 0
 					EndIf
 				EndIf
 				If $bargui = 1 Then
@@ -1959,6 +2016,8 @@ Func QueueGUI()
 							If ProcessExists($pid) Then
 								ProcessClose($pid)
 								ProcessWaitClose($pid, 10)
+							Else
+								$pid = 0
 							EndIf
 						EndIf
 					EndIf
@@ -1971,11 +2030,15 @@ Func QueueGUI()
 				If $ans = 1 Then
 					If ProcessExists("py.exe") Then
 						$process = ProcessList("py.exe")
-						If $process[0] = 1 Then ProcessClose("py.exe")
+						If @error <> 1 Then
+							If $process[0][0] = 1 Then ProcessClose("py.exe")
+						EndIf
 					EndIf
 					If ProcessExists("Python.exe") Then
 						$process = ProcessList("Python.exe")
-						If $process[0] = 1 Then ProcessClose("Python.exe")
+						If @error <> 1 Then
+							If $process[0][0] = 1 Then ProcessClose("Python.exe")
+						EndIf
 					EndIf
 				EndIf
 				;
@@ -1983,6 +2046,7 @@ Func QueueGUI()
 				; NOTE - If input field is not cleared, there is potential to restart title.
 				;
 				If ProcessExists($pid) = 0 Then
+					$pid = ""
 					GUICtrlSetState($Button_start, $GUI_ENABLE)
 					GUICtrlSetState($Button_stop, $GUI_DISABLE)
 					GUISwitch($GOGRepoGUI)
@@ -2011,6 +2075,9 @@ Func QueueGUI()
 				GUICtrlSetData($Progress_bar, 0)
 				GUICtrlSetTip($Progress_bar, "0%")
 				GUISwitch($GOGRepoGUI)
+				GUICtrlSetState($Checkbox_all, $GUI_DISABLE)
+				GUICtrlSetState($Checkbox_update, $GUI_DISABLE)
+				GUICtrlSetState($Checkbox_verify, $GUI_DISABLE)
 				GUICtrlSetState($Button_move, $GUI_DISABLE)
 				GUICtrlSetState($Button_log, $GUI_DISABLE)
 				GUICtrlSetBkColor($Label_added, $COLOR_RED)
@@ -2269,6 +2336,7 @@ Func QueueGUI()
 			Else
 				$minimize = 4
 			EndIf
+			IniWrite($inifle, "Progress Bar Or Console", "minimize", $minimize)
 		Case $msg = $Combo_shutdown
 			; Shutdown options
 			$shutdown = GUICtrlRead($Combo_shutdown)
@@ -2703,26 +2771,38 @@ Func UpdateGUI()
 	EndIf
 	GUICtrlSetState($Checkbox_resume, $resume)
 	;
-	$newgames = IniRead($inifle, "New Games Only", "add", "")
-	If $newgames = "" Then
+	If $all = 1 Then
+		$newgames = IniRead($inifle, "New Games Only", "add", "")
+		If $newgames = "" Then
+			$newgames = 4
+			IniWrite($inifle, "New Games Only", "add", $newgames)
+		EndIf
+		GUICtrlSetState($Checkbox_new, $newgames)
+		;
+		$tagged = IniRead($inifle, "Update Tag", "use", "")
+		If $tagged = "" Then
+			$tagged = 4
+			IniWrite($inifle, "Update Tag", "use", $tagged)
+		EndIf
+		GUICtrlSetState($Checkbox_tag, $tagged)
+		;
+		$skiphid = IniRead($inifle, "Hidden Games", "skip", "")
+		If $skiphid = "" Then
+			$skiphid = 4
+			IniWrite($inifle, "Hidden Games", "skip", $skiphid)
+		EndIf
+		GUICtrlSetState($Checkbox_skip, $skiphid)
+	Else
 		$newgames = 4
-		IniWrite($inifle, "New Games Only", "add", $newgames)
-	EndIf
-	GUICtrlSetState($Checkbox_new, $newgames)
-	;
-	$tagged = IniRead($inifle, "Update Tag", "use", "")
-	If $tagged = "" Then
+		GUICtrlSetState($Checkbox_new, $newgames)
+		GUICtrlSetState($Checkbox_new, $GUI_DISABLE)
 		$tagged = 4
-		IniWrite($inifle, "Update Tag", "use", $tagged)
-	EndIf
-	GUICtrlSetState($Checkbox_tag, $tagged)
-	;
-	$skiphid = IniRead($inifle, "Hidden Games", "skip", "")
-	If $skiphid = "" Then
+		GUICtrlSetState($Checkbox_tag, $tagged)
+		GUICtrlSetState($Checkbox_tag, $GUI_DISABLE)
 		$skiphid = 4
-		IniWrite($inifle, "Hidden Games", "skip", $skiphid)
+		GUICtrlSetState($Checkbox_skip, $skiphid)
+		GUICtrlSetState($Checkbox_skip, $GUI_DISABLE)
 	EndIf
-	GUICtrlSetState($Checkbox_skip, $skiphid)
 	;
 	$updating = ""
 	;
@@ -3129,6 +3209,7 @@ Func CheckOnGameDownload()
 		If ProcessExists($pid) Then
 			Return
 		Else
+			$pid = 0
 			$title = IniRead($inifle, "Current Download", "title", "")
 			$current = $title
 			$val = IniRead($inifle, "Current Download", "verify", "")
@@ -3240,13 +3321,13 @@ Func CheckOnGameDownload()
 									Else
 										$pid = Run(@ComSpec & ' /c gogrepo.py download' & $params & ' -id ' & $current & ' "' & $gamefold & '"', @ScriptDir, $flag)
 									EndIf
+									;$progress = $done + $tot
+									$progress = $total
+									$percent = (($done * 100) + $done) / ($progress + ($progress * 100))
+									$percent = $percent * 100
+									;$percent = Round($percent)
 									If $window = $QueueGUI Then
 										GUICtrlSetData($Input_download, $current)
-										;$progress = $done + $tot
-										$progress = $total
-										$percent = (($done * 100) + $done) / ($progress + ($progress * 100))
-										$percent = $percent * 100
-										;$percent = Round($percent)
 										GUICtrlSetData($Progress_bar, $percent)
 										GUICtrlSetTip($Progress_bar, Round($percent, 1) & "%")
 										RemoveListEntry(0)
@@ -3280,7 +3361,8 @@ Func CheckOnGameDownload()
 						EndIf
 						Return
 					Else
-						$started = ""
+						$started = 4
+						$pid = ""
 						$wait = 0
 						AdlibUnRegister("CheckOnGameDownload")
 						IniDelete($inifle, "Current Download")
@@ -3781,7 +3863,7 @@ Func RemoveListEntry($num)
 	Else
 		GUICtrlSetData($Group_waiting, "Games To Download")
 		;
-		ClearDisableEnableRestore()
+		If ($pid = "" Or $pid = 0) And $started = 4 Then ClearDisableEnableRestore()
 		;$total = 0
 		$downall = 4
 		IniWrite($inifle, "Download ALL", "activated", $downall)
