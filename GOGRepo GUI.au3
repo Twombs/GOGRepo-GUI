@@ -11,12 +11,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; FUNCTIONS
-; DownloadGUI(), MainGUI(), QueueGUI(), SetupGUI(), UpdateGUI(), VerifyGUI()
+; DownloadAllGUI(), DownloadGUI(), MainGUI(), QueueGUI(), SetupGUI(), UpdateGUI(), VerifyGUI()
 ;
 ; BackupManifestEtc(), CheckForConnection(), CheckIfPythonRunning(), CheckOnGameDownload(), CheckOnShutdown()
 ; ClearDisableEnableRestore(), CreateListOfGames($for, $file), DisableQueueButtons(), EnableDisableControls($state)
-; FillTheGamesList(), GetAllowedName(), GetTheSize(), GetWindowPosition(), ParseTheManifest(), RemoveListEntry($num)
-; ReplaceForeignCharacters($text), ShowCorrectImage()
+; FillTheGamesList(), GetAllowedName(), GetAuthorAndVersion(), GetTheSize(), GetWindowPosition()
+; ParseTheManifest(), RemoveListEntry($num), ReplaceForeignCharacters($text), ShowCorrectImage()
 
 #include <Constants.au3>
 #include <GUIConstantsEx.au3>
@@ -37,7 +37,7 @@
 
 _Singleton("gog-repo-gui-timboli")
 
-Global $Button_add, $Button_dest, $Button_down, $Button_exit, $Button_find, $Button_fix, $Button_fold
+Global $Button_add, $Button_dest, $Button_detail, $Button_down, $Button_exit, $Button_find, $Button_fix, $Button_fold
 Global $Button_info, $Button_last, $Button_log, $Button_more, $Button_move, $Button_movedown, $Button_moveup
 Global $Button_pic, $Button_queue, $Button_removall, $Button_remove, $Button_setup, $Button_start, $Button_stop
 Global $Checkbox_all, $Checkbox_alpha, $Checkbox_check, $Checkbox_cover, $Checkbox_extra, $Checkbox_files
@@ -53,16 +53,17 @@ Global $Item_store, $Item_winsort, $Item_winunsort
 ;
 Global $Control_1, $Control_2, $Control_3, $Control_4, $Control_5
 ;
-Global $a, $addlist, $alf, $all, $alpha, $ans, $array, $auto, $backups, $bargui, $bigpic, $blackjpg, $c, $check
-Global $chunk, $chunks, $cnt, $connection, $cookies, $cover, $date, $delay, $delete, $dest, $done, $down, $downall
-Global $downlist, $DownloadGUI, $drv, $extras, $fdate, $file, $files, $finished, $flag, $for, $forum, $game
-Global $gamefold, $gamepic, $games, $gamesfle, $gamesfold, $gogrepo, $GOGRepoGUI, $height, $icoD, $icoF, $icoI, $icoS
-Global $icoT, $icoX, $image, $imgfle, $ind, $infofle, $inifle, $lang, $last, $latest, $left, $line, $lines, $locations
-Global $logfle, $manifest, $md5, $minimize, $name, $num, $open, $OS, $OSextras, $OSget, $path, $percent, $pid
-Global $progbar, $progress, $QueueGUI, $read, $res, $segment, $SetupGUI, $shell, $shutdown, $size, $sizecheck, $split
-Global $started, $state, $stop, $store, $style, $t, $text, $textdump, $threads, $title, $titles, $titlist, $top
-Global $tot, $total, $type, $update, $updated, $UpdateGUI, $updating, $user, $val, $validate, $validation, $verify
-Global $VerifyGUI, $verifying, $version, $wait, $width, $window, $winpos, $xpos, $ypos, $zipcheck
+Global $a, $addlist, $alf, $all, $alpha, $ans, $array, $auth, $auto, $backups, $bargui, $bigpic, $blackjpg, $c
+Global $check, $chunk, $chunks, $cnt, $connection, $cookies, $cover, $date, $delay, $delete, $dest, $done, $down
+Global $downall, $downlist, $DownloadAllGUI, $DownloadGUI, $downlog, $drv, $extras, $fdate, $file, $files, $finished
+Global $flag, $for, $forum, $galaxy, $game, $gamefold, $gamepic, $games, $gamesfle, $gamesfold, $gogrepo, $GOGRepoGUI
+Global $height, $icoD, $icoF, $icoI, $icoS, $icoT, $icoX, $image, $imgfle, $ind, $infofle, $inifle, $lang, $langskip
+Global $last, $latest, $left, $line, $lines, $locations, $logfle, $manifest, $md5, $minimize, $name, $num, $open, $OS
+Global $OSextras, $OSget, $osskip, $path, $percent, $pid, $progbar, $progress, $QueueGUI, $read, $res, $script, $segment
+Global $SetupGUI, $shared, $shell, $shutdown, $size, $sizecheck, $skiplang, $skipos, $split, $standalone, $started
+Global $state, $stop, $store, $style, $t, $text, $textdump, $threads, $title, $titles, $titlist, $top, $tot, $total
+Global $type, $update, $updated, $UpdateGUI, $updating, $user, $val, $validate, $validation, $verify, $VerifyGUI
+Global $verifying, $vers, $version, $wait, $width, $window, $winpos, $xpos, $ypos, $zipcheck
 
 $addlist = @ScriptDir & "\Added.txt"
 $backups = @ScriptDir & "\Backups"
@@ -122,7 +123,7 @@ Func MainGUI()
 	$height = 405
 	$left = IniRead($inifle, "Program Window", "left", @DesktopWidth - $width - 25)
 	$top = IniRead($inifle, "Program Window", "top", @DesktopHeight - $height - 30)
-	$style = $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU + $WS_CLIPSIBLINGS + $WS_MINIMIZEBOX
+	$style = $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU + $WS_CLIPSIBLINGS + $WS_MINIMIZEBOX ; + $WS_VISIBLE
 	$GOGRepoGUI = GuiCreate("GOGRepo GUI", $width, $height, $left, $top, $style, $WS_EX_TOPMOST)
 	GUISetBkColor($COLOR_SKYBLUE, $GOGRepoGUI)
 	;GuiSetState(@SW_DISABLE, $GOGRepoGUI)
@@ -165,9 +166,9 @@ Func MainGUI()
 	$Input_extra = GUICtrlCreateInput("", 240, 300, 70, 20, $ES_READONLY)
 	GUICtrlSetBkColor($Input_extra, 0xBBFFBB)
 	GUICtrlSetTip($Input_extra, "Extra files available!")
-	$Button_more = GuiCtrlCreateButton("More", 320, 299, 50, 22)
-	GUICtrlSetFont($Button_more, 7, 600, 0, "Small Fonts")
-	GUICtrlSetTip($Button_more, "View more information from manifest!")
+	$Button_detail = GuiCtrlCreateButton("INFO", 320, 299, 50, 22)
+	GUICtrlSetFont($Button_detail, 7, 600, 0, "Small Fonts")
+	GUICtrlSetTip($Button_detail, "View the information from manifest!")
 	;
 	$Group_cover = GuiCtrlCreateGroup("Cover", 390, 10, 190, 160)
 	$Pic_cover = GUICtrlCreatePic($blackjpg, 400, 30, 170, 100, $SS_NOTIFY)
@@ -204,14 +205,17 @@ Func MainGUI()
 	GUICtrlSetTip($Combo_OS, "OS to download files for!")
 	$Checkbox_test = GUICtrlCreateCheckbox("Validate", 400, 273, 55, 20)
 	GUICtrlSetTip($Checkbox_test, "Verify integrity of downloaded files!")
-	$Checkbox_extra = GUICtrlCreateCheckbox("Extras", 463, 273, 55, 21)
+	$Checkbox_extra = GUICtrlCreateCheckbox("Extras", 466, 273, 45, 21)
+	GUICtrlSetFont($Checkbox_extra, 7, 400, 0, "Small Fonts")
 	GUICtrlSetTip($Checkbox_extra, "Download game extras files!")
 	$Checkbox_cover = GUICtrlCreateCheckbox("Download the cover", 400, 293, 115, 20)
 	GUICtrlSetFont($Checkbox_cover, 8, 400)
 	GUICtrlSetTip($Checkbox_cover, "Download the cover image files!")
-	$Checkbox_game = GUICtrlCreateCheckbox("Game Files", 400, 313, 70, 20)
-	GUICtrlSetTip($Checkbox_game, "Download the game files!")
-	$Input_langs = GUICtrlCreateInput("", 475, 313, 35, 18, $ES_READONLY)
+;~ 	$Checkbox_game = GUICtrlCreateCheckbox("Game Files", 400, 313, 67, 20)
+;~ 	GUICtrlSetFont($Checkbox_game, 7, 400, 0, "Small Fonts")
+;~ 	GUICtrlSetTip($Checkbox_game, "Download the game files!")
+	;$Input_langs = GUICtrlCreateInput("", 475, 313, 35, 18, $ES_READONLY)
+	$Input_langs = GUICtrlCreateInput("", 472, 313, 38, 18, $ES_READONLY)
 	GUICtrlSetBkColor($Input_langs, 0xFFD5FF)
 	GUICtrlSetFont($Input_langs, 9, 400, 0, "MS Serif")
 	GUICtrlSetTip($Input_langs, "Download language(s)!")
@@ -306,7 +310,7 @@ Func MainGUI()
 		GUICtrlSetState($Button_down, $GUI_DISABLE)
 	EndIf
 	If Not FileExists($manifest) Then
-		GUICtrlSetState($Button_more, $GUI_DISABLE)
+		GUICtrlSetState($Button_detail, $GUI_DISABLE)
 		GUICtrlSetState($Button_pic, $GUI_DISABLE)
 	EndIf
 	;
@@ -355,12 +359,12 @@ Func MainGUI()
 	EndIf
 	GUICtrlSetState($Checkbox_cover, $cover)
 	;
-	$files = IniRead($inifle, "Download Options", "files", "")
-	If $files = "" Then
-		$files = 1
-		IniWrite($inifle, "Download Options", "files", $files)
-	EndIf
-	GUICtrlSetState($Checkbox_game, $files)
+;~ 	$files = IniRead($inifle, "Download Options", "files", "")
+;~ 	If $files = "" Then
+;~ 		$files = 1
+;~ 		IniWrite($inifle, "Download Options", "files", $files)
+;~ 	EndIf
+;~ 	GUICtrlSetState($Checkbox_game, $files)
 	;
 	$dests = "Default|Specific"
 	GUICtrlSetData($Combo_dest, $dests, "Default")
@@ -403,8 +407,11 @@ Func MainGUI()
 	GUICtrlSetData($Input_langs, $lang)
 	;
 	If FileExists($gogrepo) Then
+		$auth = IniRead($inifle, "gogrepo.py", "author", "")
+		$vers = IniRead($inifle, "gogrepo.py", "version", "")
 		$fdate = IniRead($inifle, "gogrepo.py", "file_date", "")
 		If $fdate = "" Then
+			GetAuthorAndVersion()
 			SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
 			$file = FileOpen($gogrepo, 0)
 			$read = FileRead($file)
@@ -452,6 +459,7 @@ Func MainGUI()
 		Else
 			If $fdate <> FileGetTime($gogrepo, 0, 1) Then
 				SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
+				GetAuthorAndVersion()
 				$file = FileOpen($gogrepo, 0)
 				$read = FileRead($file)
 				FileClose($file)
@@ -486,6 +494,7 @@ Func MainGUI()
 				$fdate = FileGetTime($gogrepo, 0, 1)
 				IniWrite($inifle, "gogrepo.py", "file_date", $fdate)
 			Else
+				If $auth = "" Or $vers = "" Then GetAuthorAndVersion()
 				$threads = IniRead($inifle, "Downloading", "threads", "")
 				If $threads = "" Then
 					$threads = "X"
@@ -493,6 +502,70 @@ Func MainGUI()
 				EndIf
 			EndIf
 		EndIf
+	Else
+		GUICtrlSetState($Button_down, $GUI_DISABLE)
+		GUICtrlSetState($Checkbox_update, $GUI_DISABLE)
+		GUICtrlSetState($Checkbox_verify, $GUI_DISABLE)
+		GUICtrlSetState($Checkbox_all, $GUI_DISABLE)
+		GUICtrlSetState($Button_queue, $GUI_DISABLE)
+		GUICtrlSetState($Button_setup, $GUI_DISABLE)
+	EndIf
+	If $auth = "eddie3" Or $auth <> "eddie3,kalynr" Then
+		;eddie3-0.3a
+		$script = "default"
+	ElseIf $auth = "eddie3,kalynr" Then
+		;eddie3,kalynr-k0.3a
+		$script = "fork"
+	EndIf
+	If $script = "default" Then
+		$Checkbox_game = GUICtrlCreateCheckbox("Game Files", 400, 313, 67, 20)
+		GUICtrlSetFont($Checkbox_game, 7, 400, 0, "Small Fonts")
+		GUICtrlSetTip($Checkbox_game, "Download the game files!")
+		$files = IniRead($inifle, "Download Options", "files", "")
+		If $files = "" Then
+			$files = 1
+			IniWrite($inifle, "Download Options", "files", $files)
+		EndIf
+		GUICtrlSetState($Checkbox_game, $files)
+	Else
+		$Button_more = GUICtrlCreateButton("More", 400, 313, 62, 20)
+		GUICtrlSetFont($Button_more, 7, 600, 0, "Small Fonts")
+		GUICtrlSetTip($Button_more, "More download options!")
+		;
+		$downlog = IniRead($inifle, "Download", "log", "")
+		If $downlog = "" Then
+			$downlog = 1
+			IniWrite($inifle, "Download", "log", $downlog)
+		EndIf
+		$standalone = IniRead($inifle, "Download", "standalone", "")
+		If $standalone = "" Then
+			$standalone = 1
+			IniWrite($inifle, "Download", "standalone", $standalone)
+		EndIf
+		$shared = IniRead($inifle, "Download", "shared", "")
+		If $shared = "" Then
+			$shared = 1
+			IniWrite($inifle, "Download", "shared", $shared)
+		EndIf
+		$galaxy = IniRead($inifle, "Download", "galaxy", "")
+		If $galaxy = "" Then
+			$galaxy = 4
+			IniWrite($inifle, "Download", "galaxy", $galaxy)
+		EndIf
+		;
+		$skipos = IniRead($inifle, "Skip Files", "OS", "")
+		If $skipos = "" Then
+			$skipos = 4
+			IniWrite($inifle, "Skip Files", "OS", $skipos)
+		EndIf
+		$osskip = IniRead($inifle, "Skip Files", "OSes", "")
+		;
+		$skiplang = IniRead($inifle, "Skip Files", "language", "")
+		If $skiplang = "" Then
+			$skiplang = 4
+			IniWrite($inifle, "Skip Files", "language", $skiplang)
+		EndIf
+		$langskip = IniRead($inifle, "Skip Files", "languages", "")
 	EndIf
 	;
 	FillTheGamesList()
@@ -604,7 +677,6 @@ Func MainGUI()
 	;
 	$window = $GOGRepoGUI
 
-
 	;GuiSetState(@SW_ENABLE, $GOGRepoGUI)
 	GuiSetState(@SW_SHOWNORMAL, $GOGRepoGUI)
 	While 1
@@ -632,7 +704,9 @@ Func MainGUI()
 			ExitLoop
 		Case $msg = $Button_setup
 			; Setup username and password
+			GuiSetState(@SW_DISABLE, $GOGRepoGUI)
 			SetupGUI()
+			GuiSetState(@SW_ENABLE, $GOGRepoGUI)
 			$window = $GOGRepoGUI
 		Case $msg = $Button_queue
 			; View the download queue
@@ -708,102 +782,12 @@ Func MainGUI()
 		Case $msg = $Button_move
 			; Relocate game files
 			MsgBox(262192, "Program Advice", "This feature not yet enabled!", 2, $GOGRepoGUI)
-		Case $msg = $Button_more
-			; View more information from manifest
-			If FileExists($manifest) Then
-				$name = GUICtrlRead($Input_name)
-				If $name <> "" Then
-					$title = GUICtrlRead($Input_title)
-					If $title <> "" Then
-						SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
-						$open = FileOpen($manifest, 0)
-						$read = FileRead($open)
-						FileClose($open)
-						$segment = StringSplit($read, "'title': '" & $title & "'}", 1)
-						If $segment[0] = 2 Then
-							$segment = $segment[1]
-							$segment = StringSplit($segment, "{'bg_url':", 1)
-							If $segment[0] > 1 Then
-								$html = "<html>" & @CRLF & "<header>" & @CRLF & "<title>" & $title & "</title>" & @CRLF & "</header>" & @CRLF & "<body>"
-								$image = IniRead($gamesfle, $name, "image", "")
-								If $image <> "" Then
-									$html = $html & @CRLF & "<img src='" & $image & "' width='100%'>"
-								EndIf
-								$chunk = $title & @CRLF & "'bg_url':" & $segment[$segment[0]]
-								$chunk = StringReplace($chunk, "\n", "")
-								$chunk = StringReplace($chunk, "'<h4>", "<h4>")
-								$chunk = StringReplace($chunk, "</h4>'", "</h4>")
-								$chunk = StringReplace($chunk, "'<h5>", "<h5>")
-								$chunk = StringReplace($chunk, "</h5>'", "</h5>")
-								;$chunk = StringReplace($chunk, "               ", "")
-								$chunk = StringReplace($chunk, @CRLF, "<br>")
-								$chunk = StringReplace($chunk, @CR, "<br>")
-								$chunk = StringReplace($chunk, @LF, "<br>")
-								$chunk = StringReplace($chunk, "<br><h4>", "<h4>")
-								$chunk = StringReplace($chunk, "<br><h5>", "<h5>")
-								$chunk = StringReplace($chunk, "</h4><br>", "</h4>")
-								$chunk = StringReplace($chunk, "</h5><br>", "</h5>")
-								$chunk = StringReplace($chunk, "</li>'<br>'<li>", "</li><li>")
-								$chunk = StringReplace($chunk, "</h5>'<ul>'<br>'<li>", "</h5><ul><li>")
-								$chunk = StringReplace($chunk, "</li>'<br>'</ul>'<h5>", "</li></ul><h5>")
-								$chunk = StringReplace($chunk, "<li>'<br>'<p>", "<li><p>")
-								$chunk = StringReplace($chunk, "</p>'<br>'</li><li>'<br>'<p>", "</p></li><li><p>")
-								$chunk = StringReplace($chunk, "</p>'<br>'</li>", "</p></li>")
-								$chunk = StringReplace($chunk, "</li>'<br>'</ul>", "</li></ul>")
-								$chunk = StringReplace($chunk, "</ul>',<br>", "</ul>")
-								$chunk = StringReplace($chunk, "</h4>'<ul>'<br>'<li>", "</h4><ul><li>")
-								$chunk = StringReplace($chunk, "</li>'<br>" & '"<li>', "</li><li>")
-								$chunk = StringReplace($chunk, "</ul>'<br>'<hr />'<h4>", "</ul><hr /><h4>")
-								$chunk = StringReplace($chunk, "</li>'<br>", "</li>")
-								$chunk = StringReplace($chunk, "               '<li>", "<li>")
-								$chunk = StringReplace($chunk, "               '</li>", "</li>")
-								$chunk = StringReplace($chunk, '               "<li>', "<li>")
-								$chunk = StringReplace($chunk, '               "</li>', "</li>")
-								$chunk = StringReplace($chunk, "               '<ul>", "<ul>")
-								$chunk = StringReplace($chunk, "               '</ul>", "</ul>")
-								$chunk = StringReplace($chunk, "               '<hr />", "<hr />")
-								$chunk = StringReplace($chunk, "               <h4>", "<h4>")
-								$chunk = StringReplace($chunk, "               <h5>", "<h5>")
-								$chunk = StringReplace($chunk, "               '<p>", "<p>")
-								$chunk = StringReplace($chunk, '               "<p>', "<p>")
-								$chunk = StringReplace($chunk, "               '</p>", "</p>")
-								$chunk = StringReplace($chunk, "<ul>'<br>", "<ul>")
-								$chunk = StringReplace($chunk, "</ul>'<br>", "</ul>")
-								$chunk = StringReplace($chunk, "<hr />',<br>", "<hr />")
-								$chunk = StringReplace($chunk, "<hr />'<br>", "<hr />")
-								$chunk = StringReplace($chunk, "<li>'<br>", "<li>")
-								$chunk = StringReplace($chunk, "</p>'<br>", "</p>")
-								$chunk = StringReplace($chunk, '</p>"<br>', "</p>")
-								$chunk = StringReplace($chunk, "<br></p>", "</p>")
-								;
-								$segment = StringSplit($chunk, "'size': ", 1)
-								If $segment[0] > 1 Then
-									For $s = 1 To $segment[0]
-										$number = $segment[$s]
-										$number = StringSplit($number, ",", 1)
-										$number = $number[1]
-										If StringIsDigit($number) Then
-											$size = $number
-											GetTheSize()
-											$chunk = StringReplace($chunk, "'size': " & $number, "'size': " & $size)
-										EndIf
-									Next
-								EndIf
-								;
-								$chunk = $html & @CRLF & "<pre>" & $chunk & "</pre>" & @CRLF & "</body>" & @CRLF & "</html>"
-								SplashOff()
-								;MsgBox(262208, "Game Information From Manifest - " & $title, $chunk, $wait, $GOGRepoGUI)
-								$file = FileOpen($infofle, 2)
-								FileWriteLine($file, $chunk)
-								FileClose($file)
-								ShellExecute($infofle)
-							EndIf
-						Else
-							SplashOff()
-						EndIf
-					EndIf
-				EndIf
-			EndIf
+		Case $msg = $Button_more And $script = "fork"
+			; More download options
+			GuiSetState(@SW_DISABLE, $GOGRepoGUI)
+			DownloadGUI()
+			GuiSetState(@SW_ENABLE, $GOGRepoGUI)
+			$window = $GOGRepoGUI
 		Case $msg = $Button_log
 			; View the record log file
 			If FileExists($logfle) Then ShellExecute($logfle)
@@ -1001,7 +985,7 @@ Func MainGUI()
 								; Download one or more games or add to queue
 								FileChangeDir(@ScriptDir)
 								If $all = 1 Then
-									DownloadGUI()
+									DownloadAllGUI()
 									_GUICtrlListBox_SetCurSel($List_games, -1)
 									GUICtrlSetData($Input_name, "")
 									GUICtrlSetData($Input_title, "")
@@ -1172,6 +1156,106 @@ Func MainGUI()
 			Else
 				MsgBox(262192, "Program Error", "Required file 'gogrepo.py' not found!", $wait, $GOGRepoGUI)
 			EndIf
+		Case $msg = $Button_detail
+			; View the information from manifest
+			If FileExists($manifest) Then
+				$name = GUICtrlRead($Input_name)
+				If $name <> "" Then
+					$title = GUICtrlRead($Input_title)
+					If $title <> "" Then
+						SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
+						$open = FileOpen($manifest, 0)
+						$read = FileRead($open)
+						FileClose($open)
+						$segment = StringSplit($read, "'title': '" & $title & "'}", 1)
+						If $segment[0] = 2 Then
+							$segment = $segment[1]
+							$segment = StringSplit($segment, "{'bg_url':", 1)
+							If $segment[0] > 1 Then
+								$html = "<html>" & @CRLF & "<header>" & @CRLF & "<title>" & $title & "</title>" & @CRLF & "</header>" & @CRLF & "<body>"
+								$image = IniRead($gamesfle, $name, "image", "")
+								If $image <> "" Then
+									$html = $html & @CRLF & "<img src='" & $image & "' width='100%'>"
+								EndIf
+								$chunk = $title & @CRLF & "'bg_url':" & $segment[$segment[0]]
+								$chunk = StringReplace($chunk, "\n", "")
+								$chunk = StringReplace($chunk, "'<h4>", "<h4>")
+								$chunk = StringReplace($chunk, "</h4>'", "</h4>")
+								$chunk = StringReplace($chunk, "'<h5>", "<h5>")
+								$chunk = StringReplace($chunk, "</h5>'", "</h5>")
+								;$chunk = StringReplace($chunk, "               ", "")
+								$chunk = StringReplace($chunk, @CRLF, "<br>")
+								$chunk = StringReplace($chunk, @CR, "<br>")
+								$chunk = StringReplace($chunk, @LF, "<br>")
+								$chunk = StringReplace($chunk, "<br><h4>", "<h4>")
+								$chunk = StringReplace($chunk, "<br><h5>", "<h5>")
+								$chunk = StringReplace($chunk, "</h4><br>", "</h4>")
+								$chunk = StringReplace($chunk, "</h5><br>", "</h5>")
+								$chunk = StringReplace($chunk, "</li>'<br>'<li>", "</li><li>")
+								$chunk = StringReplace($chunk, "</h5>'<ul>'<br>'<li>", "</h5><ul><li>")
+								$chunk = StringReplace($chunk, "</li>'<br>'</ul>'<h5>", "</li></ul><h5>")
+								$chunk = StringReplace($chunk, "<li>'<br>'<p>", "<li><p>")
+								$chunk = StringReplace($chunk, "</p>'<br>'</li><li>'<br>'<p>", "</p></li><li><p>")
+								$chunk = StringReplace($chunk, "</p>'<br>'</li>", "</p></li>")
+								$chunk = StringReplace($chunk, "</li>'<br>'</ul>", "</li></ul>")
+								$chunk = StringReplace($chunk, "</ul>',<br>", "</ul>")
+								$chunk = StringReplace($chunk, "</h4>'<ul>'<br>'<li>", "</h4><ul><li>")
+								$chunk = StringReplace($chunk, "</li>'<br>" & '"<li>', "</li><li>")
+								$chunk = StringReplace($chunk, "</ul>'<br>'<hr />'<h4>", "</ul><hr /><h4>")
+								$chunk = StringReplace($chunk, "</li>'<br>", "</li>")
+								$chunk = StringReplace($chunk, "               '<li>", "<li>")
+								$chunk = StringReplace($chunk, "               '</li>", "</li>")
+								$chunk = StringReplace($chunk, '               "<li>', "<li>")
+								$chunk = StringReplace($chunk, '               "</li>', "</li>")
+								$chunk = StringReplace($chunk, "               '<ul>", "<ul>")
+								$chunk = StringReplace($chunk, "               '</ul>", "</ul>")
+								$chunk = StringReplace($chunk, "               '<hr />", "<hr />")
+								$chunk = StringReplace($chunk, "               <h4>", "<h4>")
+								$chunk = StringReplace($chunk, "               <h5>", "<h5>")
+								$chunk = StringReplace($chunk, "               '<p>", "<p>")
+								$chunk = StringReplace($chunk, '               "<p>', "<p>")
+								$chunk = StringReplace($chunk, "               '</p>", "</p>")
+								$chunk = StringReplace($chunk, "<ul>'<br>", "<ul>")
+								$chunk = StringReplace($chunk, "</ul>'<br>", "</ul>")
+								$chunk = StringReplace($chunk, "<hr />',<br>", "<hr />")
+								$chunk = StringReplace($chunk, "<hr />'<br>", "<hr />")
+								$chunk = StringReplace($chunk, "<li>'<br>", "<li>")
+								$chunk = StringReplace($chunk, "</p>'<br>", "</p>")
+								$chunk = StringReplace($chunk, '</p>"<br>', "</p>")
+								$chunk = StringReplace($chunk, "<br></p>", "</p>")
+								;
+								$segment = StringSplit($chunk, "'size': ", 1)
+								If $segment[0] > 1 Then
+									For $s = 1 To $segment[0]
+										$number = $segment[$s]
+										$number = StringSplit($number, ",", 1)
+										$number = $number[1]
+										If StringIsDigit($number) Then
+											$size = $number
+											GetTheSize()
+											$chunk = StringReplace($chunk, "'size': " & $number, "'size': " & $size)
+										EndIf
+									Next
+								EndIf
+								;
+								$chunk = $html & @CRLF & "<pre>" & $chunk & "</pre>" & @CRLF & "</body>" & @CRLF & "</html>"
+								SplashOff()
+								;MsgBox(262208, "Game Information From Manifest - " & $title, $chunk, $wait, $GOGRepoGUI)
+								$file = FileOpen($infofle, 2)
+								FileWriteLine($file, $chunk)
+								FileClose($file)
+								ShellExecute($infofle)
+							EndIf
+						Else
+							SplashOff()
+						EndIf
+					Else
+						MsgBox(262192, "Game Error", "A title is not selected!", $wait, $GOGRepoGUI)
+					EndIf
+				Else
+					MsgBox(262192, "Title Error", "A game is not selected!", $wait, $GOGRepoGUI)
+				EndIf
+			EndIf
 		Case $msg = $Button_dest
 			; Browse to set the destination folder  $gamesfle
 			$type = GUICtrlRead($Combo_dest)
@@ -1323,7 +1407,7 @@ Func MainGUI()
 				GUICtrlSetImage($Pic_cover, $blackjpg)
 			EndIf
 			IniWrite($inifle, "Cover Image", "show", $show)
-		Case $msg = $Checkbox_game
+		Case $msg = $Checkbox_game And $script = "default"
 			; Download the game files
 			If GUICtrlRead($Checkbox_game) = $GUI_CHECKED Then
 				$files = 1
@@ -1544,15 +1628,15 @@ Func MainGUI()
 	WEnd
 EndFunc ;=> MainGUI
 
-Func DownloadGUI()
+Func DownloadAllGUI()
 	; Query which DOWNLOAD ALL method to use.
 	Local $Button_close, $Button_inf, $Button_one, $Button_two, $Button_veryopts, $Group_one, $Group_two, $Label_one, $Label_two
 	Local $params, $pos
 	;
-	$DownloadGUI = GuiCreate("Download ALL", 230, 400, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
+	$DownloadAllGUI = GuiCreate("Download ALL", 230, 400, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
 														+ $WS_VISIBLE + $WS_CLIPSIBLINGS, $WS_EX_TOPMOST, $GOGRepoGUI)
-	GUISetBkColor(0xCECEFF, $DownloadGUI)
-	GuiSetState(@SW_DISABLE, $DownloadGUI)
+	GUISetBkColor(0xCECEFF, $DownloadAllGUI)
+	GuiSetState(@SW_DISABLE, $DownloadAllGUI)
 	; CONTROLS
 	$Group_one = GuiCtrlCreateGroup("", 10, 5, 210, 160)
 	$Button_one = GuiCtrlCreateButton("METHOD ONE", 20, 25, 190, 40)
@@ -1591,22 +1675,22 @@ Func DownloadGUI()
 	;
 	If $alpha = 1 Then GUICtrlSetState($Button_one, $GUI_DISABLE)
 	;
-	$window = $DownloadGUI
+	$window = $DownloadAllGUI
 
 
-	GuiSetState(@SW_ENABLE, $DownloadGUI)
+	GuiSetState(@SW_ENABLE, $DownloadAllGUI)
 	While 1
 		$msg = GuiGetMsg()
 		Select
 		Case $msg = $GUI_EVENT_CLOSE Or $msg = $Button_close
 			; Exit / Close / Quit the window
-			GUIDelete($DownloadGUI)
+			GUIDelete($DownloadAllGUI)
 			ExitLoop
 		Case $msg = $Button_veryopts
 			; Set the Verify options for downloading
 			$down = 1
 			VerifyGUI()
-			$window = $DownloadGUI
+			$window = $DownloadAllGUI
 			$down = ""
 		Case $msg = $Button_two
 			; Download ALL Games using Method 2
@@ -1700,7 +1784,7 @@ Func DownloadGUI()
 						$textdump = "[Downloads]" & @CRLF & "total=" & $tot & @CRLF & $textdump
 						$file = FileOpen($downlist, 2)
 						If $file = -1 Then
-							MsgBox(262192, "Program Error", "Downloads list file could not be written to!", 0, $DownloadGUI)
+							MsgBox(262192, "Program Error", "Downloads list file could not be written to!", 0, $DownloadAllGUI)
 						Else
 							FileWrite($file, $textdump)
 						EndIf
@@ -1711,14 +1795,14 @@ Func DownloadGUI()
 						IniWrite($inifle, "Start Downloading", "auto", $auto)
 					EndIf
 				Else
-					MsgBox(262192, "Program Error", "Titles.txt file is empty!", 0, $DownloadGUI)
+					MsgBox(262192, "Program Error", "Titles.txt file is empty!", 0, $DownloadAllGUI)
 				EndIf
 			Else
-				MsgBox(262192, "Program Error", "Titles.txt file is missing!", 0, $DownloadGUI)
+				MsgBox(262192, "Program Error", "Titles.txt file is missing!", 0, $DownloadAllGUI)
 			EndIf
 			IniWrite($inifle, "Download ALL List", "finish", _Now())
 			SplashOff()
-			GUIDelete($DownloadGUI)
+			GUIDelete($DownloadAllGUI)
 			ExitLoop
 		Case $msg = $Button_one
 			; Download ALL Games using Method 1
@@ -1744,7 +1828,139 @@ Func DownloadGUI()
 				"you have far more control over the processes, as well as" & @LF & _
 				"the download location(s). It also means you can do your" & @LF & _
 				"downloading in stages if you have a large GOG library. A" & @LF & _
-				"'Shutdown' option is also available.", $delay, $DownloadGUI)
+				"'Shutdown' option is also available.", $delay, $DownloadAllGUI)
+		Case Else
+			;;;
+		EndSelect
+	WEnd
+EndFunc ;=> DownloadAllGUI
+
+Func DownloadGUI()
+	Local $Button_close, $Button_inf, $Checkbox_alone, $Checkbox_downlog, $Checkbox_galaxy, $Checkbox_shared
+	Local $Checkbox_skiplang, $Checkbox_skipOS, $Combo_language, $Combo_OSes, $Group_files
+	Local $langs
+	;
+	$DownloadGUI = GuiCreate("Download Options", 270, 145, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
+															+ $WS_VISIBLE + $WS_CLIPSIBLINGS, $WS_EX_TOPMOST, $GOGRepoGUI)
+	GUISetBkColor(0x80FFFF, $DownloadGUI)
+	;
+	; CONTROLS
+	$Group_files = GuiCtrlCreateGroup("", 10, 5, 180, 70)
+	$Checkbox_downlog = GUICtrlCreateCheckbox("Log File", 20, 20, 55, 20)
+	GUICtrlSetTip($Checkbox_downlog, "Save a Log file for download!")
+	;
+	$Checkbox_alone = GUICtrlCreateCheckbox("Standalone Files", 85, 20, 95, 20)
+	GUICtrlSetTip($Checkbox_alone, "Download Standalone installer files!")
+	;
+	$Checkbox_galaxy = GUICtrlCreateCheckbox("Galaxy Files", 20, 45, 80, 20)
+	GUICtrlSetTip($Checkbox_galaxy, "Download Galaxy installer files!")
+	;
+	$Checkbox_shared = GUICtrlCreateCheckbox("Shared Files", 105, 45, 75, 20)
+	GUICtrlSetTip($Checkbox_shared, "Download Shared installer files!")
+	;
+	$Checkbox_skiplang = GUICtrlCreateCheckbox("Skip Language", 10, 85, 90, 21)
+	GUICtrlSetTip($Checkbox_skiplang, "Skip the specified language(s)!")
+	$Combo_language = GUICtrlCreateCombo("", 105, 85, 85, 21)
+	GUICtrlSetTip($Combo_language, "Language files to skip!")
+	;
+	$Checkbox_skipOS = GUICtrlCreateCheckbox("Skip OS", 10, 115, 60, 21)
+	GUICtrlSetTip($Checkbox_skipOS, "Skip the specified OSes!")
+	$Combo_OSes = GUICtrlCreateCombo("", 72, 115, 118, 21)
+	GUICtrlSetTip($Combo_OSes, "OS files to skip!")
+	;
+	$Button_inf = GuiCtrlCreateButton("Info", 200, 10, 60, 58, $BS_ICON)
+	GUICtrlSetTip($Button_inf, "Download Options Information!")
+	;
+	$Button_close = GuiCtrlCreateButton("EXIT", 200, 78, 60, 58, $BS_ICON)
+	GUICtrlSetTip($Button_close, "Exit / Close / Quit the window!")
+	;
+	; SETTINGS
+	GUICtrlSetImage($Button_inf, $user, $icoI, 1)
+	GUICtrlSetImage($Button_close, $user, $icoX, 1)
+	;
+	GUICtrlSetState($Checkbox_alone, $standalone)
+	GUICtrlSetState($Checkbox_galaxy, $galaxy)
+	GUICtrlSetState($Checkbox_shared, $shared)
+	GUICtrlSetState($Checkbox_downlog, $downlog)
+	GUICtrlSetState($Checkbox_skiplang, $skiplang)
+	GUICtrlSetState($Checkbox_skipOS, $skipos)
+	$langs = "||" & StringReplace($lang, " ", "|")
+	GUICtrlSetData($Combo_language, $langs, $langskip)
+	If $skiplang = 4 Then GUICtrlSetState($Combo_language, $GUI_DISABLE)
+	GUICtrlSetData($Combo_OSes, "||linux|mac|windows|linux + mac|linux + windows|mac + windows", $osskip)
+	If $skipos = 4 Then GUICtrlSetState($Combo_OSes, $GUI_DISABLE)
+	;
+	$window = $DownloadGUI
+
+
+	GuiSetState()
+	While 1
+		$msg = GuiGetMsg()
+		Select
+		Case $msg = $GUI_EVENT_CLOSE Or $msg = $Button_close
+			; Exit / Close / Quit the window
+			GUIDelete($DownloadGUI)
+			ExitLoop
+		Case $msg = $Checkbox_skipOS
+			; Skip the specified OSes
+			If GUICtrlRead($Checkbox_skipOS) = $GUI_CHECKED Then
+				$skipos = 1
+				GUICtrlSetState($Combo_OSes, $GUI_ENABLE)
+			Else
+				$skipos = 4
+				GUICtrlSetState($Combo_OSes, $GUI_DISABLE)
+			EndIf
+			IniWrite($inifle, "Skip Files", "OS", $skipos)
+		Case $msg = $Checkbox_skiplang
+			; Skip the specified language(s)
+			If GUICtrlRead($Checkbox_skiplang) = $GUI_CHECKED Then
+				$skiplang = 1
+				GUICtrlSetState($Combo_language, $GUI_ENABLE)
+			Else
+				$skiplang = 4
+				GUICtrlSetState($Combo_language, $GUI_DISABLE)
+			EndIf
+			IniWrite($inifle, "Skip Files", "language", $skiplang)
+		Case $msg = $Checkbox_shared
+			; Download Shared installer files
+			If GUICtrlRead($Checkbox_shared) = $GUI_CHECKED Then
+				$shared = 1
+			Else
+				$shared = 4
+			EndIf
+			IniWrite($inifle, "Download", "shared", $shared)
+		Case $msg = $Checkbox_galaxy
+			; Download Galaxy installer files
+			If GUICtrlRead($Checkbox_galaxy) = $GUI_CHECKED Then
+				$galaxy = 1
+			Else
+				$galaxy = 4
+			EndIf
+			IniWrite($inifle, "Download", "galaxy", $galaxy)
+		Case $msg = $Checkbox_downlog
+			; Save a Log file for download
+			If GUICtrlRead($Checkbox_downlog) = $GUI_CHECKED Then
+				$downlog = 1
+			Else
+				$downlog = 4
+			EndIf
+			IniWrite($inifle, "Download", "log", $downlog)
+		Case $msg = $Checkbox_alone
+			; Download Standalone installer files
+			If GUICtrlRead($Checkbox_alone) = $GUI_CHECKED Then
+				$standalone = 1
+			Else
+				$standalone = 4
+			EndIf
+			IniWrite($inifle, "Download", "standalone", $standalone)
+		Case $msg = $Combo_OSes
+			; OS files to skip
+			$osskip =  GUICtrlRead($Combo_OSes)
+			IniWrite($inifle, "Skip Files", "OSes", $osskip)
+		Case $msg = $Combo_language
+			; Language files to skip
+			$langskip =  GUICtrlRead($Combo_language)
+			IniWrite($inifle, "Skip Files", "languages", $langskip)
 		Case Else
 			;;;
 		EndSelect
@@ -2430,9 +2646,14 @@ Func SetupGUI()
 		& @LF & "to use with GOG." & @LF _
 		& @LF & "GOGRepo GUI does not store that detail.", 11, 10, 210, 130)
 	;
-	$Button_install = GuiCtrlCreateButton("INSTALL html5lib && html2text", 10, 150, 210, 40)
+	If $auth = "eddie3" Then
+		$Button_install = GuiCtrlCreateButton("INSTALL html5lib && html2text", 10, 150, 210, 40)
+		GUICtrlSetTip($Button_install, "Install html5lib & html2text in Python!")
+	Else
+		$Button_install = GuiCtrlCreateButton("INSTALL Required Libraries", 10, 150, 210, 40)
+		GUICtrlSetTip($Button_install, "Install html5lib, requests, pyopenssl & html2text in Python!")
+	EndIf
 	GUICtrlSetFont($Button_install, 9, 600)
-	GUICtrlSetTip($Button_install, "Install html5lib & html2text in Python!")
 	;
 	$Group_lang = GuiCtrlCreateGroup("Language(s) - Select One Option", 10, 200, 210, 53)
 	$Label_lang = GuiCtrlCreateLabel("User", 20, 220, 37, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
@@ -2530,7 +2751,7 @@ Func SetupGUI()
 	$window = $SetupGUI
 
 
-	GuiSetState()
+	GuiSetState(@SW_SHOW, $SetupGUI)
 	While 1
 		$msg = GuiGetMsg()
 		Select
@@ -2541,7 +2762,11 @@ Func SetupGUI()
 		Case $msg = $Button_install
 			; Install html5lib & html2text in Python
 			GuiSetState(@SW_DISABLE, $SetupGUI)
-			$pid = RunWait(@ComSpec & ' /k pip install html5lib html2text', "")
+			If $auth = "eddie3" Then
+				$pid = RunWait(@ComSpec & ' /k pip install html5lib html2text', "")
+			Else
+				$pid = RunWait(@ComSpec & ' /k pip install html5lib html2text requests pyopenssl', "")
+			EndIf
 			GuiSetState(@SW_ENABLE, $SetupGUI)
 		Case $msg = $Button_cookie
 			; Create or Update the cookie file
@@ -2636,9 +2861,11 @@ Func SetupGUI()
 				EndIf
 			EndIf
 			IniWrite($inifle, "Download Options", "language", $lang)
-			GUISwitch($GOGRepoGUI)
-			GUICtrlSetData($Input_langs, $lang)
-			GUISwitch($SetupGUI)
+			;If $script = "default" Then
+				GUISwitch($GOGRepoGUI)
+				GUICtrlSetData($Input_langs, $lang)
+				GUISwitch($SetupGUI)
+			;EndIf
 		Case $msg = $Checkbox_progress
 			; Enable use of floating Progress Bar GUI
 			If GUICtrlRead($Checkbox_progress) = $GUI_CHECKED Then
@@ -2658,9 +2885,11 @@ Func SetupGUI()
 				$lang = $val
 			EndIf
 			IniWrite($inifle, "Download Options", "language", $lang)
-			GUISwitch($GOGRepoGUI)
-			GUICtrlSetData($Input_langs, $lang)
-			GUISwitch($SetupGUI)
+			;If $script = "default" Then
+				GUISwitch($GOGRepoGUI)
+				GUICtrlSetData($Input_langs, $lang)
+				GUISwitch($SetupGUI)
+			;EndIf
 		Case $msg = $Combo_lang
 			; User language
 			$val = GUICtrlRead($Combo_lang)
@@ -2672,9 +2901,11 @@ Func SetupGUI()
 				$lang = $val
 			EndIf
 			IniWrite($inifle, "Download Options", "language", $lang)
-			GUISwitch($GOGRepoGUI)
-			GUICtrlSetData($Input_langs, $lang)
-			GUISwitch($SetupGUI)
+			;If $script = "default" Then
+				GUISwitch($GOGRepoGUI)
+				GUICtrlSetData($Input_langs, $lang)
+				GUISwitch($SetupGUI)
+			;EndIf
 		Case $msg = $Updown_threads
 			; Adjust the number of threads to download with
 			$val = GUICtrlRead($Input_threads)
@@ -3572,7 +3803,7 @@ Func EnableDisableControls($state)
 	GUICtrlSetState($Button_fix, $state)
 	;GUICtrlSetState($Input_OS, $state)
 	;GUICtrlSetState($Input_extra, $state)
-	GUICtrlSetState($Button_more, $state)
+	GUICtrlSetState($Button_detail, $state)
 	;
 	GUICtrlSetState($Pic_cover, $state)
 	GUICtrlSetState($Button_pic, $state)
@@ -3588,7 +3819,11 @@ Func EnableDisableControls($state)
 	GUICtrlSetState($Checkbox_extra, $state)
 	GUICtrlSetState($Checkbox_test, $state)
 	GUICtrlSetState($Checkbox_cover, $state)
-	GUICtrlSetState($Checkbox_game, $state)
+	If $script = "default" Then
+		GUICtrlSetState($Checkbox_game, $state)
+	ElseIf $script = "fork" Then
+		GUICtrlSetState($Button_more, $state)
+	EndIf
 	;GUICtrlSetState($Input_langs, $state)
 	;
 	GUICtrlSetState($Button_setup, $state)
@@ -3635,6 +3870,57 @@ Func GetAllowedName()
 	$name = ReplaceOtherCharacters($name)
 	$name = StringStripWS($name, 7)
 EndFunc ;=> GetAllowedName
+
+Func GetAuthorAndVersion()
+	Local $author, $change, $gogvers
+	$res = _FileReadToArray($gogrepo, $array)
+	If $res = 1 Then
+		$author = ""
+		$gogvers = ""
+		$change = ""
+		For $a = 1 To $array[0]
+			$line = $array[$a]
+			If StringInStr($line, "__author__") > 0 Then
+				$line = StringSplit($line, "__author__", 1)
+				$val = $line[2]
+				$val = StringReplace($val, "=", "")
+				$val = StringReplace($val, "'", "")
+				$author = StringStripWS($val, 7)
+				If $auth = "" Or $author <> $auth Then
+					If $auth <> "" Then $change &= "Author"
+					$auth = $author
+					IniWrite($inifle, "gogrepo.py", "author", $auth)
+				EndIf
+			ElseIf StringInStr($line, "__version__") > 0 Then
+				$line = StringSplit($line, "__version__", 1)
+				$val = $line[2]
+				$val = StringReplace($val, "=", "")
+				$val = StringReplace($val, "'", "")
+				$gogvers = StringStripWS($val, 7)
+				If $vers = "" Or $gogvers <> $vers Then
+					If $vers <> "" Then $change &= "Version"
+					$vers = $gogvers
+					IniWrite($inifle, "gogrepo.py", "version", $vers)
+				EndIf
+			EndIf
+			If $author <> "" And $gogvers <> "" Then ExitLoop
+		Next
+		If $author = "" Or $gogvers = "" Then
+			MsgBox(262192, "Extract Error", "Could not determine Author &/or Version of 'gogrepo.py'.", 0, $GOGRepoGUI)
+		Else
+			If $change <> "" Then
+				$change = StringReplace($change, "AuthorVersion", "Author & Version")
+				$change = StringReplace($change, "VersionAuthor", "Author & Version")
+				MsgBox(262192, "Script Change", $change & " haa changed for 'gogrepo.py'." _
+					& @LF & @LF & "NOTE - This may mean that different options are now" _
+					& @LF & "available  for (or removed from) use in GOGRepo GUI.", 0, $GOGRepoGUI)
+			EndIf
+		EndIf
+	Else
+		MsgBox(262192, "Read Error", "Could not get Author & Version of 'gogrepo.py'.", 0, $GOGRepoGUI)
+	EndIf
+	;MsgBox(262192, "Got Here", "Author & Version of 'gogrepo.py'.", 0, $GOGRepoGUI)
+EndFunc ;=> GetAuthorAndVersion
 
 Func GetTheSize()
 	If $size < 1024 Then
