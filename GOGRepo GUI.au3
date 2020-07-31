@@ -528,7 +528,7 @@ Func MainGUI()
 		EndIf
 		GUICtrlSetState($Checkbox_game, $files)
 	Else
-		$Button_more = GUICtrlCreateButton("More", 400, 313, 62, 20)
+		$Button_more = GUICtrlCreateButton("MORE", 400, 313, 62, 20)
 		GUICtrlSetFont($Button_more, 7, 600, 0, "Small Fonts")
 		GUICtrlSetTip($Button_more, "More download options!")
 		;
@@ -1815,7 +1815,7 @@ Func DownloadAllGUI()
 				If $sizecheck = 1 Then $params = StringReplace($params, " -skipsize", "")
 				If $zipcheck = 1 Then $params = StringReplace($params, " -skipzip", "")
 				If $delete = 4 Then $params = StringReplace($params, " -delete", "")
-				$pid = RunWait(@ComSpec & ' /k gogrepo.py verify' & $params & ' "' & $gamefold & '"', @ScriptDir)
+				$pid = RunWait(@ComSpec & ' /c gogrepo.py verify' & $params & ' "' & $gamefold & '" &&pause', @ScriptDir)
 			EndIf
 			_FileWriteLog($logfle, "Downloaded all games.")
 			EnableDisableControls($GUI_ENABLE)
@@ -2763,9 +2763,9 @@ Func SetupGUI()
 			; Install html5lib & html2text in Python
 			GuiSetState(@SW_DISABLE, $SetupGUI)
 			If $auth = "eddie3" Then
-				$pid = RunWait(@ComSpec & ' /k pip install html5lib html2text', "")
+				$pid = RunWait(@ComSpec & ' /c pip install html5lib html2text &&pause', "")
 			Else
-				$pid = RunWait(@ComSpec & ' /k pip install html5lib html2text requests pyopenssl', "")
+				$pid = RunWait(@ComSpec & ' /c pip install html5lib html2text requests pyopenssl &&pause', "")
 			EndIf
 			GuiSetState(@SW_ENABLE, $SetupGUI)
 		Case $msg = $Button_cookie
@@ -2784,7 +2784,7 @@ Func SetupGUI()
 						$password = GUICtrlRead($Input_pass)
 						If $password <> "" Then
 							GuiSetState(@SW_DISABLE, $SetupGUI)
-							$pid = RunWait(@ComSpec & ' /k gogrepo.py login ' & $username & ' ' & $password, @ScriptDir)
+							$pid = RunWait(@ComSpec & ' /c gogrepo.py login ' & $username & ' ' & $password & ' &&pause', @ScriptDir)
 							$username = ""
 							$password = ""
 							GuiSetState(@SW_ENABLE, $SetupGUI)
@@ -2937,11 +2937,11 @@ Func SetupGUI()
 EndFunc ;=> SetupGUI
 
 Func UpdateGUI()
-	Local $Button_close, $Button_upnow, $Checkbox_every, $Checkbox_new, $Checkbox_resume, $Checkbox_tag, $Input_language
-	Local $Input_OSes, $Label_lang
-	Local $newgames, $params, $resume, $skiphid, $tagged
+	Local $Button_close, $Button_upnow, $Checkbox_every, $Checkbox_new, $Checkbox_resume, $Checkbox_tag, $Checkbox_uplog
+	Local $Combo_install, $Input_language, $Input_OSes, $Label_install, $Label_lang
+	Local $installer, $installers, $newgames, $installers, $params, $resume, $skiphid, $tagged, $uplog
 	;
-	$UpdateGUI = GuiCreate("Update The Manifest", 230, 185, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
+	$UpdateGUI = GuiCreate("Update The Manifest", 230, 210, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
 															+ $WS_VISIBLE + $WS_CLIPSIBLINGS, $WS_EX_TOPMOST, $GOGRepoGUI)
 	GUISetBkColor(0xFFCE9D, $UpdateGUI)
 	;
@@ -2965,20 +2965,30 @@ Func UpdateGUI()
 	$Checkbox_resume = GUICtrlCreateCheckbox("Resume", 162, 40, 55, 20)
 	GUICtrlSetTip($Checkbox_resume, "Enable resume mode for updating!")
 	;
-	$Checkbox_new = GUICtrlCreateCheckbox("New Games Only", 10, 70, 100, 20)
-	GUICtrlSetTip($Checkbox_new, "Add new games only to the manifest!")
-	;
-	$Checkbox_tag = GUICtrlCreateCheckbox("Use Update Tag", 124, 70, 95, 20)
-	GUICtrlSetTip($Checkbox_tag, "Update games with Update Tag!")
-	;
-	$Checkbox_skip = GUICtrlCreateCheckbox("Skip Hidden Games  (set in GOG Library)", 10, 95, 210, 20)
+	$Checkbox_skip = GUICtrlCreateCheckbox("Skip Hidden Games  (set in GOG Library)", 10, 70, 210, 20)
 	GUICtrlSetTip($Checkbox_skip, "Skip updating the manifest for hidden games!")
 	;
-	$Button_upnow = GuiCtrlCreateButton("UPDATE NOW", 10, 125, 140, 50)
+	$Checkbox_uplog = GUICtrlCreateCheckbox("Log File", 10, 95, 55, 20)
+	GUICtrlSetTip($Checkbox_uplog, "Save a Log file for update!")
+	;
+	$Label_install = GuiCtrlCreateLabel("Installers", 75, 95, 65, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
+	GUICtrlSetBkColor($Label_install, $COLOR_BLACK)
+	GUICtrlSetColor($Label_install, $COLOR_WHITE)
+	GUICtrlSetFont($Label_install, 7, 600, 0, "Small Fonts")
+	$Combo_install = GUICtrlCreateCombo("", 140, 95, 80, 21)
+	GUICtrlSetTip($Combo_install, "Installers to update for!")
+	;
+	$Checkbox_new = GUICtrlCreateCheckbox("New Games Only", 10, 121, 100, 20)
+	GUICtrlSetTip($Checkbox_new, "Add new games only to the manifest!")
+	;
+	$Checkbox_tag = GUICtrlCreateCheckbox("Use Update Tag", 124, 121, 95, 20)
+	GUICtrlSetTip($Checkbox_tag, "Update games with Update Tag!")
+	;
+	$Button_upnow = GuiCtrlCreateButton("UPDATE NOW", 10, 150, 140, 50)
 	GUICtrlSetFont($Button_upnow, 9, 600)
 	GUICtrlSetTip($Button_upnow, "Update the Manifest for specified!")
 	;
-	$Button_close = GuiCtrlCreateButton("EXIT", 160, 125, 60, 50, $BS_ICON)
+	$Button_close = GuiCtrlCreateButton("EXIT", 160, 150, 60, 50, $BS_ICON)
 	GUICtrlSetTip($Button_close, "Exit / Close / Quit the window!")
 	;
 	; SETTINGS
@@ -2995,14 +3005,50 @@ Func UpdateGUI()
 	GUICtrlSetData($Input_OSes, $OSget)
 	GUICtrlSetState($Input_OSes, $GUI_DISABLE)
 	;
-	$resume = IniRead($inifle, "Updating", "resume", "")
-	If $resume = "" Then
+	If $script = "default" Then
 		$resume = 4
-		IniWrite($inifle, "Updating", "resume", $resume)
+		GUICtrlSetState($Checkbox_resume, $GUI_DISABLE)
+		$uplog = 4
+		GUICtrlSetState($Checkbox_uplog, $GUI_DISABLE)
+		$installer = ""
+		GUICtrlSetState($Combo_install, $GUI_DISABLE)
+	Else
+		$resume = IniRead($inifle, "Updating", "resume", "")
+		If $resume = "" Then
+			$resume = 4
+			IniWrite($inifle, "Updating", "resume", $resume)
+		EndIf
+		GUICtrlSetState($Checkbox_resume, $resume)
+		;
+		$uplog = IniRead($inifle, "Updating", "log", "")
+		If $uplog = "" Then
+			$uplog = 1
+			IniWrite($inifle, "Updating", "log", $uplog)
+		EndIf
+		GUICtrlSetState($Checkbox_uplog, $uplog)
+		;
+		$installers = "Galaxy|Standalone|Both"
+		$installer = IniRead($inifle, "Updating", "installers", "")
+		If $installer = "" Then
+			$installer = "Standalone"
+			IniWrite($inifle, "Updating", "installers", $installer)
+		EndIf
+		GUICtrlSetData($Combo_install, $installers, $installer)
 	EndIf
-	GUICtrlSetState($Checkbox_resume, $resume)
 	;
 	If $all = 1 Then
+		If $script = "default" Then
+			$skiphid = 4
+			GUICtrlSetState($Checkbox_skip, $GUI_DISABLE)
+		Else
+			$skiphid = IniRead($inifle, "Hidden Games", "skip", "")
+			If $skiphid = "" Then
+				$skiphid = 4
+				IniWrite($inifle, "Hidden Games", "skip", $skiphid)
+			EndIf
+			GUICtrlSetState($Checkbox_skip, $skiphid)
+		EndIf
+		;
 		$newgames = IniRead($inifle, "New Games Only", "add", "")
 		If $newgames = "" Then
 			$newgames = 4
@@ -3016,23 +3062,16 @@ Func UpdateGUI()
 			IniWrite($inifle, "Update Tag", "use", $tagged)
 		EndIf
 		GUICtrlSetState($Checkbox_tag, $tagged)
-		;
-		$skiphid = IniRead($inifle, "Hidden Games", "skip", "")
-		If $skiphid = "" Then
-			$skiphid = 4
-			IniWrite($inifle, "Hidden Games", "skip", $skiphid)
-		EndIf
-		GUICtrlSetState($Checkbox_skip, $skiphid)
 	Else
+		$skiphid = 4
+		GUICtrlSetState($Checkbox_skip, $skiphid)
+		GUICtrlSetState($Checkbox_skip, $GUI_DISABLE)
 		$newgames = 4
 		GUICtrlSetState($Checkbox_new, $newgames)
 		GUICtrlSetState($Checkbox_new, $GUI_DISABLE)
 		$tagged = 4
 		GUICtrlSetState($Checkbox_tag, $tagged)
 		GUICtrlSetState($Checkbox_tag, $GUI_DISABLE)
-		$skiphid = 4
-		GUICtrlSetState($Checkbox_skip, $skiphid)
-		GUICtrlSetState($Checkbox_skip, $GUI_DISABLE)
 	EndIf
 	;
 	$updating = ""
@@ -3063,13 +3102,13 @@ Func UpdateGUI()
 				If $all = 1 Then
 					$updating = 1
 					_FileWriteLog($logfle, "Updated manifest for all games.")
-					$pid = RunWait(@ComSpec & ' /k gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params, @ScriptDir)
+					$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' &&pause', @ScriptDir)
 					_FileWriteLog($logfle, "Updated finished.")
 				Else
 					If $title <> "" Then
 						$updating = 1
 						_FileWriteLog($logfle, "Updated manifest for - " & $title & ".")
-						$pid = RunWait(@ComSpec & ' /k gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -id ' & $title, @ScriptDir)
+						$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -id ' & $title & ' &&pause', @ScriptDir)
 						_FileWriteLog($logfle, "Updated finished.")
 					Else
 						MsgBox(262192, "Game Error", "Title is not selected!", $wait, $UpdateGUI)
@@ -3187,7 +3226,7 @@ Func VerifyGUI()
 					For $a = 48 To 90
 						If $a < 58 Or $a > 64 Then
 							$alf = Chr($a)
-							$pid = RunWait(@ComSpec & ' /k gogrepo.py verify' & $params & ' "' & $gamefold & "\" & $alf & '"', @ScriptDir)
+							$pid = RunWait(@ComSpec & ' /c gogrepo.py verify' & $params & ' "' & $gamefold & "\" & $alf & '" &&pause', @ScriptDir)
 							_FileWriteLog($logfle, "Verified all games in " & $alf & ".")
 							If $a < 90 Then
 								$ans = MsgBox(262177, "Verify Query", _
@@ -3201,11 +3240,12 @@ Func VerifyGUI()
 						EndIf
 					Next
 				Else
-					$pid = RunWait(@ComSpec & ' /k gogrepo.py verify' & $params & ' "' & $gamefold & '"', @ScriptDir)
+					$pid = RunWait(@ComSpec & ' /c gogrepo.py verify' & $params & ' "' & $gamefold & '" &&pause', @ScriptDir)
 					_FileWriteLog($logfle, "Verified all games.")
 				EndIf
 			Else
-				$pid = RunWait(@ComSpec & ' /k gogrepo.py verify' & $params & ' -id ' & $title & ' "' & $gamefold & '"', @ScriptDir)
+				;$pid = RunWait(@ComSpec & ' /k gogrepo.py verify' & $params & ' -id ' & $title & ' "' & $gamefold & '"', @ScriptDir)
+				$pid = RunWait(@ComSpec & ' /c gogrepo.py verify' & $params & ' -id ' & $title & ' "' & $gamefold & '" &&pause', @ScriptDir)
 				_FileWriteLog($logfle, "Verified - " & $title & ".")
 			EndIf
 			GUIDelete($VerifyGUI)
