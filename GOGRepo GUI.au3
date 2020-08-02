@@ -642,26 +642,46 @@ Func MainGUI()
 			$tot = $tot + 1
 			IniWrite($downlist, "Downloads", "total", $tot)
 			IniWrite($downlist, $title, "rank", $tot)
-			$gamefold = IniRead($inifle, "Current Download", "destination", "")
-			IniWrite($downlist, $title, "destination", $gamefold)
-			$files = IniRead($inifle, "Current Download", "files", "")
-			IniWrite($downlist, $title, "files", $files)
-			$extras = IniRead($inifle, "Current Download", "extras", "")
-			IniWrite($downlist, $title, "extras", $extras)
-			$cover = IniRead($inifle, "Current Download", "cover", "")
-			IniWrite($downlist, $title, "cover", $cover)
-			$image = IniRead($inifle, "Current Download", "image", "")
-			IniWrite($downlist, $title, "image", $image)
-			$validate = IniRead($inifle, "Current Download", "verify", "")
-			IniWrite($downlist, $title, "verify", $validate)
-			$md5 = IniRead($inifle, "Current Download", "md5", "")
-			IniWrite($downlist, $title, "md5", $md5)
-			$sizecheck = IniRead($inifle, "Current Download", "size", "")
-			IniWrite($downlist, $title, "size", $sizecheck)
-			$zipcheck = IniRead($inifle, "Current Download", "zips", "")
-			IniWrite($downlist, $title, "zips", $zipcheck)
-			$delete = IniRead($inifle, "Current Download", "delete", "")
-			IniWrite($downlist, $title, "delete", $delete)
+			$val = IniRead($inifle, "Current Download", "destination", "")
+			IniWrite($downlist, $title, "destination", $val)
+			If $script = "default" Then
+				$val = IniRead($inifle, "Current Download", "files", "")
+				IniWrite($downlist, $title, "files", $val)
+			Else
+				$val = IniRead($inifle, "Current Download", "standalone", "")
+				IniWrite($downlist, $title, "standalone", $val)
+				$val = IniRead($inifle, "Current Download", "galaxy", "")
+				IniWrite($downlist, $title, "galaxy", $val)
+				$val = IniRead($inifle, "Current Download", "shared", "")
+				IniWrite($downlist, $title, "shared", $val)
+				$val = IniRead($inifle, "Current Download", "log", "")
+				IniWrite($downlist, $title, "log", $val)
+				;
+				$val = IniRead($inifle, "Current Download", "language", "")
+				IniWrite($downlist, $title, "language", $val)
+				$val = IniRead($inifle, "Current Download", "languages", "")
+				IniWrite($downlist, $title, "languages", $val)
+				$val = IniRead($inifle, "Current Download", "OS", "")
+				IniWrite($downlist, $title, "OS", $val)
+				$val = IniRead($inifle, "Current Download", "OSes", "")
+				IniWrite($downlist, $title, "OSes", $val)
+			EndIf
+			$val = IniRead($inifle, "Current Download", "extras", "")
+			IniWrite($downlist, $title, "extras", $val)
+			$val = IniRead($inifle, "Current Download", "cover", "")
+			IniWrite($downlist, $title, "cover", $val)
+			$val = IniRead($inifle, "Current Download", "image", "")
+			IniWrite($downlist, $title, "image", $val)
+			$val = IniRead($inifle, "Current Download", "verify", "")
+			IniWrite($downlist, $title, "verify", $val)
+			$val = IniRead($inifle, "Current Download", "md5", "")
+			IniWrite($downlist, $title, "md5", $val)
+			$val = IniRead($inifle, "Current Download", "size", "")
+			IniWrite($downlist, $title, "size", $val)
+			$val = IniRead($inifle, "Current Download", "zips", "")
+			IniWrite($downlist, $title, "zips", $val)
+			$val = IniRead($inifle, "Current Download", "delete", "")
+			IniWrite($downlist, $title, "delete", $val)
 			If $auto = 1 Then
 				$auto = 4
 				IniWrite($inifle, "Start Downloading", "auto", $auto)
@@ -1034,7 +1054,20 @@ Func MainGUI()
 													_FileWriteLog($logfle, "Downloaded - " & $title & ".")
 													IniWrite($inifle, "Current Download", "title", $title)
 													IniWrite($inifle, "Current Download", "destination", $gamefold)
-													IniWrite($inifle, "Current Download", "files", $files)
+													If $script = "default" Then
+														IniWrite($inifle, "Current Download", "files", $files)
+													Else
+														IniWrite($inifle, "Current Download", "standalone", $standalone)
+														IniWrite($inifle, "Current Download", "galaxy", $galaxy)
+														IniWrite($inifle, "Current Download", "shared", $shared)
+														IniWrite($inifle, "Current Download", "log", $downlog)
+														IniWrite($inifle, "Current Download", "language", $skiplang)
+														IniWrite($inifle, "Current Download", "languages", $langskip)
+														IniWrite($inifle, "Current Download", "OS", $skipos)
+														$val = StringReplace($osskip, "+", "")
+														$val = StringStripWS($val, 7)
+														IniWrite($inifle, "Current Download", "OSes", $val)
+													EndIf
 													IniWrite($inifle, "Current Download", "extras", $extras)
 													;IniWrite($inifle, "Current Download", "language", $lang)
 													IniWrite($inifle, "Current Download", "cover", $cover)
@@ -1043,7 +1076,8 @@ Func MainGUI()
 														IniWrite($inifle, "Current Download", "image", $image)
 													;EndIf
 													IniWrite($inifle, "Current Download", "verify", $validate)
-													If $files = 1 Then
+													If ($files = 1 And $script = "default") Or _
+														($script = "fork" And ($standalone = 1 Or $galaxy = 1 Or $shared = 1)) Then
 														IniWrite($inifle, "Current Download", "md5", $md5)
 													Else
 														; No need to verify game files if not downloading, and a waste of time if they exist.
@@ -1067,8 +1101,26 @@ Func MainGUI()
 													If $bargui = 1 And FileExists($progbar) Then
 														$pid = ShellExecute($progbar, "Download", @ScriptDir, "open", $flag)
 													Else
-														Local $params = " -skipextras -skipgames"
-														If $files = 1 Then $params = StringReplace($params, " -skipgames", "")
+														If $script = "default" Then
+															Local $params = " -skipextras -skipgames"
+															If $files = 1 Then $params = StringReplace($params, " -skipgames", "")
+														Else
+															Local $params = " -skipextras -skipgalaxy -skipstandalone -skipshared -nolog"
+															If $galaxy = 1 Then $params = StringReplace($params, " -skipgalaxy", "")
+															If $standalone = 1 Then $params = StringReplace($params, " -skipstandalone", "")
+															If $shared = 1 Then $params = StringReplace($params, " -skipshared", "")
+															If $downlog = 1 Then $params = StringReplace($params, " -nolog", "")
+															If $skiplang = 1 Then
+																If $langskip <> "" Then $params = $params & " -skiplang " & $langskip
+															EndIf
+															If $skipos = 1 Then
+																If $osskip <> "" Then
+																	$val = StringReplace($osskip, "+", "")
+																	$val = StringStripWS($val, 7)
+																	$params = $params & " -skipos " & $val
+																EndIf
+															EndIf
+														EndIf
 														If $extras = 1 Then $params = StringReplace($params, " -skipextras", "")
 														$pid = Run(@ComSpec & ' /c gogrepo.py download' & $params & ' -id ' & $title & ' "' & $gamefold & '"', @ScriptDir, $flag)
 													EndIf
@@ -1806,9 +1858,31 @@ Func DownloadAllGUI()
 			ExitLoop
 		Case $msg = $Button_one
 			; Download ALL Games using Method 1
-			; METHOD 1 - Hand reins fully to 'gogrepo.py', and GUI remains disabled for duration.
+			; METHOD 1 - Hand the reigns fully to 'gogrepo.py', and GUI remains disabled for duration.
 			EnableDisableControls($GUI_DISABLE)
-			$pid = RunWait(@ComSpec & ' /c gogrepo.py download "' & $gamefold & '"', @ScriptDir)
+			If $script = "default" Then
+				Local $params = " -skipextras -skipgames"
+				If $files = 1 Then $params = StringReplace($params, " -skipgames", "")
+			Else
+				Local $params = " -skipextras -skipgalaxy -skipstandalone -skipshared -nolog"
+				If $galaxy = 1 Then $params = StringReplace($params, " -skipgalaxy", "")
+				If $standalone = 1 Then $params = StringReplace($params, " -skipstandalone", "")
+				If $shared = 1 Then $params = StringReplace($params, " -skipshared", "")
+				If $downlog = 1 Then $params = StringReplace($params, " -nolog", "")
+				If $skiplang = 1 Then
+					If $langskip <> "" Then $params = $params & " -skiplang " & $langskip
+				EndIf
+				If $skipos = 1 Then
+					If $osskip <> "" Then
+						$val = StringReplace($osskip, "+", "")
+						$val = StringStripWS($val, 7)
+						$params = $params & " -skipos " & $val
+					EndIf
+				EndIf
+			EndIf
+			If $extras = 1 Then $params = StringReplace($params, " -skipextras", "")
+			;$pid = RunWait(@ComSpec & ' /c gogrepo.py download "' & $gamefold & '"', @ScriptDir)
+			$pid = RunWait(@ComSpec & ' /c gogrepo.py download' & $params & ' "' & $gamefold & '"', @ScriptDir)
 			If $validate = 1 Then
 				$params = " -skipmd5 -skipsize -skipzip -delete"
 				If $md5 = 1 Then $params = StringReplace($params, " -skipmd5", "")
@@ -1884,7 +1958,11 @@ Func DownloadGUI()
 	GUICtrlSetState($Checkbox_downlog, $downlog)
 	GUICtrlSetState($Checkbox_skiplang, $skiplang)
 	GUICtrlSetState($Checkbox_skipOS, $skipos)
-	$langs = "||" & StringReplace($lang, " ", "|")
+	;$langs = "||" & StringReplace($lang, " ", "|")
+	$langs = "||" & $lang
+	If StringInStr($lang, " ") > 0 Then
+		$langs = $langs & "|" & StringReplace($lang, " ", "|")
+	EndIf
 	GUICtrlSetData($Combo_language, $langs, $langskip)
 	If $skiplang = 4 Then GUICtrlSetState($Combo_language, $GUI_DISABLE)
 	GUICtrlSetData($Combo_OSes, "||linux|mac|windows|linux + mac|linux + windows|mac + windows", $osskip)
@@ -2324,13 +2402,50 @@ Func QueueGUI()
 						IniWrite($inifle, "Current Download", "title", $current)
 						$gamefold = IniRead($downlist, $current, "destination", "")
 						IniWrite($inifle, "Current Download", "destination", $gamefold)
-						$params = " -skipextras -skipgames"
-						$val = IniRead($downlist, $current, "files", "")
-						IniWrite($inifle, "Current Download", "files", $val)
-						If $val = 1 Then $params = StringReplace($params, " -skipgames", "")
+						;
+						If $script = "default" Then
+							$params = " -skipextras -skipgames"
+							$val = IniRead($downlist, $current, "files", "")
+							IniWrite($inifle, "Current Download", "files", $val)
+							If $val = 1 Then $params = StringReplace($params, " -skipgames", "")
+						Else
+							$val = IniRead($downlist, $title, "standalone", "")
+							IniWrite($inifle, "Current Download", "standalone", $val)
+							If $val = 1 Then $params = StringReplace($params, " -skipstandalone", "")
+							$val = IniRead($downlist, $title, "galaxy", "")
+							IniWrite($inifle, "Current Download", "galaxy", $val)
+							If $val = 1 Then $params = StringReplace($params, " -skipgalaxy", "")
+							$val = IniRead($downlist, $title, "shared", "")
+							IniWrite($inifle, "Current Download", "shared", $val)
+							If $val = 1 Then $params = StringReplace($params, " -skipshared", "")
+							$val = IniRead($downlist, $title, "log", "")
+							IniWrite($inifle, "Current Download", "log", $val)
+							If $val = 1 Then $params = StringReplace($params, " -nolog", "")
+							;
+							$val = IniRead($downlist, $title, "language", "")
+							IniWrite($inifle, "Current Download", "language", $val)
+							If $val = 1 Then
+								$val = IniRead($downlist, $title, "languages", "")
+								If $val <> "" Then $params = $params & " -skiplang " & $val
+							Else
+								$val = ""
+							EndIf
+							IniWrite($inifle, "Current Download", "languages", $val)
+							;
+							$val = IniRead($downlist, $title, "OS", "")
+							IniWrite($inifle, "Current Download", "OS", $val)
+							If $val = 1 Then
+								$val = IniRead($downlist, $title, "OSes", "")
+								If $val <> "" Then $params = $params & " -skipos " & $val
+							Else
+								$val = ""
+							EndIf
+							IniWrite($inifle, "Current Download", "OSes", $val)
+						EndIf
 						$val = IniRead($downlist, $current, "extras", "")
 						IniWrite($inifle, "Current Download", "extras", $val)
 						If $val = 1 Then $params = StringReplace($params, " -skipextras", "")
+						;
 						$val = IniRead($downlist, $current, "cover", "")
 						IniWrite($inifle, "Current Download", "cover", $val)
 						If $val = 1 Then
@@ -3296,7 +3411,20 @@ Func AddGameToDownloadList()
 	;IniWrite($downlist, $title, "OS", $OSget)
 	$OS = IniRead($gamesfle, $name, "osextra", "")
 	IniWrite($downlist, $title, "osextra", $OS)
-	IniWrite($downlist, $title, "files", $files)
+	If $script = "default" Then
+		IniWrite($downlist, $title, "files", $files)
+	Else
+		IniWrite($downlist, $title, "standalone", $standalone)
+		IniWrite($downlist, $title, "galaxy", $galaxy)
+		IniWrite($downlist, $title, "shared", $shared)
+		IniWrite($downlist, $title, "log", $downlog)
+		IniWrite($downlist, $title, "language", $skiplang)
+		IniWrite($downlist, $title, "languages", $langskip)
+		IniWrite($downlist, $title, "OS", $skipos)
+		$val = StringReplace($osskip, "+", "")
+		$val = StringStripWS($val, 7)
+		IniWrite($downlist, $title, "OSes", $val)
+	EndIf
 	IniWrite($downlist, $title, "extras", $extras)
 	IniWrite($downlist, $title, "language", $lang)
 	IniWrite($downlist, $title, "cover", $cover)
@@ -3305,7 +3433,8 @@ Func AddGameToDownloadList()
 		IniWrite($downlist, $title, "image", $image)
 	;EndIf
 	IniWrite($downlist, $title, "verify", $validate)
-	If $files = 1 Then
+	;If $files = 1 Then
+	If ($files = 1 And $script = "default") Or ($script = "fork" And ($standalone = 1 Or $galaxy = 1 Or $shared = 1)) Then
 		IniWrite($downlist, $title, "md5", $md5)
 	Else
 		; No need to verify game files if not downloading, and a waste of time if they exist.
@@ -3558,13 +3687,50 @@ Func CheckOnGameDownload()
 									IniWrite($inifle, "Current Download", "title", $current)
 									$gamefold = IniRead($downlist, $current, "destination", "")
 									IniWrite($inifle, "Current Download", "destination", $gamefold)
-									$params = " -skipextras -skipgames"
-									$val = IniRead($downlist, $current, "files", "")
-									IniWrite($inifle, "Current Download", "files", $val)
-									If $val = 1 Then $params = StringReplace($params, " -skipgames", "")
+									;
+									If $script = "default" Then
+										$params = " -skipextras -skipgames"
+										$val = IniRead($downlist, $current, "files", "")
+										IniWrite($inifle, "Current Download", "files", $val)
+										If $val = 1 Then $params = StringReplace($params, " -skipgames", "")
+									Else
+										$val = IniRead($downlist, $title, "standalone", "")
+										IniWrite($inifle, "Current Download", "standalone", $val)
+										If $val = 1 Then $params = StringReplace($params, " -skipstandalone", "")
+										$val = IniRead($downlist, $title, "galaxy", "")
+										IniWrite($inifle, "Current Download", "galaxy", $val)
+										If $val = 1 Then $params = StringReplace($params, " -skipgalaxy", "")
+										$val = IniRead($downlist, $title, "shared", "")
+										IniWrite($inifle, "Current Download", "shared", $val)
+										If $val = 1 Then $params = StringReplace($params, " -skipshared", "")
+										$val = IniRead($downlist, $title, "log", "")
+										IniWrite($inifle, "Current Download", "log", $val)
+										If $val = 1 Then $params = StringReplace($params, " -nolog", "")
+										;
+										$val = IniRead($downlist, $title, "language", "")
+										IniWrite($inifle, "Current Download", "language", $val)
+										If $val = 1 Then
+											$val = IniRead($downlist, $title, "languages", "")
+											If $val <> "" Then $params = $params & " -skiplang " & $val
+										Else
+											$val = ""
+										EndIf
+										IniWrite($inifle, "Current Download", "languages", $val)
+										;
+										$val = IniRead($downlist, $title, "OS", "")
+										IniWrite($inifle, "Current Download", "OS", $val)
+										If $val = 1 Then
+											$val = IniRead($downlist, $title, "OSes", "")
+											If $val <> "" Then $params = $params & " -skipos " & $val
+										Else
+											$val = ""
+										EndIf
+										IniWrite($inifle, "Current Download", "OSes", $val)
+									EndIf
 									$val = IniRead($downlist, $current, "extras", "")
 									IniWrite($inifle, "Current Download", "extras", $val)
 									If $val = 1 Then $params = StringReplace($params, " -skipextras", "")
+									;
 									$val = IniRead($downlist, $current, "cover", "")
 									IniWrite($inifle, "Current Download", "cover", $val)
 									If $val = 1 Then

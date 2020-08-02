@@ -26,15 +26,26 @@ _Singleton("gog-repo-progress-timboli")
 
 Global $Edit_console, $Label_files, $Label_percent, $Label_size, $Label_status, $Label_title, $Progress_bar
 ;
-Global $cnt, $complete, $count, $done, $downlist, $download, $err, $exit, $extras, $file, $files, $gamefold
-Global $gogrepo, $height, $inifle, $left, $minimize, $num, $out, $outfle, $output, $params, $percent, $pid
-Global $process, $progress, $ProgressGUI, $results, $ret, $size, $status, $style, $titfold, $title, $top
-Global $width, $winpos
+Global $auth, $cnt, $complete, $count, $done, $downlist, $download, $downlog, $err, $exit, $extras, $file
+Global $files, $galaxy, $gamefold, $gogrepo, $height, $inifle, $langskip, $left, $minimize, $num, $osskip
+Global $out, $outfle, $output, $params, $percent, $pid, $process, $progress, $ProgressGUI, $results, $ret
+Global $script, $shared, $size, $skiplang, $skipos, $standalone, $status, $style, $titfold, $title, $top
+Global $vers, $width, $winpos
 
 $downlist = @ScriptDir & "\Downloads.ini"
 $gogrepo = @ScriptDir & "\gogrepo.py"
 $inifle = @ScriptDir & "\Settings.ini"
 $outfle = @ScriptDir & "\Output.txt"
+
+$auth = IniRead($inifle, "gogrepo.py", "author", "")
+$vers = IniRead($inifle, "gogrepo.py", "version", "")
+If $auth = "eddie3" Or $auth <> "eddie3,kalynr" Then
+	;eddie3-0.3a
+	$script = "default"
+ElseIf $auth = "eddie3,kalynr" Then
+	;eddie3,kalynr-k0.3a
+	$script = "fork"
+EndIf
 
 If $Cmdline[0] = 0 Then
 	$status = ""
@@ -107,7 +118,18 @@ If FileExists($gogrepo) Then
 	$title = IniRead($inifle, "Current Download", "title", "")
 	GUICtrlSetData($Label_title, $title)
 	$gamefold = IniRead($inifle, "Current Download", "destination", "")
-	$files = IniRead($inifle, "Current Download", "files", "")
+	If $script = "default" Then
+		$files = IniRead($inifle, "Current Download", "files", "")
+	Else
+		$standalone = IniRead($inifle, "Current Download", "standalone", "")
+		$galaxy = IniRead($inifle, "Current Download", "galaxy", "")
+		$shared = IniRead($inifle, "Current Download", "shared", "")
+		$downlog = IniRead($inifle, "Current Download", "log", "")
+		$skiplang = IniRead($inifle, "Current Download", "language", "")
+		$langskip = IniRead($inifle, "Current Download", "languages", "")
+		$skipos = IniRead($inifle, "Current Download", "OS", "")
+		$osskip = IniRead($inifle, "Current Download", "OSes", "")
+	EndIf
 	$extras = IniRead($inifle, "Current Download", "extras", "")
 	$pid = 0
 	$exit = ""
@@ -135,8 +157,22 @@ If FileExists($gogrepo) Then
 				If $status = "Downloading" Then
 					$file = FileOpen($outfle, 2)
 					GUICtrlSetData($Edit_console, "Starting ....")
-					Local $params = " -skipextras -skipgames"
-					If $files = 1 Then $params = StringReplace($params, " -skipgames", "")
+					If $script = "default" Then
+						$params = " -skipextras -skipgames"
+						If $files = 1 Then $params = StringReplace($params, " -skipgames", "")
+					Else
+						$params = " -skipextras -skipgalaxy -skipstandalone -skipshared -nolog"
+						If $galaxy = 1 Then $params = StringReplace($params, " -skipgalaxy", "")
+						If $standalone = 1 Then $params = StringReplace($params, " -skipstandalone", "")
+						If $shared = 1 Then $params = StringReplace($params, " -skipshared", "")
+						If $downlog = 1 Then $params = StringReplace($params, " -nolog", "")
+						If $skiplang = 1 Then
+							If $langskip <> "" Then $params = $params & " -skiplang " & $langskip
+						EndIf
+						If $skipos = 1 Then
+							If $osskip <> "" Then $params = $params & " -skipos " & $osskip
+						EndIf
+					EndIf
 					If $extras = 1 Then $params = StringReplace($params, " -skipextras", "")
 					$ret = Run(@ComSpec & ' /c gogrepo.py download' & $params & ' -id ' & $title & ' "' & $gamefold & '"', @ScriptDir, @SW_HIDE, $STDERR_MERGED)
 					$pid = $ret
