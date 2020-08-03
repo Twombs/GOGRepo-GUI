@@ -3077,8 +3077,8 @@ Func UpdateGUI()
 	$Input_OSes = GUICtrlCreateInput("", 45, 40, 105, 20)
 	GUICtrlSetTip($Input_OSes, "Selected OS!")
 	;
-	$Checkbox_resume = GUICtrlCreateCheckbox("Resume", 162, 40, 55, 20)
-	GUICtrlSetTip($Checkbox_resume, "Enable resume mode for updating!")
+	$Checkbox_resume = GUICtrlCreateCheckbox("Resume", 162, 40, 55, 20, $BS_AUTO3STATE)
+	GUICtrlSetTip($Checkbox_resume, "Enable resume modes for updating!")
 	;
 	$Checkbox_skip = GUICtrlCreateCheckbox("Skip Hidden Games  (set in GOG Library)", 10, 70, 210, 20)
 	GUICtrlSetTip($Checkbox_skip, "Skip updating the manifest for hidden games!")
@@ -3142,10 +3142,10 @@ Func UpdateGUI()
 		EndIf
 		GUICtrlSetState($Checkbox_uplog, $uplog)
 		;
-		$installers = "Galaxy|Standalone|Both"
+		$installers = "galaxy|standalone|both"
 		$installer = IniRead($inifle, "Updating", "installers", "")
 		If $installer = "" Then
-			$installer = "Standalone"
+			$installer = "standalone"
 			IniWrite($inifle, "Updating", "installers", $installer)
 		EndIf
 		GUICtrlSetData($Combo_install, $installers, $installer)
@@ -3208,11 +3208,20 @@ Func UpdateGUI()
 			If $connection = 1 Then
 				GuiSetState(@SW_HIDE, $UpdateGUI)
 				BackupManifestEtc()
-				$params = " -skipknown -updateonly -resumemode resume -skiphidden"
+				If $script = "default" Then
+					$params = " -skipknown -updateonly"
+				Else
+					$params = " -skipknown -updateonly -resumemode resume -skiphidden -nolog -installers " & $installer
+					If $resume = 4 Then
+						$params = StringReplace($params, " resume", " noresume")
+					ElseIf $resume = 2 Then
+						$params = StringReplace($params, " resume", " onlyresume")
+					EndIf
+					If $skiphid = 4 Then $params = StringReplace($params, " -skiphidden", "")
+					If $uplog = 1 Then $params = StringReplace($params, " -nolog", "")
+				EndIf
 				If $newgames = 4 Then $params = StringReplace($params, " -skipknown", "")
 				If $tagged = 4 Then $params = StringReplace($params, " -updateonly", "")
-				If $resume = 4 Then $params = StringReplace($params, " -resumemode resume", "")
-				If $skiphid = 4 Then $params = StringReplace($params, " -skiphidden", "")
 				FileChangeDir(@ScriptDir)
 				If $all = 1 Then
 					$updating = 1
@@ -3250,11 +3259,13 @@ Func UpdateGUI()
 			EndIf
 			IniWrite($inifle, "Hidden Games", "skip", $skiphid)
 		Case $msg = $Checkbox_resume
-			; Enable resume mode for updating
+			; Enable resume modes for updating
 			If GUICtrlRead($Checkbox_resume) = $GUI_CHECKED Then
 				$resume = 1
-			Else
+			ElseIf GUICtrlRead($Checkbox_resume) = $GUI_UNCHECKED Then
 				$resume = 4
+			Else
+				$resume = 2
 			EndIf
 			IniWrite($inifle, "Updating", "resume", $resume)
 		Case $msg = $Checkbox_new
@@ -3265,6 +3276,10 @@ Func UpdateGUI()
 				$newgames = 4
 			EndIf
 			IniWrite($inifle, "New Games Only", "add", $newgames)
+		Case $msg = $Combo_install
+			; Installers to update for
+			$installer = GUICtrlRead($Combo_install)
+			IniWrite($inifle, "Updating", "installers", $installer)
 		Case Else
 			;;;
 		EndSelect
@@ -3272,10 +3287,11 @@ Func UpdateGUI()
 EndFunc ;=> UpdateGUI
 
 Func VerifyGUI()
-	Local $Button_close, $Button_verify, $Checkbox_delete, $Checkbox_every, $Checkbox_md5, $Checkbox_size, $Checkbox_zip
-	Local $params
+	Local $Button_close, $Button_verify, $Checkbox_alone, $Checkbox_delete, $Checkbox_every, $Checkbox_extras, $Checkbox_galaxy
+	Local $Checkbox_games, $Checkbox_md5, $Checkbox_shared, $Checkbox_size, $Checkbox_verylog, $Checkbox_zip, $Group_files
+	Local $params, $veryalone, $veryextra, $verygalaxy, $verygames, $verylog, $veryshare
 	;
-	$VerifyGUI = GuiCreate("Verify Game Files", 230, 140, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
+	$VerifyGUI = GuiCreate("Verify Game Files", 230, 200, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
 															+ $WS_VISIBLE + $WS_CLIPSIBLINGS, $WS_EX_TOPMOST, $window)
 	GUISetBkColor(0xD7D700, $VerifyGUI)
 	;
@@ -3294,11 +3310,30 @@ Func VerifyGUI()
 	$Checkbox_delete = GUICtrlCreateCheckbox("Delete File On Integrity Failure", 62, 40, 165, 20)
 	GUICtrlSetTip($Checkbox_delete, "Delete if a file fails integrity check!")
 	;
-	$Button_verify = GuiCtrlCreateButton("VERIFY NOW", 10, 75, 140, 50)
+	$Checkbox_verylog = GUICtrlCreateCheckbox("Log File", 10, 70, 55, 20)
+	GUICtrlSetTip($Checkbox_verylog, "Save a Log file for verify!")
+	;
+	$Checkbox_extras = GUICtrlCreateCheckbox("Extra Files", 75, 70, 65, 20)
+	GUICtrlSetTip($Checkbox_extras, "Verify all extra files!")
+	;
+	$Checkbox_games = GUICtrlCreateCheckbox("Game Files", 150, 70, 70, 20)
+	GUICtrlSetTip($Checkbox_games, "Verify game files!")
+	;
+	$Group_files = GuiCtrlCreateGroup("", 10, 88, 210, 40)
+	$Checkbox_alone = GUICtrlCreateCheckbox("Standalone", 20, 102, 80, 20)
+	GUICtrlSetTip($Checkbox_alone, "Verify standalone installer files!")
+	;
+	$Checkbox_shared = GUICtrlCreateCheckbox("Shared", 100, 102, 50, 20)
+	GUICtrlSetTip($Checkbox_shared, "Verify shared installer files!")
+	;
+	$Checkbox_galaxy = GUICtrlCreateCheckbox("Galaxy", 162, 102, 50, 20)
+	GUICtrlSetTip($Checkbox_galaxy, "Verify galaxy installer files!")
+	;
+	$Button_verify = GuiCtrlCreateButton("VERIFY NOW", 10, 140, 140, 50)
 	GUICtrlSetFont($Button_verify, 9, 600)
 	GUICtrlSetTip($Button_verify, "Verify the specified games!")
 	;
-	$Button_close = GuiCtrlCreateButton("EXIT", 160, 75, 60, 50, $BS_ICON)
+	$Button_close = GuiCtrlCreateButton("EXIT", 160, 140, 60, 50, $BS_ICON)
 	GUICtrlSetTip($Button_close, "Exit / Close / Quit the window!")
 	;
 	; SETTINGS
@@ -3313,6 +3348,69 @@ Func VerifyGUI()
 	GUICtrlSetState($Checkbox_zip, $zipcheck)
 	GUICtrlSetState($Checkbox_md5, $md5)
 	GUICtrlSetState($Checkbox_delete, $delete)
+	;
+	If $script = "default" Then
+		$verylog = 4
+		GUICtrlSetState($Checkbox_verylog, $GUI_DISABLE)
+		$veryextra = 4
+		GUICtrlSetState($Checkbox_extras, $GUI_DISABLE)
+		$verygames = 4
+		GUICtrlSetState($Checkbox_games, $GUI_DISABLE)
+		$veryalone = 4
+		GUICtrlSetState($Checkbox_alone, $GUI_DISABLE)
+		$veryshare = 4
+		GUICtrlSetState($Checkbox_shared, $GUI_DISABLE)
+		$verygalaxy = 4
+		GUICtrlSetState($Checkbox_galaxy, $GUI_DISABLE)
+	Else
+		$verylog = IniRead($inifle, "Verifying", "log", "")
+		If $verylog = "" Then
+			$verylog = 1
+			IniWrite($inifle, "Verifying", "log", $verylog)
+		EndIf
+		GUICtrlSetState($Checkbox_verylog, $verylog)
+		;
+		$veryextra = IniRead($inifle, "Verifying", "extras", "")
+		If $veryextra = "" Then
+			$veryextra = 1
+			IniWrite($inifle, "Verifying", "extras", $veryextra)
+		EndIf
+		GUICtrlSetState($Checkbox_extras, $veryextra)
+		;
+		$verygames = IniRead($inifle, "Verifying", "games", "")
+		If $verygames = "" Then
+			$verygames = 1
+			IniWrite($inifle, "Verifying", "games", $verygames)
+		EndIf
+		GUICtrlSetState($Checkbox_games, $verygames)
+		;
+		$veryalone = IniRead($inifle, "Verifying", "standalone", "")
+		If $veryalone = "" Then
+			$veryalone = 1
+			IniWrite($inifle, "Verifying", "standalone", $veryalone)
+		EndIf
+		GUICtrlSetState($Checkbox_alone, $veryalone)
+		;
+		$veryshare = IniRead($inifle, "Verifying", "shared", "")
+		If $veryshare = "" Then
+			$veryshare = 1
+			IniWrite($inifle, "Verifying", "shared", $veryshare)
+		EndIf
+		GUICtrlSetState($Checkbox_shared, $veryshare)
+		;
+		$verygalaxy = IniRead($inifle, "Verifying", "galaxy", "")
+		If $verygalaxy = "" Then
+			$verygalaxy = 4
+			IniWrite($inifle, "Verifying", "galaxy", $verygalaxy)
+		EndIf
+		GUICtrlSetState($Checkbox_galaxy, $verygalaxy)
+		;
+		If $verygames = 4 Then
+			GUICtrlSetState($Checkbox_alone, $GUI_DISABLE)
+			GUICtrlSetState($Checkbox_shared, $GUI_DISABLE)
+			GUICtrlSetState($Checkbox_galaxy, $GUI_DISABLE)
+		EndIf
+	EndIf
 	;
 	If $down = 1 Then GUICtrlSetState($Button_verify, $GUI_DISABLE)
 	;
@@ -3330,7 +3428,21 @@ Func VerifyGUI()
 		Case $msg = $Button_verify
 			; Verify the specified games
 			GuiSetState(@SW_HIDE, $VerifyGUI)
-			$params = " -skipmd5 -skipsize -skipzip -delete"
+			If $script = "default" Then
+				$params = " -skipmd5 -skipsize -skipzip -delete"
+			Else
+				$params = " -skipmd5 -skipsize -skipzip -delete -nolog -skipextras -skipgames -skipstandalone -skipshared -skipgalaxy"
+				If $verylog = 1 Then $params = StringReplace($params, " -nolog", "")
+				If $veryextra = 1 Then $params = StringReplace($params, " -skipextras", "")
+				If $verygames = 4 Then
+					$params = StringReplace($params, " -skipstandalone -skipshared -skipgalaxy", "")
+				Else
+					$params = StringReplace($params, " -skipgames", "")
+					If $veryalone = 1 Then $params = StringReplace($params, " -skipstandalone", "")
+					If $veryshare = 1 Then $params = StringReplace($params, " -skipshared", "")
+					If $verygalaxy = 1 Then $params = StringReplace($params, " -skipgalaxy", "")
+				EndIf
+			EndIf
 			If $md5 = 1 Then $params = StringReplace($params, " -skipmd5", "")
 			If $sizecheck = 1 Then $params = StringReplace($params, " -skipsize", "")
 			If $zipcheck = 1 Then $params = StringReplace($params, " -skipzip", "")
@@ -3373,6 +3485,14 @@ Func VerifyGUI()
 				$zipcheck = 4
 			EndIf
 			IniWrite($inifle, "Verify", "zips", $zipcheck)
+		Case $msg = $Checkbox_verylog
+			; Save a Log file for verify
+			If GUICtrlRead($Checkbox_verylog) = $GUI_CHECKED Then
+				$verylog = 1
+			Else
+				$verylog = 4
+			EndIf
+			IniWrite($inifle, "Verifying", "log", $verylog)
 		Case $msg = $Checkbox_size
 			; Enable file size verification
 			If GUICtrlRead($Checkbox_size) = $GUI_CHECKED Then
@@ -3381,6 +3501,14 @@ Func VerifyGUI()
 				$sizecheck = 4
 			EndIf
 			IniWrite($inifle, "Verify", "size", $sizecheck)
+		Case $msg = $Checkbox_shared
+			; Verify Shared installer files
+			If GUICtrlRead($Checkbox_shared) = $GUI_CHECKED Then
+				$veryshare = 1
+			Else
+				$veryshare = 4
+			EndIf
+			IniWrite($inifle, "Verifying", "shared", $veryshare)
 		Case $msg = $Checkbox_md5
 			; Enable MD5 checksum verification
 			If GUICtrlRead($Checkbox_md5) = $GUI_CHECKED Then
@@ -3389,6 +3517,36 @@ Func VerifyGUI()
 				$md5 = 4
 			EndIf
 			IniWrite($inifle, "Verify", "md5", $md5)
+		Case $msg = $Checkbox_games
+			; Verify game files
+			If GUICtrlRead($Checkbox_games) = $GUI_CHECKED Then
+				$verygames = 1
+				GUICtrlSetState($Checkbox_alone, $GUI_ENABLE)
+				GUICtrlSetState($Checkbox_shared, $GUI_ENABLE)
+				GUICtrlSetState($Checkbox_galaxy, $GUI_ENABLE)
+			Else
+				$verygames = 4
+				GUICtrlSetState($Checkbox_alone, $GUI_DISABLE)
+				GUICtrlSetState($Checkbox_shared, $GUI_DISABLE)
+				GUICtrlSetState($Checkbox_galaxy, $GUI_DISABLE)
+			EndIf
+			IniWrite($inifle, "Verifying", "games", $verygames)
+		Case $msg = $Checkbox_galaxy
+			; Verify Galaxy installer files
+			If GUICtrlRead($Checkbox_galaxy) = $GUI_CHECKED Then
+				$verygalaxy = 1
+			Else
+				$verygalaxy = 4
+			EndIf
+			IniWrite($inifle, "Verifying", "galaxy", $verygalaxy)
+		Case $msg = $Checkbox_extras
+			; Verify all extra files
+			If GUICtrlRead($Checkbox_extras) = $GUI_CHECKED Then
+				$veryextra = 1
+			Else
+				$veryextra = 4
+			EndIf
+			IniWrite($inifle, "Verifying", "extras", $veryextra)
 		Case $msg = $Checkbox_delete
 			; Delete if a file fails integrity check
 			If GUICtrlRead($Checkbox_delete) = $GUI_CHECKED Then
@@ -3397,6 +3555,14 @@ Func VerifyGUI()
 				$delete = 4
 			EndIf
 			IniWrite($inifle, "Verify Failure", "delete", $delete)
+		Case $msg = $Checkbox_alone
+			; Verify Standalone installer files
+			If GUICtrlRead($Checkbox_alone) = $GUI_CHECKED Then
+				$veryalone = 1
+			Else
+				$veryalone = 4
+			EndIf
+			IniWrite($inifle, "Verifying", "standalone", $veryalone)
 		Case Else
 			;;;
 		EndSelect
