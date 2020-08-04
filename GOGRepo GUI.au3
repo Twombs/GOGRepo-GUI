@@ -41,7 +41,7 @@ Global $Button_add, $Button_dest, $Button_detail, $Button_down, $Button_exit, $B
 Global $Button_info, $Button_last, $Button_log, $Button_more, $Button_move, $Button_movedown, $Button_moveup
 Global $Button_pic, $Button_queue, $Button_removall, $Button_remove, $Button_setup, $Button_start, $Button_stop
 Global $Checkbox_all, $Checkbox_alpha, $Checkbox_check, $Checkbox_cover, $Checkbox_extra, $Checkbox_files
-Global $Checkbox_game, $Checkbox_image, $Checkbox_linux, $Checkbox_other, $Checkbox_show, $Checkbox_test
+Global $Checkbox_game, $Checkbox_image, $Checkbox_linux, $Checkbox_log, $Checkbox_other, $Checkbox_show, $Checkbox_test
 Global $Checkbox_update, $Checkbox_verify, $Checkbox_win, $Combo_dest, $Combo_OS, $Combo_shutdown, $Group_done
 Global $Group_download, $Group_games, $Group_waiting, $Input_dest, $Input_destination, $Input_download
 Global $Input_extra, $Input_lang, $Input_langs, $Input_name, $Input_OP, $Input_OS, $Input_title, $Label_added
@@ -59,10 +59,10 @@ Global $downall, $downlist, $DownloadAllGUI, $DownloadGUI, $downlog, $drv, $extr
 Global $flag, $for, $forum, $galaxy, $game, $gamefold, $gamepic, $games, $gamesfle, $gamesfold, $gogrepo, $GOGRepoGUI
 Global $height, $icoD, $icoF, $icoI, $icoS, $icoT, $icoX, $image, $imgfle, $ind, $infofle, $inifle, $lang, $langskip
 Global $last, $latest, $left, $line, $lines, $locations, $logfle, $manifest, $md5, $minimize, $name, $num, $open, $OS
-Global $OSextras, $OSget, $osskip, $path, $percent, $pid, $progbar, $progress, $QueueGUI, $read, $res, $script, $segment
-Global $SetupGUI, $shared, $shell, $shutdown, $size, $sizecheck, $skiplang, $skipos, $split, $standalone, $started
-Global $state, $stop, $store, $style, $t, $text, $textdump, $threads, $title, $titles, $titlist, $top, $tot, $total
-Global $type, $update, $updated, $UpdateGUI, $updating, $user, $val, $validate, $validation, $verify, $VerifyGUI
+Global $OSextras, $OSget, $osskip, $path, $percent, $pid, $progbar, $progress, $QueueGUI, $read, $repolog, $res, $script
+Global $segment, $SetupGUI, $shared, $shell, $shutdown, $size, $sizecheck, $skiplang, $skipos, $split, $standalone
+Global $started, $state, $stop, $store, $style, $t, $text, $textdump, $threads, $title, $titles, $titlist, $top, $tot
+Global $total, $type, $update, $updated, $UpdateGUI, $updating, $user, $val, $validate, $validation, $verify, $VerifyGUI
 Global $verifying, $vers, $version, $veryalone, $veryextra, $verygalaxy, $verygames, $verylog, $veryshare, $wait
 Global $width, $window, $winpos, $xpos, $ypos, $zipcheck
 
@@ -82,6 +82,7 @@ $locations = @ScriptDir & "\Locations.ini"
 $logfle = @ScriptDir & "\Record.log"
 $manifest = @ScriptDir & "\gog-manifest.dat"
 $progbar = @ScriptDir & "\Reporun.exe"
+$repolog = @ScriptDir & "\gogrepo.log"
 $titlist = @ScriptDir & "\Titles.txt"
 $version = "v1.0"
 
@@ -253,9 +254,11 @@ Func MainGUI()
 	GUICtrlSetFont($Button_setup, 7, 600, 0, "Small Fonts")
 	GUICtrlSetTip($Button_setup, "Setup username and password!")
 	;
-	$Button_log = GuiCtrlCreateButton("LOG", $width - 129, $height - 30, 60, 20)
-	GUICtrlSetFont($Button_log, 7, 600, 0, "Small Fonts")
-	GUICtrlSetTip($Button_log, "View the record log file!")
+;~ 	$Button_log = GuiCtrlCreateButton("LOG", $width - 129, $height - 30, 43, 20)
+;~ 	GUICtrlSetFont($Button_log, 7, 600, 0, "Small Fonts")
+;~ 	GUICtrlSetTip($Button_log, "View the record log file!")
+;~ 	$Checkbox_log = GUICtrlCreateCheckbox("", $width - 83, $height - 30, 16, 20)
+;~ 	GUICtrlSetTip($Checkbox_log, "Enable viewing 'gogrepo.log' file!")
 	;
 	$Button_info = GuiCtrlCreateButton("Info", $width - 60, $height - 118, 50, 50, $BS_ICON)
 	GUICtrlSetTip($Button_info, "Program Information!")
@@ -523,6 +526,11 @@ Func MainGUI()
 		$Checkbox_game = GUICtrlCreateCheckbox("Game Files", 400, 313, 67, 20)
 		GUICtrlSetFont($Checkbox_game, 7, 400, 0, "Small Fonts")
 		GUICtrlSetTip($Checkbox_game, "Download the game files!")
+		;
+		$Button_log = GuiCtrlCreateButton("LOG", $width - 129, $height - 30, 60, 20)
+		GUICtrlSetFont($Button_log, 7, 600, 0, "Small Fonts")
+		GUICtrlSetTip($Button_log, "View the record log file!")
+		;
 		$files = IniRead($inifle, "Download Options", "files", "")
 		If $files = "" Then
 			$files = 1
@@ -533,6 +541,12 @@ Func MainGUI()
 		$Button_more = GUICtrlCreateButton("MORE", 400, 313, 62, 20)
 		GUICtrlSetFont($Button_more, 7, 600, 0, "Small Fonts")
 		GUICtrlSetTip($Button_more, "More download options!")
+		;
+		$Button_log = GuiCtrlCreateButton("LOG", $width - 129, $height - 30, 43, 20)
+		GUICtrlSetFont($Button_log, 7, 600, 0, "Small Fonts")
+		GUICtrlSetTip($Button_log, "View the record log file!")
+		$Checkbox_log = GUICtrlCreateCheckbox("", $width - 83, $height - 30, 16, 20)
+		GUICtrlSetTip($Checkbox_log, "Enable viewing 'gogrepo.log' file!")
 		;
 		$downlog = IniRead($inifle, "Download", "log", "")
 		If $downlog = "" Then
@@ -848,7 +862,13 @@ Func MainGUI()
 			$window = $GOGRepoGUI
 		Case $msg = $Button_log
 			; View the record log file
-			If FileExists($logfle) Then ShellExecute($logfle)
+			If $script = "default" Then
+				If FileExists($logfle) Then ShellExecute($logfle)
+			ElseIf GUICtrlRead($Checkbox_log) = $GUI_CHECKED Then
+				If FileExists($repolog) Then ShellExecute($repolog)
+			Else
+				If FileExists($logfle) Then ShellExecute($logfle)
+			EndIf
 		Case $msg = $Button_last
 			; Find the latest added game(s)
 			If _IsPressed("11") Then $last = ""
@@ -985,8 +1005,8 @@ Func MainGUI()
 				;
 				$title = GUICtrlRead($Input_title)
 				$name = GUICtrlRead($List_games)
-				If $name = GUICtrlRead($Input_name) Then
-					If ($title <> "" And $name <> "") Or $all = 1 Then
+				If ($name = GUICtrlRead($Input_name)) Or $update = 1 Then
+					If ($title <> "" And ($name <> "" Or $update = 1)) Or $all = 1 Then
 						$gamesfold = $dest
 						If $update = 4 And $gamesfold <> "" Then
 							If $all = 1 Then
@@ -1025,7 +1045,7 @@ Func MainGUI()
 								$OSget = GUICtrlRead($Combo_OS)
 								$OS = StringReplace($OSget, " + ", " ")
 								$OS = StringLower($OS)
-								$title = GUICtrlRead($Input_title)
+								;$title = GUICtrlRead($Input_title)
 								UpdateGUI()
 								$window = $GOGRepoGUI
 								If $updating = 1 Then
@@ -1506,6 +1526,13 @@ Func MainGUI()
 				GUICtrlSetImage($Pic_cover, $blackjpg)
 			EndIf
 			IniWrite($inifle, "Cover Image", "show", $show)
+		Case $msg = $Checkbox_log And $script = "fork"
+			; Enable viewing 'gogrepo.log' file
+			If GUICtrlRead($Checkbox_log) = $GUI_CHECKED Then
+				GUICtrlSetTip($Button_log, "View the 'gogrepo.log' log file!")
+			Else
+				GUICtrlSetTip($Button_log, "View the record log file!")
+			EndIf
 		Case $msg = $Checkbox_game And $script = "default"
 			; Download the game files
 			If GUICtrlRead($Checkbox_game) = $GUI_CHECKED Then
@@ -4279,6 +4306,7 @@ Func EnableDisableControls($state)
 		GUICtrlSetState($Checkbox_game, $state)
 	ElseIf $script = "fork" Then
 		GUICtrlSetState($Button_more, $state)
+		GUICtrlSetState($Checkbox_log, $state)
 	EndIf
 	;GUICtrlSetState($Input_langs, $state)
 	;
