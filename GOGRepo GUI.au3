@@ -63,7 +63,8 @@ Global $OSextras, $OSget, $osskip, $path, $percent, $pid, $progbar, $progress, $
 Global $SetupGUI, $shared, $shell, $shutdown, $size, $sizecheck, $skiplang, $skipos, $split, $standalone, $started
 Global $state, $stop, $store, $style, $t, $text, $textdump, $threads, $title, $titles, $titlist, $top, $tot, $total
 Global $type, $update, $updated, $UpdateGUI, $updating, $user, $val, $validate, $validation, $verify, $VerifyGUI
-Global $verifying, $vers, $version, $wait, $width, $window, $winpos, $xpos, $ypos, $zipcheck
+Global $verifying, $vers, $version, $veryalone, $veryextra, $verygalaxy, $verygames, $verylog, $veryshare, $wait
+Global $width, $window, $winpos, $xpos, $ypos, $zipcheck
 
 $addlist = @ScriptDir & "\Added.txt"
 $backups = @ScriptDir & "\Backups"
@@ -460,6 +461,7 @@ Func MainGUI()
 			If $fdate <> FileGetTime($gogrepo, 0, 1) Then
 				SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
 				GetAuthorAndVersion()
+				; NOTE - Threads are automatically checked and updated to previous choice.
 				$file = FileOpen($gogrepo, 0)
 				$read = FileRead($file)
 				FileClose($file)
@@ -566,6 +568,42 @@ Func MainGUI()
 			IniWrite($inifle, "Skip Files", "language", $skiplang)
 		EndIf
 		$langskip = IniRead($inifle, "Skip Files", "languages", "")
+		;
+		$verylog = IniRead($inifle, "Verifying", "log", "")
+		If $verylog = "" Then
+			$verylog = 1
+			IniWrite($inifle, "Verifying", "log", $verylog)
+		EndIf
+		;
+		$veryextra = IniRead($inifle, "Verifying", "extras", "")
+		If $veryextra = "" Then
+			$veryextra = 1
+			IniWrite($inifle, "Verifying", "extras", $veryextra)
+		EndIf
+		;
+		$verygames = IniRead($inifle, "Verifying", "games", "")
+		If $verygames = "" Then
+			$verygames = 1
+			IniWrite($inifle, "Verifying", "games", $verygames)
+		EndIf
+		;
+		$veryalone = IniRead($inifle, "Verifying", "standalone", "")
+		If $veryalone = "" Then
+			$veryalone = 1
+			IniWrite($inifle, "Verifying", "standalone", $veryalone)
+		EndIf
+		;
+		$veryshare = IniRead($inifle, "Verifying", "shared", "")
+		If $veryshare = "" Then
+			$veryshare = 1
+			IniWrite($inifle, "Verifying", "shared", $veryshare)
+		EndIf
+		;
+		$verygalaxy = IniRead($inifle, "Verifying", "galaxy", "")
+		If $verygalaxy = "" Then
+			$verygalaxy = 4
+			IniWrite($inifle, "Verifying", "galaxy", $verygalaxy)
+		EndIf
 	EndIf
 	;
 	FillTheGamesList()
@@ -1091,6 +1129,15 @@ Func MainGUI()
 														IniWrite($inifle, "Current Download", "zips", 4)
 													EndIf
 													IniWrite($inifle, "Current Download", "delete", $delete)
+													If $script = "fork" Then
+														IniWrite($inifle, "Current Download", "verylog", $verylog)
+														IniWrite($inifle, "Current Download", "veryextra", $veryextra)
+														IniWrite($inifle, "Current Download", "verygames", $verygames)
+														IniWrite($inifle, "Current Download", "veryalone", $veryalone)
+														IniWrite($inifle, "Current Download", "veryshare", $veryshare)
+														IniWrite($inifle, "Current Download", "verygalaxy", $verygalaxy)
+													EndIf
+													;
 													CheckOnShutdown()
 													If $minimize = 1 Then
 														$flag = @SW_MINIMIZE
@@ -1884,7 +1931,21 @@ Func DownloadAllGUI()
 			;$pid = RunWait(@ComSpec & ' /c gogrepo.py download "' & $gamefold & '"', @ScriptDir)
 			$pid = RunWait(@ComSpec & ' /c gogrepo.py download' & $params & ' "' & $gamefold & '"', @ScriptDir)
 			If $validate = 1 Then
-				$params = " -skipmd5 -skipsize -skipzip -delete"
+				If $script = "default" Then
+					$params = " -skipmd5 -skipsize -skipzip -delete"
+				Else
+					$params = " -skipmd5 -skipsize -skipzip -delete -nolog -skipextras -skipgames -skipstandalone -skipshared -skipgalaxy"
+					If $verylog = 1 Then $params = StringReplace($params, " -nolog", "")
+					If $veryextra = 1 Then $params = StringReplace($params, " -skipextras", "")
+					If $verygames = 4 Then
+						$params = StringReplace($params, " -skipstandalone -skipshared -skipgalaxy", "")
+					Else
+						$params = StringReplace($params, " -skipgames", "")
+						If $veryalone = 1 Then $params = StringReplace($params, " -skipstandalone", "")
+						If $veryshare = 1 Then $params = StringReplace($params, " -skipshared", "")
+						If $verygalaxy = 1 Then $params = StringReplace($params, " -skipgalaxy", "")
+					EndIf
+				EndIf
 				If $md5 = 1 Then $params = StringReplace($params, " -skipmd5", "")
 				If $sizecheck = 1 Then $params = StringReplace($params, " -skipsize", "")
 				If $zipcheck = 1 Then $params = StringReplace($params, " -skipzip", "")
@@ -2462,6 +2523,21 @@ Func QueueGUI()
 						IniWrite($inifle, "Current Download", "zips", $val)
 						$val = IniRead($downlist, $current, "delete", "")
 						IniWrite($inifle, "Current Download", "delete", $val)
+						If $script = "fork" Then
+							$val = IniRead($downlist, $title, "verylog", "")
+							IniWrite($inifle, "Current Download", "verylog", $val)
+							$val = IniRead($downlist, $title, "veryextra", "")
+							IniWrite($inifle, "Current Download", "veryextra", $val)
+							$val = IniRead($downlist, $title, "verygames", "")
+							IniWrite($inifle, "Current Download", "verygames", $val)
+							$val = IniRead($downlist, $title, "veryalone", "")
+							IniWrite($inifle, "Current Download", "veryalone", $val)
+							$val = IniRead($downlist, $title, "veryshare", "")
+							IniWrite($inifle, "Current Download", "veryshare", $val)
+							$val = IniRead($downlist, $title, "verygalaxy", "")
+							IniWrite($inifle, "Current Download", "verygalaxy", $val)
+						EndIf
+						;
 						RemoveListEntry(0)
 					EndIf
 					CheckOnShutdown()
@@ -3289,7 +3365,7 @@ EndFunc ;=> UpdateGUI
 Func VerifyGUI()
 	Local $Button_close, $Button_verify, $Checkbox_alone, $Checkbox_delete, $Checkbox_every, $Checkbox_extras, $Checkbox_galaxy
 	Local $Checkbox_games, $Checkbox_md5, $Checkbox_shared, $Checkbox_size, $Checkbox_verylog, $Checkbox_zip, $Group_files
-	Local $params, $veryalone, $veryextra, $verygalaxy, $verygames, $verylog, $veryshare
+	Local $params
 	;
 	$VerifyGUI = GuiCreate("Verify Game Files", 230, 200, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
 															+ $WS_VISIBLE + $WS_CLIPSIBLINGS, $WS_EX_TOPMOST, $window)
@@ -3350,59 +3426,24 @@ Func VerifyGUI()
 	GUICtrlSetState($Checkbox_delete, $delete)
 	;
 	If $script = "default" Then
-		$verylog = 4
+		;$verylog = 4
 		GUICtrlSetState($Checkbox_verylog, $GUI_DISABLE)
-		$veryextra = 4
+		;$veryextra = 4
 		GUICtrlSetState($Checkbox_extras, $GUI_DISABLE)
-		$verygames = 4
+		;$verygames = 4
 		GUICtrlSetState($Checkbox_games, $GUI_DISABLE)
-		$veryalone = 4
+		;$veryalone = 4
 		GUICtrlSetState($Checkbox_alone, $GUI_DISABLE)
-		$veryshare = 4
+		;$veryshare = 4
 		GUICtrlSetState($Checkbox_shared, $GUI_DISABLE)
-		$verygalaxy = 4
+		;$verygalaxy = 4
 		GUICtrlSetState($Checkbox_galaxy, $GUI_DISABLE)
 	Else
-		$verylog = IniRead($inifle, "Verifying", "log", "")
-		If $verylog = "" Then
-			$verylog = 1
-			IniWrite($inifle, "Verifying", "log", $verylog)
-		EndIf
 		GUICtrlSetState($Checkbox_verylog, $verylog)
-		;
-		$veryextra = IniRead($inifle, "Verifying", "extras", "")
-		If $veryextra = "" Then
-			$veryextra = 1
-			IniWrite($inifle, "Verifying", "extras", $veryextra)
-		EndIf
 		GUICtrlSetState($Checkbox_extras, $veryextra)
-		;
-		$verygames = IniRead($inifle, "Verifying", "games", "")
-		If $verygames = "" Then
-			$verygames = 1
-			IniWrite($inifle, "Verifying", "games", $verygames)
-		EndIf
 		GUICtrlSetState($Checkbox_games, $verygames)
-		;
-		$veryalone = IniRead($inifle, "Verifying", "standalone", "")
-		If $veryalone = "" Then
-			$veryalone = 1
-			IniWrite($inifle, "Verifying", "standalone", $veryalone)
-		EndIf
 		GUICtrlSetState($Checkbox_alone, $veryalone)
-		;
-		$veryshare = IniRead($inifle, "Verifying", "shared", "")
-		If $veryshare = "" Then
-			$veryshare = 1
-			IniWrite($inifle, "Verifying", "shared", $veryshare)
-		EndIf
 		GUICtrlSetState($Checkbox_shared, $veryshare)
-		;
-		$verygalaxy = IniRead($inifle, "Verifying", "galaxy", "")
-		If $verygalaxy = "" Then
-			$verygalaxy = 4
-			IniWrite($inifle, "Verifying", "galaxy", $verygalaxy)
-		EndIf
 		GUICtrlSetState($Checkbox_galaxy, $verygalaxy)
 		;
 		If $verygames = 4 Then
@@ -3614,6 +3655,14 @@ Func AddGameToDownloadList()
 		IniWrite($downlist, $title, "zips", 4)
 	EndIf
 	IniWrite($downlist, $title, "delete", $delete)
+	If $script = "fork" Then
+		IniWrite($downlist, $title, "verylog", $verylog)
+		IniWrite($downlist, $title, "veryextra", $veryextra)
+		IniWrite($downlist, $title, "verygames", $verygames)
+		IniWrite($downlist, $title, "veryalone", $veryalone)
+		IniWrite($downlist, $title, "veryshare", $veryshare)
+		IniWrite($downlist, $title, "verygalaxy", $verygalaxy)
+	EndIf
 EndFunc ;=> AddGameToDownloadList
 
 Func BackupManifestEtc()
@@ -3781,7 +3830,27 @@ Func CheckOnGameDownload()
 			$val = IniRead($inifle, "Current Download", "verify", "")
 			If $val = 1 And $verifying = "" Then
 				$verifying = 1
-				$params = " -skipmd5 -skipsize -skipzip -delete"
+				If $script = "default" Then
+					$params = " -skipmd5 -skipsize -skipzip -delete"
+				Else
+					$params = " -skipmd5 -skipsize -skipzip -delete -nolog -skipextras -skipgames -skipstandalone -skipshared -skipgalaxy"
+					$val = IniRead($inifle, "Current Download", "verylog", "")
+					If $val = 1 Then $params = StringReplace($params, " -nolog", "")
+					$val = IniRead($inifle, "Current Download", "veryextra", "")
+					If $val = 1 Then $params = StringReplace($params, " -skipextras", "")
+					$val = IniRead($inifle, "Current Download", "verygames", "")
+					If $val = 4 Then
+						$params = StringReplace($params, " -skipstandalone -skipshared -skipgalaxy", "")
+					Else
+						$params = StringReplace($params, " -skipgames", "")
+						$val = IniRead($inifle, "Current Download", "veryalone", "")
+						If $val = 1 Then $params = StringReplace($params, " -skipstandalone", "")
+						$val = IniRead($inifle, "Current Download", "veryshare", "")
+						If $val = 1 Then $params = StringReplace($params, " -skipshared", "")
+						$val = IniRead($inifle, "Current Download", "verygalaxy", "")
+						If $val = 1 Then $params = StringReplace($params, " -skipgalaxy", "")
+					EndIf
+				EndIf
 				$val = IniRead($inifle, "Current Download", "md5", "")
 				If $val = 1 Then $params = StringReplace($params, " -skipmd5", "")
 				$val = IniRead($inifle, "Current Download", "size", "")
@@ -3913,6 +3982,21 @@ Func CheckOnGameDownload()
 									IniWrite($inifle, "Current Download", "zips", $val)
 									$val = IniRead($downlist, $current, "delete", "")
 									IniWrite($inifle, "Current Download", "delete", $val)
+									If $script = "fork" Then
+										$val = IniRead($downlist, $title, "verylog", "")
+										IniWrite($inifle, "Current Download", "verylog", $val)
+										$val = IniRead($downlist, $title, "veryextra", "")
+										IniWrite($inifle, "Current Download", "veryextra", $val)
+										$val = IniRead($downlist, $title, "verygames", "")
+										IniWrite($inifle, "Current Download", "verygames", $val)
+										$val = IniRead($downlist, $title, "veryalone", "")
+										IniWrite($inifle, "Current Download", "veryalone", $val)
+										$val = IniRead($downlist, $title, "veryshare", "")
+										IniWrite($inifle, "Current Download", "veryshare", $val)
+										$val = IniRead($downlist, $title, "verygalaxy", "")
+										IniWrite($inifle, "Current Download", "verygalaxy", $val)
+									EndIf
+									;
 									If $minimize = 1 Then
 										$flag = @SW_MINIMIZE
 									Else
@@ -4283,7 +4367,7 @@ Func GetAuthorAndVersion()
 			If $change <> "" Then
 				$change = StringReplace($change, "AuthorVersion", "Author & Version")
 				$change = StringReplace($change, "VersionAuthor", "Author & Version")
-				MsgBox(262192, "Script Change", $change & " haa changed for 'gogrepo.py'." _
+				MsgBox(262192, "Script Change", $change & " has changed for 'gogrepo.py'." _
 					& @LF & @LF & "NOTE - This may mean that different options are now" _
 					& @LF & "available  for (or removed from) use in GOGRepo GUI.", 0, $GOGRepoGUI)
 			EndIf
