@@ -117,7 +117,8 @@ EndIf
 Exit
 
 Func MainGUI()
-	Local $Group_added, $Group_cover, $Group_dest, $Group_down, $Group_update, $Label_extra, $Label_OS, $Label_title
+	Local $Group_added, $Group_cover, $Group_dest, $Group_down, $Group_update, $Item_delete, $Item_remove
+	Local $Label_extra, $Label_OS, $Label_title
 	;
 	Local $add, $content, $dll, $exist, $find, $fold, $mpos, $OSes, $pth, $show
 	;
@@ -276,6 +277,12 @@ Func MainGUI()
 	GUICtrlCreateMenuItem("", $Menu_list)
 	GUICtrlCreateMenuItem("", $Menu_list)
 	$Item_content = GUICtrlCreateMenuItem("Folder Content", $Menu_list)
+	GUICtrlCreateMenuItem("", $Menu_list)
+	GUICtrlCreateMenuItem("", $Menu_list)
+	$Item_remove = GUICtrlCreateMenuItem("Remove Selected Game", $Menu_list)
+	GUICtrlCreateMenuItem("", $Menu_list)
+	GUICtrlCreateMenuItem("", $Menu_list)
+	$Item_delete = GUICtrlCreateMenuItem("Delete Manifest", $Menu_list)
 	GUICtrlCreateMenuItem("", $Menu_list)
 	GUICtrlCreateMenuItem("", $Menu_list)
 	$Menu_games = GUICtrlCreateMenu("ALL Games", $Menu_list)
@@ -1374,6 +1381,8 @@ Func MainGUI()
 				Else
 					MsgBox(262192, "Title Error", "A game is not selected!", $wait, $GOGRepoGUI)
 				EndIf
+			Else
+				MsgBox(262192, "Program Error", "Manifest file does not exist!", $wait, $GOGRepoGUI)
 			EndIf
 		Case $msg = $Button_dest
 			; Browse to set the destination folder  $gamesfle
@@ -1617,6 +1626,129 @@ Func MainGUI()
 			Else
 				MsgBox(262192, "Title Error", "A game is not selected!", $wait, $GOGRepoGUI)
 			EndIf
+		Case $msg = $Item_remove
+			; Remove Selected Game
+			If FileExists($manifest) Then
+				$name = GUICtrlRead($List_games)
+				$title = GUICtrlRead($Input_title)
+				If $name <> "" And $title <> "" Then
+					If $name = GUICtrlRead($Input_name) Then
+						$ans = MsgBox(262435, "Remove Game Query", _
+							"This removes the selected game from the manifest." & @LF & @LF & _
+							"Do you also want to remove from the List?" & @LF & @LF & _
+							"YES = Remove from both." & @LF & _
+							"NO = Only the manifest" & @LF & _
+							"CANCEL = Abort any removal." & @LF & @LF & _
+							"NOTE - Even if NO is chosen, the next UPDATE will" & @LF & _
+							"recreate and refresh the List entries anyway." & @LF & @LF & _
+							"NO GAME FILES OR EXTRAS ARE REMOVED!", $wait, $GOGRepoGUI)
+						If $ans <> 2 Then
+							SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
+							$res = _FileReadToArray($manifest, $array)
+							If $res = 1 Then
+								$games = $array[1]
+							Else
+								$games = ""
+							EndIf
+							$res = 0
+							$open = FileOpen($manifest, 0)
+							$read = FileRead($open)
+							FileClose($open)
+							$segment = StringSplit($read, "'title': '" & $title & "'}", 1)
+							If $segment[0] = 2 Then
+								$segment = $segment[1]
+								$segment = StringSplit($segment, "{'bg_url':", 1)
+								If $segment[0] > 1 Then
+									$segment = "{'bg_url':" & $segment[$segment[0]]
+									$segment = $segment & "'title': '" & $title & "'},"
+									;MsgBox(262192, "Game Segment", $games & @LF & $segment, $wait, $GOGRepoGUI)
+									; Attempt to remove as a middle entry.
+									$res = _ReplaceStringInFile($manifest, " " & $segment & @LF, "")
+									If @error = 0 Then
+										If $res = 0 Then
+											; Failed, so attempt to remove as a last entry.
+											$segment = StringTrimRight($segment, 1)
+											$res = _ReplaceStringInFile($manifest, " " & $segment, "")
+											If $res = 0 Then
+												; Failed, so attempt to remove as a first entry.
+												$segment = $segment & ","
+												$res = _ReplaceStringInFile($manifest, $segment & @LF, "")
+												If @error = 0 Then
+													If $res = 0 Then
+														; Failed, so attempt to remove the only entry.
+														$segment = StringTrimRight($segment, 1)
+														$res = _ReplaceStringInFile($manifest, $segment, "")
+													Else
+														_ReplaceStringInFile($manifest, "[ {", "[{")
+													EndIf
+												EndIf
+											Else
+												_ReplaceStringInFile($manifest, "," & @LF & "]", "]")
+											EndIf
+										Else
+											;_ReplaceStringInFile($manifest, "[ {", "[{")
+										EndIf
+										If $res = 1 And $games <> "" Then
+											$number = StringSplit($games, " ", 1)
+											If $number[0] > 1 Then
+												$number = $number[2]
+												If StringIsDigit($number) Then
+													$number = $number - 1
+													$number = "# " & $number & " games"
+													_ReplaceStringInFile($manifest, $games, $number)
+													$games = $number
+												EndIf
+											EndIf
+										Else
+											MsgBox(262192, "Removal Error (2)", "Could not remove entry from manifest!", $wait, $GOGRepoGUI)
+										EndIf
+									Else
+										MsgBox(262192, "Removal Error (1)", "Could not remove entry from manifest!", $wait, $GOGRepoGUI)
+									EndIf
+								Else
+									MsgBox(262192, "Removal Error", "Could not divide on url entry!", $wait, $GOGRepoGUI)
+								EndIf
+							Else
+								MsgBox(262192, "Removal Error", "Could not divide on title entry!", $wait, $GOGRepoGUI)
+							EndIf
+							If $ans = 6 And $res = 1 Then
+								$ind = _GUICtrlListBox_GetCurSel($List_games)
+								If $name = _GUICtrlListBox_GetText($List_games, $ind) Then
+									$games = _GUICtrlListBox_DeleteString($List_games, $ind)
+									If $games > 0 Then
+										GUICtrlSetData($Group_games, "Games  (" & $games & ")")
+									Else
+										GUICtrlSetData($Group_games, "Games")
+									EndIf
+									EnableDisableControls($GUI_DISABLE)
+									Sleep(1000)
+									GUICtrlSetData($List_games, "")
+									GUICtrlSetData($Input_name, "")
+									GUICtrlSetData($Input_title, "")
+									GUICtrlSetData($Input_OS, "")
+									GUICtrlSetData($Input_extra, "")
+									_FileCreate($titlist)
+									ParseTheManifest()
+									FillTheGamesList()
+									EnableDisableControls($GUI_ENABLE)
+								Else
+									$games = _GUICtrlListBox_GetCount($List_games)
+									MsgBox(262192, "Removal Error", "Selection mismatch!", $wait, $GOGRepoGUI)
+								EndIf
+							Else
+								$games = _GUICtrlListBox_GetCount($List_games)
+							EndIf
+							SplashOff()
+						EndIf
+					Else
+						MsgBox(262192, "Name Error", "Game is not selected properly!", $wait, $GOGRepoGUI)
+					EndIf
+				Else
+					MsgBox(262192, "Title Error", "A game is not selected!", $wait, $GOGRepoGUI)
+				EndIf
+			Else
+				MsgBox(262192, "Program Error", "Manifest file does not exist!", $wait, $GOGRepoGUI)
+			EndIf
 		Case $msg = $Item_macunsort
 			; MAC Games - Unsorted List
 			CreateListOfGames("Mac", $addlist)
@@ -1644,6 +1776,29 @@ Func MainGUI()
 				EndIf
 			Else
 				MsgBox(262192, "Title Error", "A game is not selected!", $wait, $GOGRepoGUI)
+			EndIf
+		Case $msg = $Item_delete
+			; Delete Manifest
+			If FileExists($manifest) Then
+				$ans = MsgBox(262433, "Removal Query", _
+					"Are you sure you want to delete the manifest file?" & @LF & @LF & _
+					"OK = Delete the manifest." & @LF & _
+					"CANCEL = Abort deletion." & @LF & @LF & _
+					"NOTE - This is permanent, and means you will need" & @LF & _
+					"to recreate (Full UPDATE) your manifest again from" & @LF & _
+					"scratch, to access your GOG library for downloading" & @LF & _
+					"and verifying etc.", $wait, $GOGRepoGUI)
+				If $ans = 1 Then
+					FileDelete($manifest)
+					_FileCreate($titlist)
+					GUICtrlSetData($List_games, "")
+					GUICtrlSetData($Input_name, "")
+					GUICtrlSetData($Input_title, "")
+					GUICtrlSetData($Input_OS, "")
+					GUICtrlSetData($Input_extra, "")
+				EndIf
+			Else
+				MsgBox(262192, "Program Error", "Manifest file does not exist!", $wait, $GOGRepoGUI)
 			EndIf
 		Case $msg = $Item_content
 			; Folder Content - Game
