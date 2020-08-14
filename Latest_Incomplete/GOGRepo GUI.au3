@@ -719,6 +719,10 @@ Func MainGUI()
 				$val = IniRead($inifle, "Current Download", "files", "")
 				IniWrite($downlist, $title, "files", $val)
 			Else
+				$val = IniRead($inifle, "Current Download", "OS", "")
+				IniWrite($downlist, $title, "OS", $val)
+				$val = IniRead($inifle, "Current Download", "language", "")
+				IniWrite($downlist, $title, "language", $val)
 				$val = IniRead($inifle, "Current Download", "standalone", "")
 				IniWrite($downlist, $title, "standalone", $val)
 				$val = IniRead($inifle, "Current Download", "galaxy", "")
@@ -728,12 +732,12 @@ Func MainGUI()
 				$val = IniRead($inifle, "Current Download", "log", "")
 				IniWrite($downlist, $title, "log", $val)
 				;
-				$val = IniRead($inifle, "Current Download", "language", "")
-				IniWrite($downlist, $title, "language", $val)
-				$val = IniRead($inifle, "Current Download", "languages", "")
+				$val = IniRead($inifle, "Current Download", "skiplang", "")
+				IniWrite($downlist, $title, "skiplang", $val)
+				$val = IniRead($inifle, "Current Download", "langskip", "")
 				IniWrite($downlist, $title, "languages", $val)
-				$val = IniRead($inifle, "Current Download", "OS", "")
-				IniWrite($downlist, $title, "OS", $val)
+				$val = IniRead($inifle, "Current Download", "skipOS", "")
+				IniWrite($downlist, $title, "skipOS", $val)
 				$val = IniRead($inifle, "Current Download", "OSes", "")
 				IniWrite($downlist, $title, "OSes", $val)
 			EndIf
@@ -1138,19 +1142,24 @@ Func MainGUI()
 													If $script = "default" Then
 														IniWrite($inifle, "Current Download", "files", $files)
 													Else
+														$OS = GUICtrlRead($Combo_OS)
+														$OS = StringReplace($OS, "+", "")
+														$OS = StringStripWS($OS, 7)
+														$OS = StringLower($OS)
+														IniWrite($inifle, "Current Download", "OS", $OS)
+														IniWrite($inifle, "Current Download", "language", $lang)
 														IniWrite($inifle, "Current Download", "standalone", $standalone)
 														IniWrite($inifle, "Current Download", "galaxy", $galaxy)
 														IniWrite($inifle, "Current Download", "shared", $shared)
 														IniWrite($inifle, "Current Download", "log", $downlog)
-														IniWrite($inifle, "Current Download", "language", $skiplang)
-														IniWrite($inifle, "Current Download", "languages", $langskip)
-														IniWrite($inifle, "Current Download", "OS", $skipos)
+														IniWrite($inifle, "Current Download", "skiplang", $skiplang)
+														IniWrite($inifle, "Current Download", "langskip", $langskip)
+														IniWrite($inifle, "Current Download", "skipOS", $skipos)
 														$val = StringReplace($osskip, "+", "")
 														$val = StringStripWS($val, 7)
 														IniWrite($inifle, "Current Download", "OSes", $val)
 													EndIf
 													IniWrite($inifle, "Current Download", "extras", $extras)
-													;IniWrite($inifle, "Current Download", "language", $lang)
 													IniWrite($inifle, "Current Download", "cover", $cover)
 													;If $cover = 1 Then
 														$image = IniRead($gamesfle, $name, "image", "")
@@ -1195,7 +1204,7 @@ Func MainGUI()
 															Local $params = " -skipextras -skipgames"
 															If $files = 1 Then $params = StringReplace($params, " -skipgames", "")
 														Else
-															Local $params = " -skipextras -skipgalaxy -skipstandalone -skipshared -nolog"
+															Local $params = " -os " & $OS & " -lang " & $lang & " -skipextras -skipgalaxy -skipstandalone -skipshared -nolog"
 															If $galaxy = 1 Then $params = StringReplace($params, " -skipgalaxy", "")
 															If $standalone = 1 Then $params = StringReplace($params, " -skipstandalone", "")
 															If $shared = 1 Then $params = StringReplace($params, " -skipshared", "")
@@ -1212,6 +1221,7 @@ Func MainGUI()
 															EndIf
 														EndIf
 														If $extras = 1 Then $params = StringReplace($params, " -skipextras", "")
+														MsgBox(262192, "Parameters", $params, 0, $GOGRepoGUI)
 														$pid = Run(@ComSpec & ' /c gogrepo.py download' & $params & ' -id ' & $title & ' "' & $gamefold & '"', @ScriptDir, $flag)
 													EndIf
 													AdlibRegister("CheckOnGameDownload", 3000)
@@ -1928,9 +1938,13 @@ EndFunc ;=> MainGUI
 Func DownloadAllGUI()
 	; Query which DOWNLOAD ALL method to use.
 	Local $Button_close, $Button_inf, $Button_one, $Button_two, $Button_veryopts, $Group_one, $Group_two, $Label_one, $Label_two
-	Local $params, $pos
+	Local $above, $high, $params, $pos, $side, $wide
 	;
-	$DownloadAllGUI = GuiCreate("Download ALL", 230, 400, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
+	$wide = 230
+	$high = 400
+	$side = IniRead($inifle, "Download ALL Window", "left", $left)
+	$above = IniRead($inifle, "Download ALL Window", "top", $top)
+	$DownloadAllGUI = GuiCreate("Download ALL", $wide, $high, $side, $above, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
 														+ $WS_VISIBLE + $WS_CLIPSIBLINGS, $WS_EX_TOPMOST, $GOGRepoGUI)
 	GUISetBkColor(0xCECEFF, $DownloadAllGUI)
 	GuiSetState(@SW_DISABLE, $DownloadAllGUI)
@@ -1981,6 +1995,22 @@ Func DownloadAllGUI()
 		Select
 		Case $msg = $GUI_EVENT_CLOSE Or $msg = $Button_close
 			; Exit / Close / Quit the window
+			$winpos = WinGetPos($DownloadAllGUI, "")
+			$side = $winpos[0]
+			If $side < 0 Then
+				$side = 2
+			ElseIf $side > @DesktopWidth - $wide Then
+				$side = @DesktopWidth - $wide - 25
+			EndIf
+			IniWrite($inifle, "Download ALL Window", "left", $side)
+			$above = $winpos[1]
+			If $above < 0 Then
+				$above = 2
+			ElseIf $above > @DesktopHeight - $high Then
+				$above = @DesktopHeight - $high - 30
+			EndIf
+			IniWrite($inifle, "Download ALL Window", "top", $above)
+			;
 			GUIDelete($DownloadAllGUI)
 			ExitLoop
 		Case $msg = $Button_veryopts
@@ -2171,9 +2201,13 @@ EndFunc ;=> DownloadAllGUI
 Func DownloadGUI()
 	Local $Button_close, $Button_inf, $Checkbox_alone, $Checkbox_downlog, $Checkbox_galaxy, $Checkbox_shared
 	Local $Checkbox_skiplang, $Checkbox_skipOS, $Combo_language, $Combo_OSes, $Group_files
-	Local $langs
+	Local $above, $high, $langs, $side, $wide
 	;
-	$DownloadGUI = GuiCreate("Download Options", 270, 145, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
+	$wide = 270
+	$high = 145
+	$side = IniRead($inifle, "Download Window", "left", $left)
+	$above = IniRead($inifle, "Download Window", "top", $top)
+	$DownloadGUI = GuiCreate("Download Options", $wide, $high, $side, $above, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
 															+ $WS_VISIBLE + $WS_CLIPSIBLINGS, $WS_EX_TOPMOST, $GOGRepoGUI)
 	GUISetBkColor(0x80FFFF, $DownloadGUI)
 	;
@@ -2216,7 +2250,9 @@ Func DownloadGUI()
 	GUICtrlSetState($Checkbox_shared, $shared)
 	GUICtrlSetState($Checkbox_downlog, $downlog)
 	GUICtrlSetState($Checkbox_skiplang, $skiplang)
+	GUICtrlSetState($Checkbox_skiplang, $GUI_DISABLE)
 	GUICtrlSetState($Checkbox_skipOS, $skipos)
+	GUICtrlSetState($Checkbox_skipOS, $GUI_DISABLE)
 	;$langs = "||" & StringReplace($lang, " ", "|")
 	$langs = "||" & $lang
 	If StringInStr($lang, " ") > 0 Then
@@ -2236,6 +2272,22 @@ Func DownloadGUI()
 		Select
 		Case $msg = $GUI_EVENT_CLOSE Or $msg = $Button_close
 			; Exit / Close / Quit the window
+			$winpos = WinGetPos($DownloadGUI, "")
+			$side = $winpos[0]
+			If $side < 0 Then
+				$side = 2
+			ElseIf $side > @DesktopWidth - $wide Then
+				$side = @DesktopWidth - $wide - 25
+			EndIf
+			IniWrite($inifle, "Download Window", "left", $side)
+			$above = $winpos[1]
+			If $above < 0 Then
+				$above = 2
+			ElseIf $above > @DesktopHeight - $high Then
+				$above = @DesktopHeight - $high - 30
+			EndIf
+			IniWrite($inifle, "Download Window", "top", $above)
+			;
 			GUIDelete($DownloadGUI)
 			ExitLoop
 		Case $msg = $Checkbox_skipOS
@@ -2668,6 +2720,11 @@ Func QueueGUI()
 							IniWrite($inifle, "Current Download", "files", $val)
 							If $val = 1 Then $params = StringReplace($params, " -skipgames", "")
 						Else
+							$OS = IniRead($downlist, $title, "OS", "")
+							IniWrite($inifle, "Current Download", "OS", $OS)
+							$lang = IniRead($downlist, $title, "language", "")
+							IniWrite($inifle, "Current Download", "language", $lang)
+							$params = " -os " & $OS & " -lang " & $lang & " -skipextras -skipgalaxy -skipstandalone -skipshared -nolog"
 							$val = IniRead($downlist, $title, "standalone", "")
 							IniWrite($inifle, "Current Download", "standalone", $val)
 							If $val = 1 Then $params = StringReplace($params, " -skipstandalone", "")
@@ -2681,18 +2738,18 @@ Func QueueGUI()
 							IniWrite($inifle, "Current Download", "log", $val)
 							If $val = 1 Then $params = StringReplace($params, " -nolog", "")
 							;
-							$val = IniRead($downlist, $title, "language", "")
-							IniWrite($inifle, "Current Download", "language", $val)
+							$val = IniRead($downlist, $title, "skiplang", "")
+							IniWrite($inifle, "Current Download", "skiplang", $val)
 							If $val = 1 Then
 								$val = IniRead($downlist, $title, "languages", "")
 								If $val <> "" Then $params = $params & " -skiplang " & $val
 							Else
 								$val = ""
 							EndIf
-							IniWrite($inifle, "Current Download", "languages", $val)
+							IniWrite($inifle, "Current Download", "langskip", $val)
 							;
-							$val = IniRead($downlist, $title, "OS", "")
-							IniWrite($inifle, "Current Download", "OS", $val)
+							$val = IniRead($downlist, $title, "skipOS", "")
+							IniWrite($inifle, "Current Download", "skipOS", $val)
 							If $val = 1 Then
 								$val = IniRead($downlist, $title, "OSes", "")
 								If $val <> "" Then $params = $params & " -skipos " & $val
@@ -2975,7 +3032,7 @@ Func QueueGUI()
 				GUICtrlSetState($Checkbox_files, $val)
 				$val = IniRead($downlist, $title, "extras", "")
 				GUICtrlSetState($Checkbox_other, $val)
-				$val = IniRead($downlist, $title, "language", "")
+				$val = IniRead($downlist, $title, "skiplang", "")
 				GUICtrlSetData($Input_lang, $val)
 				$val = IniRead($downlist, $title, "cover", "")
 				GUICtrlSetState($Checkbox_image, $val)
@@ -3019,9 +3076,13 @@ Func SetupGUI()
 	Local $Input_pass, $Input_threads, $Input_user, $Label_info, $Label_lang, $Label_langs, $Label_pass, $Label_threads, $Label_user
 	Local $Updown_threads, $Checkbox_progress
 	;
-	Local $combos, $langs, $long, $password, $username
+	Local $above, $combos, $high, $langs, $long, $password, $side, $username, $wide
 	;
-	$SetupGUI = GuiCreate("Setup - Python & Cookie etc", 230, 430, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
+	$wide = 230
+	$high = 430
+	$side = IniRead($inifle, "Setup Window", "left", $left)
+	$above = IniRead($inifle, "Setup Window", "top", $top)
+	$SetupGUI = GuiCreate("Setup - Python & Cookie etc", $wide, $high, $side, $above, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
 											+ $WS_VISIBLE + $WS_CLIPSIBLINGS, $WS_EX_TOPMOST, $GOGRepoGUI)
 	GUISetBkColor(0xFFFFB0, $SetupGUI)
 	;
@@ -3146,6 +3207,22 @@ Func SetupGUI()
 		Select
 		Case $msg = $GUI_EVENT_CLOSE Or $msg = $Button_close
 			; Exit / Close / Quit the window
+			$winpos = WinGetPos($SetupGUI, "")
+			$side = $winpos[0]
+			If $side < 0 Then
+				$side = 2
+			ElseIf $side > @DesktopWidth - $wide Then
+				$side = @DesktopWidth - $wide - 25
+			EndIf
+			IniWrite($inifle, "Setup Window", "left", $side)
+			$above = $winpos[1]
+			If $above < 0 Then
+				$above = 2
+			ElseIf $above > @DesktopHeight - $high Then
+				$above = @DesktopHeight - $high - 30
+			EndIf
+			IniWrite($inifle, "Setup Window", "top", $above)
+			;
 			GUIDelete($SetupGUI)
 			ExitLoop
 		Case $msg = $Button_install
@@ -3330,10 +3407,15 @@ Func UpdateGUI()
 	Local $Checkbox_new, $Checkbox_resume, $Checkbox_stages, $Checkbox_tag, $Checkbox_uplog, $Combo_games, $Combo_install
 	Local $Input_blocks, $Input_language, $Input_OSes, $Label_blocks, $Label_games, $Label_install, $Label_lang, $Updown_blocks
 	;
-	Local $block, $blocks, $clean, $cleaned, $cleanup, $entry, $err, $id, $ids, $installer, $installers, $newgames, $installers
-	Local $loop, $out, $params, $results, $resume, $resumeman, $ret, $skiphid, $stage, $stagefile, $stages, $start, $tagged, $uplog
+	Local $above, $block, $blocks, $changed, $clean, $cleaned, $cleanup, $compfold, $entry, $err, $high, $id, $ids, $installer
+	Local $installers, $loop, $newgames, $out, $params, $results, $resume, $resumeman, $ret, $side, $skiphid, $stage, $stagefile
+	Local $stages, $start, $tagged, $titfile, $uplog, $wide
 	;
-	$UpdateGUI = GuiCreate("Update The Manifest", 250, 310, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
+	$wide = 250
+	$high = 310
+	$side = IniRead($inifle, "Update Window", "left", $left)
+	$above = IniRead($inifle, "Update Window", "top", $top)
+	$UpdateGUI = GuiCreate("Update The Manifest", $wide, $high, $side, $above, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
 															+ $WS_VISIBLE + $WS_CLIPSIBLINGS, $WS_EX_TOPMOST, $GOGRepoGUI)
 	GUISetBkColor(0xFFCE9D, $UpdateGUI)
 	;
@@ -3536,6 +3618,10 @@ Func UpdateGUI()
 		GUICtrlSetState($Combo_games, $GUI_DISABLE)
 	EndIf
 	;
+	$changed = @ScriptDir & "\Changed.txt"
+	$compfold = @ScriptDir & "\Comparisons"
+	If Not FileExists($compfold) Then DirCreate($compfold)
+	;
 	$clean = 4
 	$updating = ""
 	;
@@ -3548,6 +3634,22 @@ Func UpdateGUI()
 		Select
 		Case $msg = $GUI_EVENT_CLOSE Or $msg = $Button_close
 			; Exit / Close / Quit the window
+			$winpos = WinGetPos($UpdateGUI, "")
+			$side = $winpos[0]
+			If $side < 0 Then
+				$side = 2
+			ElseIf $side > @DesktopWidth - $wide Then
+				$side = @DesktopWidth - $wide - 25
+			EndIf
+			IniWrite($inifle, "Update Window", "left", $side)
+			$above = $winpos[1]
+			If $above < 0 Then
+				$above = 2
+			ElseIf $above > @DesktopHeight - $high Then
+				$above = @DesktopHeight - $high - 30
+			EndIf
+			IniWrite($inifle, "Update Window", "top", $above)
+			;
 			GUIDelete($UpdateGUI)
 			ExitLoop
 		Case $msg = $Button_upnow
@@ -3879,6 +3981,8 @@ Func UpdateGUI()
 				GuiSetState(@SW_MINIMIZE, $UpdateGUI)
 				FileChangeDir(@ScriptDir)
 				$updating = 1
+				$cleaned = 0
+				$cleanup = ""
 				GUICtrlSetState($Button_begin, $GUI_DISABLE)
 				GUICtrlSetState($Button_continue, $GUI_DISABLE)
 				If $ans = 6 Then
@@ -3906,7 +4010,7 @@ Func UpdateGUI()
 					_FileCreate($titlist)
 					_FileCreate($stagefile)
 					; Create a list of all titles in the resume manifest.
-					_FileWriteLog($logfle, "Updating manifest in Stages mode.")
+					_FileWriteLog($logfle, "Updating manifest in Stages 1 mode.")
 					$ret = Run(@ComSpec & ' /c gogrepo.py update', @ScriptDir, @SW_SHOW, $STDERR_MERGED) ;@SW_HIDE
 					$pid = $ret
 					$out = ""
@@ -4124,7 +4228,300 @@ Func UpdateGUI()
 						MsgBox(262192, "Update Error", "Could not find title list file!", 0, $UpdateGUI)
 					EndIf
 				ElseIf $stage = 2 Then
-					MsgBox(262192, "Program Advice", "This feature not yet enabled!", 0, $UpdateGUI)
+					If FileExists($manifest) Then
+						GUISwitch($GOGRepoGUI)
+						GUICtrlSetData($List_games, "")
+						GUICtrlSetData($Input_name, "")
+						GUICtrlSetData($Input_title, "")
+						GUICtrlSetData($Input_OS, "")
+						GUICtrlSetData($Input_extra, "")
+						GUISwitch($UpdateGUI)
+						If FileExists($resumeman) Then FileDelete($resumeman)
+						_FileCreate($stagefile)
+						; Perhaps wipe (clear) the $compfold folder.
+						$res = _FileReadToArray($titlist, $array, 1)
+						If $res = 1 Then
+							_FileWriteLog($logfle, "Updating manifest in Stages 2 mode.")
+							$file = FileOpen($stagefile, 2)
+							$read = FileRead($file)
+							GUISwitch($GOGRepoGUI)
+							GUICtrlSetData($Label_cover, "Getting Titles!")
+							GUISwitch($UpdateGUI)
+							$id = 0
+							For $a = 2 To ($array[0] - 1)
+								$line = $array[$a]
+								If $line <> "" Then
+									$line = StringSplit($line, " | ", 1)
+									If $line[0] = 2 Then
+										$line = $line[2]
+										$line = StringSplit($line, " (", 1)
+										If $line[0] = 2 Then
+											$line = $line[1]
+											FileWriteLine($file, "title=" & $line)
+											$id = $id + 1
+										EndIf
+									EndIf
+								EndIf
+							Next
+							FileClose($file)
+							_FileWriteLog($logfle, $id & " Game Titles found.")
+							;
+							MsgBox(262192, "Program Advice", "This feature not yet enabled!", 0, $UpdateGUI)
+							ContinueLoop
+							;
+							If $id > 0 Then
+								GUISwitch($GOGRepoGUI)
+								GUICtrlSetData($Label_cover, $id & " Game Titles found!")
+								GUISwitch($UpdateGUI)
+								Sleep(1500)
+								; Get number line for games in manifest.
+								$res = _FileReadToArray($manifest, $array)
+								If $res = 1 Then
+									$games = $array[1]
+								Else
+									$games = ""
+								EndIf
+								; Read titles list into an array.
+								$res = _FileReadToArray($stagefile, $array, 1)
+								$err = @error
+								If $res = 1 Then
+									_FileWriteLog($logfle, "Processing first block of games.")
+									$res = 0
+									$open = FileOpen($manifest, 0)
+									$read = FileRead($open)
+									FileClose($open)
+									$params = " -resumemode noresume -skiphidden -nolog -installers " & $installer
+									If $skiphid = 4 Then $params = StringReplace($params, " -skiphidden", "")
+									If $uplog = 1 Then $params = StringReplace($params, " -nolog", "")
+									$loop = 1
+									$start = 1
+									While 1
+										$ids = ""
+										$id = 0
+										For $a = $start To $array[0]
+											$title = $array[$a]
+											$title = StringReplace($title, "title=", "")
+											If $title <> "" Then
+												$titfile = $compfold & "\" & $title & ".txt"
+												_FileCreate($titfile)
+												; Read section of title in manifest.
+												$segment = StringSplit($read, "'title': '" & $title & "'}", 1)
+												If $segment[0] = 2 Then
+													$segment = $segment[1]
+													$segment = StringSplit($segment, "{'bg_url':", 1)
+													If $segment[0] > 1 Then
+														$segment = "{'bg_url':" & $segment[$segment[0]]
+														$segment = $segment & "'title': '" & $title & "'},"
+														;MsgBox(262192, "Game Segment", $games & @LF & $segment, $wait, $GOGRepoGUI)
+														; Delete section from manifest.
+														; Attempt to remove as a middle entry.
+														$res = _ReplaceStringInFile($manifest, " " & $segment & @LF, "")
+														If @error = 0 Then
+															If $res = 0 Then
+																; Failed, so attempt to remove as a last entry.
+																$segment = StringTrimRight($segment, 1)
+																$res = _ReplaceStringInFile($manifest, " " & $segment, "")
+																If @error = 0 Then
+																	If $res = 0 Then
+																		; Failed, so attempt to remove as a first entry.
+																		$segment = $segment & ","
+																		$res = _ReplaceStringInFile($manifest, $segment & @LF, "")
+																		If @error = 0 Then
+																			If $res = 0 Then
+																				; Failed, so attempt to remove the only entry.
+																				$segment = StringTrimRight($segment, 1)
+																				$res = _ReplaceStringInFile($manifest, $segment, "")
+																				If $res > 0 Then
+																					; Success
+																					; Save to file for later comparison.
+																					FileWrite($titfile, $segment)
+																				EndIf
+																			Else
+																				; Success
+																				_ReplaceStringInFile($manifest, "[ {", "[{")
+																				; Save to file for later comparison.
+																				FileWrite($titfile, $segment)
+																			EndIf
+																		EndIf
+																	Else
+																		; Success
+																		_ReplaceStringInFile($manifest, "," & @LF & "]", "]")
+																		; Save to file for later comparison.
+																		FileWrite($titfile, $segment)
+																	EndIf
+																EndIf
+															Else
+																; Success
+																; Save to file for later comparison.
+																FileWrite($titfile, $segment)
+															EndIf
+															If $res = 1 And $games <> "" Then
+																;
+																; WOULD BE BETTER maybe to have just a count here and relocate the following code so that number
+																; updating happens after all titles in all blocks (this session) have been processed.
+																;
+																; Update number line for games in manifest.
+																$number = StringSplit($games, " ", 1)
+																If $number[0] > 1 Then
+																	$number = $number[2]
+																	If StringIsDigit($number) Then
+																		$number = $number - 1
+																		$number = "# " & $number & " games"
+																		_ReplaceStringInFile($manifest, $games, $number)
+																		$games = $number
+																	EndIf
+																EndIf
+															Else
+																MsgBox(262192, "Removal Error (2)", "Could not remove entry from manifest!", $wait, $GOGRepoGUI)
+															EndIf
+														Else
+															MsgBox(262192, "Removal Error (1)", "Could not remove entry from manifest!", $wait, $GOGRepoGUI)
+														EndIf
+													Else
+														MsgBox(262192, "Removal Error", "Could not divide on url entry!", $wait, $GOGRepoGUI)
+													EndIf
+												Else
+													MsgBox(262192, "Removal Error", "Could not divide on title entry!", $wait, $GOGRepoGUI)
+												EndIf
+												;
+												$id = $id + 1
+												If $ids = "" Then
+													$ids = $title
+												Else
+													$ids = $ids & " " & $title
+												EndIf
+												If $id = $block Then ExitLoop
+												If $a = $array[0] Then
+													$cleanup = 1
+													ExitLoop
+												EndIf
+											EndIf
+										Next
+										$message = "Block " & $loop & " of " & $blocks & " = " & $id & " games"
+										GUISwitch($GOGRepoGUI)
+										GUICtrlSetData($Label_cover, $message)
+										GUISwitch($UpdateGUI)
+										_FileWriteLog($logfle, $ids)
+										If $ids <> "" Then
+											$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -ids ' & $ids, @ScriptDir)
+										Else
+											$cleanup = 1
+											ExitLoop
+										EndIf
+										If $loop = $blocks Then
+											ExitLoop
+										Else
+											$loop = $loop + 1
+											$start = $start + $block
+										EndIf
+									WEnd
+									;SplashTextOn("", "Checking!", 200, 120, Default, Default, 33)
+									GUISwitch($GOGRepoGUI)
+									GUICtrlSetData($Label_cover, "Checking!")
+									GUISwitch($UpdateGUI)
+									Sleep(1000)
+									; Remove any titles from list file that now exist in the manifest
+									_FileWriteLog($logfle, "Removing updated titles.")
+									$open = FileOpen($manifest, 0)
+									$read = FileRead($open)
+									FileClose($open)
+									$res = _FileReadToArray($stagefile, $array, 1)
+									If $res = 1 Then
+										$blocks = IniRead($inifle, "Updating", "loops", "")
+										$block = IniRead($inifle, "Updating", "games", "")
+										$cleaned = 0
+										$loop = 1
+										$start = 1
+										While 1
+											;SplashTextOn("", "Checking!" & @LF & $loop & " of " & $blocks, 200, 120, Default, Default, 33)
+											GUISwitch($GOGRepoGUI)
+											GUICtrlSetData($Label_cover, "Checking = " & $loop & " of " & $blocks)
+											GUISwitch($UpdateGUI)
+											$ids = ""
+											$id = 0
+											For $a = $start To $array[0]
+												$title = $array[$a]
+												If $title <> "" Then
+													$id = $id + 1
+													$entry = StringReplace($title, "title=", "")
+													$entry = "'title': '" & $entry & "'}"
+													If StringInStr($read, $entry) > 0 Then
+														$res = _ReplaceStringInFile($stagefile, $title & @CRLF, "")
+														If $res > 0 Then $cleaned = $cleaned + 1
+														;
+														; Read section of title in manifest, for comparison.
+														$title = StringReplace($title, "title=", "")
+														$segment = StringSplit($read, "'title': '" & $title & "'}", 1)
+														If $segment[0] = 2 Then
+															$segment = $segment[1]
+															$segment = StringSplit($segment, "{'bg_url':", 1)
+															If $segment[0] > 1 Then
+																$segment = "{'bg_url':" & $segment[$segment[0]]
+																$segment = $segment & "'title': '" & $title & "'},"
+																;MsgBox(262192, "Game Segment", $games & @LF & $segment, $wait, $GOGRepoGUI)
+																;
+																; Compare with original
+																; Perhaps the best way to compare is to do a _ReplaceStringInFile($titfile, $segment) and see
+																; what is left (fine tune to determine what little leftover characters might need removing).
+																$titfile = $compfold & "\" & $title & ".txt"
+																; If any difference add to the $changed file.
+																; If no difference delete the $titfile.
+																;$changed = @ScriptDir & "\Changed.txt"
+																;
+															EndIf
+														EndIf
+													EndIf
+													If $id = $block Then ExitLoop
+													If $a = $array[0] Then
+														$cleanup = 1
+														ExitLoop
+													EndIf
+												EndIf
+											Next
+											If $loop = $blocks Then
+												ExitLoop
+											Else
+												$loop = $loop + 1
+												$start = $start + $block
+											EndIf
+										WEnd
+									Else
+										MsgBox(262192, "Read Error", "Could not get titles!", 0, $UpdateGUI)
+									EndIf
+									GUISwitch($GOGRepoGUI)
+									GUICtrlSetData($Label_cover, "Cleanup = " & $cleaned)
+									GUISwitch($UpdateGUI)
+									Sleep(1500)
+									_FileWriteLog($logfle, "Part 1 of Stage 2 completed.")
+								Else
+									If $err = 2 Then
+										$lines = _FileCountLines($stagefile)
+										If $lines = 0 Then
+											$cleanup = 1
+										Else
+											$err = 5
+										EndIf
+									EndIf
+									If $err <> 2 Then MsgBox(262192, "Read Error", "Could not get titles!", 0, $UpdateGUI)
+								EndIf
+								If $cleanup = 1 Then
+									$stage = ""
+									IniWrite($inifle, "Updating", "stage", $stage)
+									IniWrite($inifle, "Updating", "loops", "")
+									IniWrite($inifle, "Updating", "games", "")
+									MsgBox(262208, "Result", "'Update In Stages' appears to be complete!", 0, $UpdateGUI)
+								EndIf
+								$blocks = IniRead($inifle, "Updating", "blocks", "")
+								$block = IniRead($inifle, "Updating", "block", "")
+							Else
+								MsgBox(262192, "List Error", "Could not find any titles!", 0, $UpdateGUI)
+							EndIf
+						Else
+							MsgBox(262192, "Read Error", "Could not get titles!", 0, $UpdateGUI)
+						EndIf
+					Else
+						MsgBox(262192, "Update Error", "Could not find the manifest file!", 0, $UpdateGUI)
+					EndIf
 				EndIf
 				GUICtrlSetState($Button_continue, $GUI_ENABLE)
 				GuiSetState(@SW_RESTORE, $GOGRepoGUI)
@@ -4240,9 +4637,13 @@ EndFunc ;=> UpdateGUI
 Func VerifyGUI()
 	Local $Button_close, $Button_verify, $Checkbox_alone, $Checkbox_delete, $Checkbox_every, $Checkbox_extras, $Checkbox_galaxy
 	Local $Checkbox_games, $Checkbox_md5, $Checkbox_shared, $Checkbox_size, $Checkbox_verylog, $Checkbox_zip, $Group_files
-	Local $params
+	Local $above, $high, $params, $side, $wide
 	;
-	$VerifyGUI = GuiCreate("Verify Game Files", 230, 200, Default, Default, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
+	$wide = 230
+	$high = 200
+	$side = IniRead($inifle, "Verify Window", "left", $left)
+	$above = IniRead($inifle, "Verify Window", "top", $top)
+	$VerifyGUI = GuiCreate("Verify Game Files", $wide, $high, $side, $above, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
 															+ $WS_VISIBLE + $WS_CLIPSIBLINGS, $WS_EX_TOPMOST, $window)
 	GUISetBkColor(0xD7D700, $VerifyGUI)
 	;
@@ -4339,6 +4740,22 @@ Func VerifyGUI()
 		Select
 		Case $msg = $GUI_EVENT_CLOSE Or $msg = $Button_close
 			; Exit / Close / Quit the window
+			$winpos = WinGetPos($VerifyGUI, "")
+			$side = $winpos[0]
+			If $side < 0 Then
+				$side = 2
+			ElseIf $side > @DesktopWidth - $wide Then
+				$side = @DesktopWidth - $wide - 25
+			EndIf
+			IniWrite($inifle, "Verify Window", "left", $side)
+			$above = $winpos[1]
+			If $above < 0 Then
+				$above = 2
+			ElseIf $above > @DesktopHeight - $high Then
+				$above = @DesktopHeight - $high - 30
+			EndIf
+			IniWrite($inifle, "Verify Window", "top", $above)
+			;
 			GUIDelete($VerifyGUI)
 			ExitLoop
 		Case $msg = $Button_verify
@@ -4496,13 +4913,17 @@ Func AddGameToDownloadList()
 	If $script = "default" Then
 		IniWrite($downlist, $title, "files", $files)
 	Else
+		$OS = GUICtrlRead($Combo_OS)
+		$OS = StringReplace($OS, "+", "")
+		$OS = StringStripWS($OS, 7)
+		IniWrite($downlist, $title, "OS", $OS)
 		IniWrite($downlist, $title, "standalone", $standalone)
 		IniWrite($downlist, $title, "galaxy", $galaxy)
 		IniWrite($downlist, $title, "shared", $shared)
 		IniWrite($downlist, $title, "log", $downlog)
-		IniWrite($downlist, $title, "language", $skiplang)
+		IniWrite($downlist, $title, "skiplang", $skiplang)
 		IniWrite($downlist, $title, "languages", $langskip)
-		IniWrite($downlist, $title, "OS", $skipos)
+		IniWrite($downlist, $title, "skipOS", $skipos)
 		$val = StringReplace($osskip, "+", "")
 		$val = StringStripWS($val, 7)
 		IniWrite($downlist, $title, "OSes", $val)
@@ -4804,6 +5225,11 @@ Func CheckOnGameDownload()
 										IniWrite($inifle, "Current Download", "files", $val)
 										If $val = 1 Then $params = StringReplace($params, " -skipgames", "")
 									Else
+										$OS = IniRead($downlist, $title, "OS", "")
+										IniWrite($inifle, "Current Download", "OS", $OS)
+										$lang = IniRead($downlist, $title, "language", "")
+										IniWrite($inifle, "Current Download", "language", $lang)
+										$params = " -os " & $OS & " -lang " & $lang & " -skipextras -skipgalaxy -skipstandalone -skipshared -nolog"
 										$val = IniRead($downlist, $title, "standalone", "")
 										IniWrite($inifle, "Current Download", "standalone", $val)
 										If $val = 1 Then $params = StringReplace($params, " -skipstandalone", "")
@@ -4817,18 +5243,18 @@ Func CheckOnGameDownload()
 										IniWrite($inifle, "Current Download", "log", $val)
 										If $val = 1 Then $params = StringReplace($params, " -nolog", "")
 										;
-										$val = IniRead($downlist, $title, "language", "")
-										IniWrite($inifle, "Current Download", "language", $val)
+										$val = IniRead($downlist, $title, "skiplang", "")
+										IniWrite($inifle, "Current Download", "skiplang", $val)
 										If $val = 1 Then
 											$val = IniRead($downlist, $title, "languages", "")
 											If $val <> "" Then $params = $params & " -skiplang " & $val
 										Else
 											$val = ""
 										EndIf
-										IniWrite($inifle, "Current Download", "languages", $val)
+										IniWrite($inifle, "Current Download", "langskip", $val)
 										;
-										$val = IniRead($downlist, $title, "OS", "")
-										IniWrite($inifle, "Current Download", "OS", $val)
+										$val = IniRead($downlist, $title, "skipOS", "")
+										IniWrite($inifle, "Current Download", "skipOS", $val)
 										If $val = 1 Then
 											$val = IniRead($downlist, $title, "OSes", "")
 											If $val <> "" Then $params = $params & " -skipos " & $val
