@@ -1221,7 +1221,7 @@ Func MainGUI()
 															EndIf
 														EndIf
 														If $extras = 1 Then $params = StringReplace($params, " -skipextras", "")
-														MsgBox(262192, "Parameters", $params, 0, $GOGRepoGUI)
+														;MsgBox(262192, "Parameters", $params, 0, $GOGRepoGUI)
 														$pid = Run(@ComSpec & ' /c gogrepo.py download' & $params & ' -id ' & $title & ' "' & $gamefold & '"', @ScriptDir, $flag)
 													EndIf
 													AdlibRegister("CheckOnGameDownload", 3000)
@@ -2835,6 +2835,7 @@ Func QueueGUI()
 				"Do you want to continue?", $wait, $QueueGUI)
 			If $ans = 1 Then
 				FileDelete($downlist)
+				If $started = 4 Then IniDelete($inifle, "Current Download")
 				$tot = 0
 				$total = 0
 				ClearDisableEnableRestore()
@@ -5697,7 +5698,7 @@ Func DisableQueueButtons()
 	If $started = 4 Then GUICtrlSetState($Button_stop, $GUI_DISABLE)
 	GUICtrlSetState($Button_start, $GUI_DISABLE)
 	GUICtrlSetState($Button_add, $GUI_DISABLE)
-	GUICtrlSetState($Button_removall, $GUI_DISABLE)
+	If $tot = 0 And $total = 0 Then GUICtrlSetState($Button_removall, $GUI_DISABLE)
 	GUICtrlSetState($Button_remove, $GUI_DISABLE)
 EndFunc ;=> DisableQueueButtons
 
