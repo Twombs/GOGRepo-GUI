@@ -3404,12 +3404,13 @@ EndFunc ;=> SetupGUI
 
 Func UpdateGUI()
 	Local $Button_begin, $Button_close, $Button_continue, $Button_inf, $Button_upnow, $Checkbox_clean, $Checkbox_every
-	Local $Checkbox_new, $Checkbox_resume, $Checkbox_stages, $Checkbox_tag, $Checkbox_uplog, $Combo_games, $Combo_install
-	Local $Input_blocks, $Input_language, $Input_OSes, $Label_blocks, $Label_games, $Label_install, $Label_lang, $Updown_blocks
+	Local $Checkbox_new, $Checkbox_replace, $Checkbox_resume, $Checkbox_stages, $Checkbox_tag, $Checkbox_uplog, $Combo_games
+	Local $Combo_install, $Input_blocks, $Input_language, $Input_OSes, $Label_blocks, $Label_games, $Label_install, $Label_lang
+	Local $Updown_blocks
 	;
 	Local $above, $block, $blocks, $changed, $clean, $cleaned, $cleanup, $compfold, $entry, $err, $high, $id, $ids, $installer
-	Local $installers, $loop, $newgames, $out, $params, $results, $resume, $resumeman, $ret, $side, $skiphid, $stage, $stagefile
-	Local $stages, $start, $tagged, $titfile, $uplog, $wide
+	Local $installers, $loop, $newgames, $out, $params, $replace, $results, $resume, $resumeman, $ret, $side, $skiphid, $stage
+	Local $stagefile, $stages, $start, $tagged, $titfile, $uplog, $wide
 	;
 	$wide = 250
 	$high = 310
@@ -3486,9 +3487,12 @@ Func UpdateGUI()
 	$Combo_games = GUICtrlCreateCombo("", 190, 206, 38, 21)
 	GUICtrlSetTip($Combo_games, "Games in a block!")
 	;
-	$Button_upnow = GuiCtrlCreateButton("UPDATE NOW", 10, 250, 120, 50)
+	$Button_upnow = GuiCtrlCreateButton("UPDATE NOW", 10, 250, 120, 32)
 	GUICtrlSetFont($Button_upnow, 9, 600)
 	GUICtrlSetTip($Button_upnow, "Update the Manifest for specified!")
+	$Checkbox_replace = GUICtrlCreateCheckbox("Replace && Compare", 20, 284, 100, 18)
+	GUICtrlSetFont($Checkbox_replace, 7, 400, 0, "Small Fonts")
+	GUICtrlSetTip($Checkbox_replace, "Replace and Compare selected title in manifest!")
 	;
 	$Button_inf = GuiCtrlCreateButton("Info", 140, 250, 45, 50, $BS_ICON)
 	GUICtrlSetTip($Button_inf, "Update Information!")
@@ -3543,6 +3547,7 @@ Func UpdateGUI()
 	EndIf
 	;
 	If $all = 1 Then
+		GUICtrlSetState($Checkbox_replace, $GUI_DISABLE)
 		If $script = "default" Then
 			$skiphid = 4
 			GUICtrlSetState($Checkbox_skip, $GUI_DISABLE)
@@ -3609,6 +3614,7 @@ Func UpdateGUI()
 		GUICtrlSetState($Checkbox_new, $GUI_DISABLE)
 		GUICtrlSetState($Checkbox_tag, $GUI_DISABLE)
 		GUICtrlSetState($Button_upnow, $GUI_DISABLE)
+		GUICtrlSetState($Checkbox_replace, $GUI_DISABLE)
 	Else
 		GUICtrlSetState($Button_begin, $GUI_DISABLE)
 		GUICtrlSetState($Button_continue, $GUI_DISABLE)
@@ -3619,10 +3625,12 @@ Func UpdateGUI()
 	EndIf
 	;
 	$changed = @ScriptDir & "\Changed.txt"
+	If Not FileExists($changed) Then _FileCreate($changed)
 	$compfold = @ScriptDir & "\Comparisons"
 	If Not FileExists($compfold) Then DirCreate($compfold)
 	;
 	$clean = 4
+	$replace = 4
 	$updating = ""
 	;
 	$window = $UpdateGUI
@@ -3682,7 +3690,128 @@ Func UpdateGUI()
 					If $title <> "" Then
 						$updating = 1
 						_FileWriteLog($logfle, "Updated manifest for - " & $title & ".")
+						If $replace = 1 Then
+							_FileWriteLog($logfle, "Updating using replace & compare.")
+							GUISwitch($GOGRepoGUI)
+							GUICtrlSetImage($Pic_cover, $blackjpg)
+							GUICtrlSetFont($Label_cover, 8, 600)
+							GUICtrlSetData($Label_cover, "Replacing!")
+							GUISwitch($UpdateGUI)
+							$res = 0
+							$open = FileOpen($manifest, 0)
+							$read = FileRead($open)
+							FileClose($open)
+							$titfile = $compfold & "\" & $title & ".txt"
+							_FileCreate($titfile)
+							; Read section of title in manifest.
+							$segment = StringSplit($read, "'title': '" & $title & "'}", 1)
+							If $segment[0] = 2 Then
+								$segment = $segment[1]
+								$segment = StringSplit($segment, "{'bg_url':", 1)
+								If $segment[0] > 1 Then
+									$segment = "{'bg_url':" & $segment[$segment[0]]
+									$segment = $segment & "'title': '" & $title & "'},"
+									;MsgBox(262192, "Game Segment", $games & @LF & $segment, $wait, $GOGRepoGUI)
+									; Delete section from manifest.
+									; Attempt to remove as a middle entry.
+									$res = _ReplaceStringInFile($manifest, " " & $segment & @LF, "")
+									If @error = 0 Then
+										If $res = 0 Then
+											; Failed, so attempt to remove as a last entry.
+											$segment = StringTrimRight($segment, 1)
+											$res = _ReplaceStringInFile($manifest, " " & $segment, "")
+											If @error = 0 Then
+												If $res = 0 Then
+													; Failed, so attempt to remove as a first entry.
+													$segment = $segment & ","
+													$res = _ReplaceStringInFile($manifest, $segment & @LF, "")
+													If @error = 0 Then
+														If $res = 0 Then
+															; Failed, so attempt to remove the only entry.
+															$segment = StringTrimRight($segment, 1)
+															$res = _ReplaceStringInFile($manifest, $segment, "")
+															If $res > 0 Then
+																; Success
+																; Save to file for later comparison.
+																FileWrite($titfile, $segment)
+															EndIf
+														Else
+															; Success
+															_ReplaceStringInFile($manifest, "[ {", "[{")
+															; Save to file for later comparison.
+															FileWrite($titfile, $segment)
+														EndIf
+													EndIf
+												Else
+													; Success
+													_ReplaceStringInFile($manifest, "," & @LF & "]", "]")
+													; Save to file for later comparison.
+													FileWrite($titfile, $segment)
+												EndIf
+											EndIf
+										Else
+											; Success
+											; Save to file for later comparison.
+											FileWrite($titfile, $segment)
+										EndIf
+									Else
+										MsgBox(262192, "Removal Error (1)", "Could not remove entry from manifest!", 0, $GOGRepoGUI)
+									EndIf
+								Else
+									MsgBox(262192, "Removal Error", "Could not divide on url entry!", 0, $GOGRepoGUI)
+								EndIf
+							Else
+								MsgBox(262192, "Removal Error", "Could not divide on title entry!", 0, $GOGRepoGUI)
+							EndIf
+							GUISwitch($GOGRepoGUI)
+							GUICtrlSetData($Label_cover, "Updating!")
+							GUISwitch($UpdateGUI)
+						EndIf
 						$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -id ' & $title & ' &&pause', @ScriptDir)
+						If $replace = 1 Then
+							If $res > 0 Then
+								GUISwitch($GOGRepoGUI)
+								GUICtrlSetData($Label_cover, "Comparing!")
+								GUISwitch($UpdateGUI)
+								$open = FileOpen($manifest, 0)
+								$read = FileRead($open)
+								FileClose($open)
+								$segment = StringSplit($read, "'title': '" & $title & "'}", 1)
+								If $segment[0] = 2 Then
+									$segment = $segment[1]
+									$segment = StringSplit($segment, "{'bg_url':", 1)
+									If $segment[0] > 1 Then
+										$segment = "{'bg_url':" & $segment[$segment[0]]
+										$segment = $segment & "'title': '" & $title & "'}"
+										;MsgBox(262192, "Game Segment", $segment, $wait, $GOGRepoGUI)
+										; Compare with original
+										$res = _ReplaceStringInFile($titfile, $segment, "")
+										If $res > 0 Then
+											; No differences delete the $titfile.
+											FileDelete($titfile)
+											GUISwitch($GOGRepoGUI)
+											GUICtrlSetData($Label_cover, "Success, no changes!")
+											GUISwitch($UpdateGUI)
+										Else
+											; Differences found, add to the $changed file.
+											FileWriteLine($changed, $title)
+											GUISwitch($GOGRepoGUI)
+											GUICtrlSetData($Label_cover, "Changes detected!")
+											GUISwitch($UpdateGUI)
+											$titfile = $compfold & "\" & $title & "_new.txt"
+											FileWrite($titfile, $segment)
+										EndIf
+										Sleep(1500)
+									EndIf
+								EndIf
+							Else
+								MsgBox(262192, "Removal Error (2)", "Could not remove entry from manifest!", 0, $GOGRepoGUI)
+							EndIf
+							GUISwitch($GOGRepoGUI)
+							GUICtrlSetData($Label_cover, "")
+							GUICtrlSetFont($Label_cover, 8.5, 400, 0, "")
+							GUISwitch($UpdateGUI)
+						EndIf
 						_FileWriteLog($logfle, "Updated finished.")
 					Else
 						MsgBox(262192, "Game Error", "Title is not selected!", $wait, $UpdateGUI)
@@ -3715,7 +3844,10 @@ Func UpdateGUI()
 				"can check for and remove missed entries on the Stages" & @LF & _
 				"list, that have already been added to the manifest. This" & @LF & _
 				"might be due to a manual cancellation, crash, etc. The" & @LF & _
-				"program does automatically attempt to do this as well.", 0, $UpdateGUI)
+				"program does automatically attempt to do this as well." & @LF & @LF & _
+				"If you need or desire to clear the setting for 'Update In" & @LF & _
+				"Stages', hold down CTRL while unchecking 'Stages'. It" & @LF & _
+				"will however mean CONTINUE is no longer available.", 0, $UpdateGUI)
 		Case $msg = $Button_continue
 			; Continue Updating in Stages
 			$cleaned = 0
@@ -4355,10 +4487,12 @@ Func UpdateGUI()
 																; Save to file for later comparison.
 																FileWrite($titfile, $segment)
 															EndIf
-															If $res = 1 And $games <> "" Then
+															If $res > 0 And $games <> "" Then
 																;
 																; WOULD BE BETTER maybe to have just a count here and relocate the following code so that number
 																; updating happens after all titles in all blocks (this session) have been processed.
+																;
+																; ACTUALLY - If removing and restoring, then maybe just leave the game numbers alone.
 																;
 																; Update number line for games in manifest.
 																$number = StringSplit($games, " ", 1)
@@ -4372,16 +4506,16 @@ Func UpdateGUI()
 																	EndIf
 																EndIf
 															Else
-																MsgBox(262192, "Removal Error (2)", "Could not remove entry from manifest!", $wait, $GOGRepoGUI)
+																MsgBox(262192, "Removal Error (2)", "Could not remove entry from manifest!", 0, $GOGRepoGUI)
 															EndIf
 														Else
-															MsgBox(262192, "Removal Error (1)", "Could not remove entry from manifest!", $wait, $GOGRepoGUI)
+															MsgBox(262192, "Removal Error (1)", "Could not remove entry from manifest!", 0, $GOGRepoGUI)
 														EndIf
 													Else
-														MsgBox(262192, "Removal Error", "Could not divide on url entry!", $wait, $GOGRepoGUI)
+														MsgBox(262192, "Removal Error", "Could not divide on url entry!", 0, $GOGRepoGUI)
 													EndIf
 												Else
-													MsgBox(262192, "Removal Error", "Could not divide on title entry!", $wait, $GOGRepoGUI)
+													MsgBox(262192, "Removal Error", "Could not divide on title entry!", 0, $GOGRepoGUI)
 												EndIf
 												;
 												$id = $id + 1
@@ -4461,7 +4595,7 @@ Func UpdateGUI()
 																;MsgBox(262192, "Game Segment", $games & @LF & $segment, $wait, $GOGRepoGUI)
 																;
 																; Compare with original
-																; Perhaps the best way to compare is to do a _ReplaceStringInFile($titfile, $segment) and see
+																; Perhaps the best way to compare is to do a _ReplaceStringInFile($titfile, $segment, "") and see
 																; what is left (fine tune to determine what little leftover characters might need removing).
 																$titfile = $compfold & "\" & $title & ".txt"
 																; If any difference add to the $changed file.
@@ -4555,6 +4689,7 @@ Func UpdateGUI()
 				GUICtrlSetState($Checkbox_new, $GUI_DISABLE)
 				GUICtrlSetState($Checkbox_tag, $GUI_DISABLE)
 				GUICtrlSetState($Button_upnow, $GUI_DISABLE)
+				GUICtrlSetState($Checkbox_replace, $GUI_DISABLE)
 			Else
 				$stages = 4
 				GUICtrlSetState($Button_begin, $GUI_DISABLE)
@@ -4568,6 +4703,14 @@ Func UpdateGUI()
 				GUICtrlSetState($Checkbox_new, $GUI_ENABLE)
 				GUICtrlSetState($Checkbox_tag, $GUI_ENABLE)
 				GUICtrlSetState($Button_upnow, $GUI_ENABLE)
+				If $all = 4 Then GUICtrlSetState($Checkbox_replace, $GUI_ENABLE)
+				If _IsPressed("11") Then
+					$stage = ""
+					IniWrite($inifle, "Updating", "stage", $stage)
+					IniWrite($inifle, "Updating", "loops", "")
+					IniWrite($inifle, "Updating", "games", "")
+					MsgBox(262208, "Result", "'Update In Stages' indicator cleared!", 3, $UpdateGUI)
+				EndIf
 			EndIf
 		Case $msg = $Checkbox_skip
 			; Skip updating the manifest for hidden games
@@ -4587,6 +4730,13 @@ Func UpdateGUI()
 				$resume = 2
 			EndIf
 			IniWrite($inifle, "Updating", "resume", $resume)
+		Case $msg = $Checkbox_replace
+			; Replace and Compare selected title in manifest
+			If GUICtrlRead($Checkbox_replace) = $GUI_CHECKED Then
+				$replace = 1
+			Else
+				$replace = 4
+			EndIf
 		Case $msg = $Checkbox_new
 			; Add new games only to the manifest
 			If GUICtrlRead($Checkbox_new) = $GUI_CHECKED Then
