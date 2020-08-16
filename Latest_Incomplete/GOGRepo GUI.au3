@@ -3419,7 +3419,7 @@ Func UpdateGUI()
 	;
 	Local $above, $block, $blocks, $changed, $clean, $cleaned, $cleanup, $compfold, $entry, $err, $high, $id, $ids, $installer
 	Local $installers, $loop, $newgames, $out, $params, $replace, $results, $resume, $resumeman, $ret, $side, $skiphid, $stage
-	Local $stagefile, $stages, $start, $tagged, $titfile, $uplog, $wide
+	Local $stagefile, $stages, $start, $sum, $tagged, $titfile, $uplog, $wide
 	;
 	$wide = 250
 	$high = 310
@@ -3584,7 +3584,7 @@ Func UpdateGUI()
 				$block = 20
 				IniWrite($inifle, "Updating", "block", $block)
 			EndIf
-			GUICtrlSetData($Combo_games, "1|5|10|15|20|25|30", $block)
+			GUICtrlSetData($Combo_games, "1|2|5|10|15|20|25|30", $block)
 			;
 			$resumeman = @ScriptDir & "\gog-resume-manifest.dat"
 			$stagefile = @ScriptDir & "\Stagelist.txt"
@@ -4378,7 +4378,7 @@ Func UpdateGUI()
 				ElseIf $stage = 2 Then
 					If FileExists($manifest) Then
 						;GUISwitch($GOGRepoGUI)
-						GUICtrlSetData($List_games, "")
+						;GUICtrlSetData($List_games, "")
 						GUICtrlSetData($Input_name, "")
 						GUICtrlSetData($Input_title, "")
 						GUICtrlSetData($Input_OS, "")
@@ -4386,6 +4386,7 @@ Func UpdateGUI()
 						;GUISwitch($UpdateGUI)
 						If FileExists($resumeman) Then FileDelete($resumeman)
 						_FileCreate($stagefile)
+						$sum = $blocks * $block
 						; Perhaps wipe (clear) the $compfold folder.
 						$res = _FileReadToArray($titlist, $array, 1)
 						If $res = 1 Then
@@ -4453,6 +4454,8 @@ Func UpdateGUI()
 												$titfile = $compfold & "\" & $title & ".txt"
 												_FileCreate($titfile)
 												$res = 0
+												$id = $id + 1
+												GUICtrlSetData($Label_cover, "Checking To Remove = " & $id)
 												; Read section of title in manifest.
 												$segment = StringSplit($read, "'title': '" & $title & "'}", 1)
 												If $segment[0] = 2 Then
@@ -4514,6 +4517,8 @@ Func UpdateGUI()
 													MsgBox(262192, "Removal Error", "Could not divide on title entry!", 0, $UpdateGUI)
 												EndIf
 												If $res > 0 And $games <> "" Then
+													GUICtrlSetData($Label_cover, "Removed = " & $a & " of " & $sum)
+													Sleep(500)
 													; Update number line for games in manifest.
 													$number = StringSplit($games, " ", 1)
 													If $number[0] > 1 Then
@@ -4529,7 +4534,6 @@ Func UpdateGUI()
 													MsgBox(262192, "Removal Error (2)", "Could not remove entry from manifest!", 0, $UpdateGUI)
 												EndIf
 												;
-												$id = $id + 1
 												If $ids = "" Then
 													$ids = $title
 												Else
@@ -4542,6 +4546,8 @@ Func UpdateGUI()
 												EndIf
 											EndIf
 										Next
+										GUICtrlSetData($Label_cover, "Updating!")
+										Sleep(750)
 										$message = "Block " & $loop & " of " & $blocks & " = " & $id & " games"
 										;GUISwitch($GOGRepoGUI)
 										GUICtrlSetData($Label_cover, $message)
@@ -4564,7 +4570,7 @@ Func UpdateGUI()
 									;GUISwitch($GOGRepoGUI)
 									GUICtrlSetData($Label_cover, "Checking!")
 									;GUISwitch($UpdateGUI)
-									Sleep(1000)
+									Sleep(500)
 									; Remove any titles from list file that now exist in the manifest
 									_FileWriteLog($logfle, "Removing updated titles.")
 									$open = FileOpen($manifest, 0)
@@ -4580,8 +4586,9 @@ Func UpdateGUI()
 										While 1
 											;SplashTextOn("", "Checking!" & @LF & $loop & " of " & $blocks, 200, 120, Default, Default, 33)
 											;GUISwitch($GOGRepoGUI)
-											GUICtrlSetData($Label_cover, "Checking = " & $loop & " of " & $blocks)
+											GUICtrlSetData($Label_cover, "Checking = " & $loop & " of " & $blocks & " blocks")
 											;GUISwitch($UpdateGUI)
+											Sleep(500)
 											$ids = ""
 											$id = 0
 											For $a = $start To $array[0]
@@ -4595,6 +4602,9 @@ Func UpdateGUI()
 														If $res > 0 Then $cleaned = $cleaned + 1
 														;
 														; Read section of title in manifest, for comparison.
+														;GUICtrlSetData($Label_cover, "Comparing = " & $id)
+														GUICtrlSetData($Label_cover, "Comparing = " & $a & " of " & $sum)
+														Sleep(500)
 														$title = StringReplace($title, "title=", "")
 														$titfile = $compfold & "\" & $title & ".txt"
 														If FileExists($titfile) Then
@@ -4612,13 +4622,13 @@ Func UpdateGUI()
 																		; No differences delete the $titfile.
 																		FileDelete($titfile)
 																		;GUISwitch($GOGRepoGUI)
-																		GUICtrlSetData($Label_cover, "Success, no changes!")
+																		GUICtrlSetData($Label_cover, "No Changes (" & $a & ")")
 																		;GUISwitch($UpdateGUI)
 																	Else
 																		; Differences found, add to the $changed file.
 																		FileWriteLine($changed, $title)
 																		;GUISwitch($GOGRepoGUI)
-																		GUICtrlSetData($Label_cover, "Changes detected!")
+																		GUICtrlSetData($Label_cover, "Changes Detected (" & $a & ")")
 																		;GUISwitch($UpdateGUI)
 																		$titfile = $compfold & "\" & $title & "_new.txt"
 																		FileWrite($titfile, $segment)
