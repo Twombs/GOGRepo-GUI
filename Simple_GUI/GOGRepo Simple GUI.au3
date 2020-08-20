@@ -29,14 +29,15 @@
 
 _Singleton("gog-repo-simple-gui-timboli")
 
-Global $Button_exit, $Button_find, $Button_get, $Button_info, $Checkbox_exact, $Checkbox_update, $Group_drop, $Group_games
-Global $Group_status, $Input_file, $Input_name, $Input_title, $Label_drop, $Label_status, $Label_title, $List_games
+Global $Button_exit, $Button_find, $Button_get, $Button_info, $Button_log, $Checkbox_exact, $Checkbox_update, $Group_drop
+Global $Group_games, $Group_status, $Input_file, $Input_name, $Input_title, $Label_drop, $Label_status, $Label_title, $List_games
 ;
 Global $7zip, $a, $ans, $array, $atts, $boxcol, $cmdpid, $cookies, $entries, $entry, $file, $find, $foldrar, $foldzip
 Global $fsum, $fsumfld, $games, $gamesfle, $gogrepo, $handle, $height, $icoI, $icoS, $icoX, $ind, $inifle, $lang, $left
 Global $line, $logfle, $manifest, $match, $md5, $name, $names, $open, $OS, $OSget, $out, $pid, $repoGUI, $res, $resfle
 Global $results, $resumeman, $ret, $shell, $SimpleGUI, $size, $srcfld, $srcfle, $style, $target, $text, $textcol, $title
 Global $titlist, $top, $unrar, $update, $updated, $user, $val, $version, $w, $warning, $width, $winpos, $wins, $wintit
+;Global $innoextract
 ;
 $7zip = @ScriptDir & "\7-Zip\7za.exe"
 $cookies = @ScriptDir & "\gog-cookies.dat"
@@ -91,7 +92,7 @@ EndIf
 Exit
 
 Func MainGUI()
-	Local $date, $diff, $dir, $drv, $fext, $fnam
+	Local $date, $diff, $dir, $drv, $exe, $fext, $fnam, $o, $output, $rar, $sh, $zip
 	;
 	$width = 580
 	$height = 345
@@ -150,9 +151,14 @@ Func MainGUI()
 	GUICtrlSetColor($Label_status, $COLOR_WHITE)
 	GUICtrlSetFont($Label_status, 9, 600)
 	;
-	$Button_verify = GuiCtrlCreateButton("VERIFY DROPPED FILE", 390, 235, 180, 40)
-	GUICtrlSetFont($Button_verify, 8.5, 600)
+	;$Button_verify = GuiCtrlCreateButton("VERIFY DROPPED FILE", 390, 235, 180, 40)
+	;GUICtrlSetFont($Button_verify, 8.5, 600)
+	$Button_verify = GuiCtrlCreateButton("VERIFY DROPPED FILE", 390, 235, 150, 40)
+	GUICtrlSetFont($Button_verify, 7, 600, 0, "Small Fonts")
 	GUICtrlSetTip($Button_verify, "Verify the dropped game file!")
+	;
+	$Button_log = GuiCtrlCreateButton("Log", 545, 240, 25, 30, $BS_ICON)
+	GUICtrlSetTip($Button_log, "Log Record!")
 	;
 	$Checkbox_update = GUICtrlCreateCheckbox("Update", 393, 277, 57, 20)
 	GUICtrlSetTip($Checkbox_update, "Update selected game title detail!")
@@ -172,8 +178,10 @@ Func MainGUI()
 	$shell = @SystemDir & "\shell32.dll"
 	$icoI = -5
 	$icoS = -23
+	$icoT = -71
 	$icoX = -4
 	GUICtrlSetImage($Button_find, $shell, $icoS, 0)
+	GUICtrlSetImage($Button_log, $shell, $icoT, 0)
 	GUICtrlSetImage($Button_info, $user, $icoI, 1)
 	GUICtrlSetImage($Button_exit, $user, $icoX, 1)
 	;
@@ -205,6 +213,11 @@ Func MainGUI()
 			$lang = $val
 		EndIf
 		IniWrite($inifle, "Update Options", "language", $lang)
+	EndIf
+	;
+	If Not FileExists($cookies) Then
+		GUICtrlSetState($Button_get, $GUI_DISABLE)
+		GUICtrlSetState($Button_verify, $GUI_DISABLE)
 	EndIf
 
 	GuiSetState(@SW_SHOWNORMAL, $SimpleGUI)
@@ -276,9 +289,11 @@ Func MainGUI()
 					If $title = IniRead($gamesfle, $name, "title", "") Then
 						$srcfle = GUICtrlRead($Input_file)
 						If $srcfle <> "" Then
-							GUICtrlSetBkColor($Label_status, $COLOR_RED)
-							GUICtrlSetColor($Label_status, $COLOR_WHITE)
+							GUICtrlSetBkColor($Label_status, 0xFFCE9D)
+							GUICtrlSetColor($Label_status, $COLOR_BLUE)
 							GUICtrlSetFont($Label_status, 9, 600)
+							_FileWriteLog($logfle, "NAME = " & $name)
+							_FileWriteLog($logfle, "TITLE = " & $title)
 							$updated = IniRead($gamesfle, $name, "updated", "")
 							If $updated <> "" Then
 								$date = _NowCalc()
@@ -321,17 +336,28 @@ Func MainGUI()
 							_PathSplit($srcfle, $drv, $dir, $fnam, $fext)
 							$srcfld = StringTrimRight($drv & $dir, 1)
 							$file = $fnam & $fext
+							_FileWriteLog($logfle, "VERIFYING = " & $file)
 							GUICtrlSetData($Label_status, "Verifying File")
 							$res = _FileReadToArray($manifest, $array, 1)
 							If $res = 1 Then
+								$err = ""
+								$out = ""
+								$results = ""
+								;
+								$exe = ""
 								$md5 = ""
+								$rar = ""
+								$sh = ""
 								$size = ""
+								$zip = ""
 								For $a = 2 To $array[0]
 									$line = $array[$a]
 									If $line <> "" Then
 										If StringInStr($line, $file) > 0 Then
+											_FileWriteLog($logfle, "File found in manifest.")
 											$a = $a - 1
 											If $fext = ".exe" Or $fext = ".bin" Or $fext = ".sh" Then
+												GUICtrlSetData($Label_status, "Getting MD5")
 												$line = $array[$a]
 												If StringInStr($line, "'md5':") > 0 Then
 													$md5 = $line
@@ -340,7 +366,209 @@ Func MainGUI()
 													$md5 = StringSplit($md5, "'", 1)
 													$md5 = $md5[$md5[0]]
 												EndIf
+											ElseIf $fext = ".zip" Or $fext = ".7z" Then
+												If FileExists($7zip) Then
+													If $fext = ".zip" Then
+														GUICtrlSetData($Label_status, "Checking ZIP file")
+													ElseIf $fext = ".7z" Then
+														GUICtrlSetData($Label_status, "Checking 7Z file")
+													EndIf
+													FileChangeDir($foldzip)
+													$ret = Run('7za.exe t "' & $srcfle & '"', "", @SW_SHOW, $STDERR_MERGED)
+													;$pid = $ret
+													While 1
+														$out = StdoutRead($ret)
+														If @error Then
+															; Exit the loop if the process closes or StdoutRead returns an error.
+															; NOTE - If process closes without error, then two Exitloops should occur, without getting an error $val.
+															While 1
+																$out = StderrRead($ret)
+																If @error Then
+																	; Exit the loop if the process closes or StderrRead returns an error.
+																	ExitLoop
+																EndIf
+																;MsgBox($MB_SYSTEMMODAL, "Stderr Read:", $out)
+																$err = 1
+															WEnd
+															If $out <> "" Then $results &= $out
+															ExitLoop
+														Else
+															If $out <> "" Then
+																$output = StringSplit($out, @CR, 1)
+																For $o = 1 To $output[0]
+																	$out = $output[$o]
+																	$out = StringStripWS($out, 7)
+																	If $out <> "" Then
+																		$out = $out & @CRLF
+																		If StringInStr($out, "Everything is Ok") > 0 Then
+																			$zip = "Passed."
+																			;MsgBox($MB_SYSTEMMODAL, "Stderr Read:", $out)
+																		EndIf
+																		$results &= $out
+																	EndIf
+																Next
+															EndIf
+														EndIf
+													Wend
+													If $zip <> "Passed." Then
+														$zip = "Failed."
+													EndIf
+													If $fext = ".zip" Then
+														$zip = "ZIP " & $zip
+													ElseIf $fext = ".7z" Then
+														$zip = "7Z " & $zip
+													EndIf
+												Else
+													$zip = "7-Zip Missing."
+												EndIf
+											ElseIf $fext = ".rar" Then
+												If FileExists($unrar) Then
+													GUICtrlSetData($Label_status, "Checking RAR file")
+													FileChangeDir($foldrar)
+													$ret = Run('UnRAR.exe t "' & $srcfle & '"', "", @SW_SHOW, $STDERR_MERGED)
+													;$pid = $ret
+													While 1
+														$out = StdoutRead($ret)
+														If @error Then
+															; Exit the loop if the process closes or StdoutRead returns an error.
+															; NOTE - If process closes without error, then two Exitloops should occur, without getting an error $val.
+															While 1
+																$out = StderrRead($ret)
+																If @error Then
+																	; Exit the loop if the process closes or StderrRead returns an error.
+																	ExitLoop
+																EndIf
+																;MsgBox($MB_SYSTEMMODAL, "Stderr Read:", $out)
+																$err = 1
+															WEnd
+															If $out <> "" Then $results &= $out
+															ExitLoop
+														Else
+															If $out <> "" Then
+																$output = StringSplit($out, @CR, 1)
+																For $o = 1 To $output[0]
+																	$out = $output[$o]
+																	$out = StringStripWS($out, 7)
+																	If $out <> "" Then
+																		$out = $out & @CRLF
+																		If StringInStr($out, "All OK") > 0 Then
+																			$rar = "RAR Passed."
+																			;MsgBox($MB_SYSTEMMODAL, "Stderr Read:", $out)
+																		EndIf
+																		$results &= $out
+																	EndIf
+																Next
+															EndIf
+														EndIf
+													Wend
+													If $rar <> "RAR Passed." Then $rar = "RAR Failed."
+												Else
+													$rar = "UnRAR Missing."
+												EndIf
 											EndIf
+											If $md5 = "" Then
+												If $fext = ".exe" Or $fext = ".bin" Then
+													If FileExists($7zip) Then
+														If $fext = ".exe" Then
+															GUICtrlSetData($Label_status, "Checking EXE file")
+														ElseIf $fext = ".bin" Then
+															GUICtrlSetData($Label_status, "Checking BIN file")
+														EndIf
+														FileChangeDir($foldzip)
+														$ret = Run('7za.exe t -t# "' & $srcfle & '"', "", @SW_HIDE, $STDERR_MERGED)
+														;$pid = $ret
+														While 1
+															$out = StdoutRead($ret)
+															If @error Then
+																; Exit the loop if the process closes or StdoutRead returns an error.
+																; NOTE - If process closes without error, then two Exitloops should occur, without getting an error $val.
+																While 1
+																	$out = StderrRead($ret)
+																	If @error Then
+																		; Exit the loop if the process closes or StderrRead returns an error.
+																		ExitLoop
+																	EndIf
+																	;MsgBox($MB_SYSTEMMODAL, "Stderr Read:", $out)
+																	$err = 1
+																WEnd
+																If $out <> "" Then $results &= $out
+																ExitLoop
+															Else
+																If $out <> "" Then
+																	$output = StringSplit($out, @CR, 1)
+																	For $o = 1 To $output[0]
+																		$out = $output[$o]
+																		$out = StringStripWS($out, 7)
+																		If $out <> "" Then
+																			$out = $out & @CRLF
+																			If StringInStr($out, "Everything is Ok") > 0 Then
+																				$exe = "Passed."
+																				;MsgBox($MB_SYSTEMMODAL, "Stderr Read:", $out)
+																			EndIf
+																			$results &= $out
+																		EndIf
+																	Next
+																EndIf
+															EndIf
+														Wend
+														If $exe <> "Passed." Then
+															$exe = "Failed."
+														EndIf
+														If $fext = ".exe" Then
+															$exe = "EXE " & $exe
+														ElseIf $fext = ".bin" Then
+															$exe = "BIN " & $exe
+														EndIf
+													Else
+														$exe = "7-Zip Missing."
+													EndIf
+												ElseIf $fext = ".sh" Then
+													If FileExists($7zip) Then
+														GUICtrlSetData($Label_status, "Checking SH file")
+														FileChangeDir($foldzip)
+														$ret = Run('7za.exe t -tzip "' & $srcfle & '"', "", @SW_SHOW, $STDERR_MERGED)
+														;$pid = $ret
+														While 1
+															$out = StdoutRead($ret)
+															If @error Then
+																; Exit the loop if the process closes or StdoutRead returns an error.
+																; NOTE - If process closes without error, then two Exitloops should occur, without getting an error $val.
+																While 1
+																	$out = StderrRead($ret)
+																	If @error Then
+																		; Exit the loop if the process closes or StderrRead returns an error.
+																		ExitLoop
+																	EndIf
+																	;MsgBox($MB_SYSTEMMODAL, "Stderr Read:", $out)
+																	$err = 1
+																WEnd
+																If $out <> "" Then $results &= $out
+																ExitLoop
+															Else
+																If $out <> "" Then
+																	$output = StringSplit($out, @CR, 1)
+																	For $o = 1 To $output[0]
+																		$out = $output[$o]
+																		$out = StringStripWS($out, 7)
+																		If $out <> "" Then
+																			$out = $out & @CRLF
+																			If StringInStr($out, "Everything is Ok") > 0 Then
+																				$sh = "SH Passed."
+																				;MsgBox($MB_SYSTEMMODAL, "Stderr Read:", $out)
+																			EndIf
+																			$results &= $out
+																		EndIf
+																	Next
+																EndIf
+															EndIf
+														Wend
+														If $sh <> "SH Passed." Then $sh = "SH Failed."
+													Else
+														$sh = "7-Zip Missing."
+													EndIf
+												EndIf
+											EndIf
+											GUICtrlSetData($Label_status, "Getting Size")
 											$a = $a + 3
 											$line = $array[$a]
 											If StringInStr($line, "'size':") < 1 Then
@@ -370,6 +598,7 @@ Func MainGUI()
 								$match = ""
 								If $md5 <> "" Then
 									If FileExists($fsum) Then
+										GUICtrlSetData($Label_status, "Comparing MD5")
 										FileChangeDir(@ScriptDir & "\FSUM")
 										RunWait(@ComSpec & ' /c fsum.exe -jnc -md5 -d"' & $srcfld & '" ' & $file & ' >"'  & $resfle & '"')
 										$res = _FileReadToArray($resfle, $array, 1)
@@ -389,7 +618,23 @@ Func MainGUI()
 										$match = "FSUM Missing."
 									EndIf
 								Else
-									$match = "MD5 Missing."
+									If (($fext = ".exe" Or $fext = ".bin") And $exe = "") Or ($fext = ".sh" And $sh = "") Then
+										$match = "MD5 Missing."
+									ElseIf $fext = ".exe" Or $fext = ".bin" Or $fext = ".sh" Then
+										_FileWriteLog($logfle, "MD5 Missing.")
+									EndIf
+								EndIf
+								If $exe <> "" Then
+									$match = $exe
+								EndIf
+								If $rar <> "" Then
+									$match = $rar
+								EndIf
+								If $sh <> "" Then
+									$match = $sh
+								EndIf
+								If $zip <> "" Then
+									$match = $zip
 								EndIf
 								If $size <> "" Then
 									If FileGetSize($srcfle) = $size Then
@@ -401,8 +646,14 @@ Func MainGUI()
 									$match = " Size Missing."
 								EndIf
 								$match = StringStripWS($match, 1)
-								GUICtrlSetBkColor($Label_status, $COLOR_LIME)
-								GUICtrlSetColor($Label_status, $COLOR_BLACK)
+								_FileWriteLog($logfle, $match)
+								If StringInStr($match, "Failed") > 0 Or StringInStr($match, "Missing") > 0 Or StringInStr($match, "Error") > 0 Then
+									GUICtrlSetBkColor($Label_status, $COLOR_WHITE)
+									GUICtrlSetColor($Label_status, $COLOR_RED)
+								Else
+									GUICtrlSetBkColor($Label_status, $COLOR_LIME)
+									GUICtrlSetColor($Label_status, $COLOR_BLACK)
+								EndIf
 								GUICtrlSetFont($Label_status, 7, 600, 0, "Small Fonts")
 								GUICtrlSetData($Label_status, $match)
 							Else
@@ -423,9 +674,16 @@ Func MainGUI()
 			GuiSetState(@SW_DISABLE, $SimpleGUI)
 			SetupGUI()
 			GuiSetState(@SW_ENABLE, $SimpleGUI)
+			If FileExists($cookies) Then
+				GUICtrlSetState($Button_get, $GUI_ENABLE)
+				GUICtrlSetState($Button_verify, $GUI_ENABLE)
+			EndIf
+		Case $msg = $Button_log
+			; Log Record
+			If FileExists($logfle) Then ShellExecute($logfle)
 		Case $msg = $Button_info
 			; Program Information
-			MsgBox(262208, "Program Information", _
+			$ans = MsgBox(262209 + 256, "Program Information", _
 				"This program is a limited frontend GUI for 'gogrepo.py' (Python)" & @LF & _
 				"program that can get manifest detail from your GOG.com games" & @LF & _
 				"library, to verify the integrity of specified game files." & @LF & @LF & _
@@ -442,9 +700,26 @@ Func MainGUI()
 				"If using Kalanyr's forked version of gogrepo.py, then some other" & @LF & _
 				"Python libraries are required, and installed from SETUP window." & @LF & _
 				"The gogrepo.py script needs to be located in the same folder as" & @LF & _
-				"GOGRepo Simple GUI." & @LF & _
+				"GOGRepo Simple GUI. We call this the main or parent folder." & @LF & _
 				"The free program FSUM is required for MD5 checking, and also" & @LF & _
-				"needs to be located in the same folder, as an FSUM sub-folder.", 0, $SimpleGUI)
+				"needs to be located in the main folder, as an FSUM sub-folder." & @LF & _
+				"The free program 7-Zip is required for ZIP & 7Z checking, and" & @LF & _
+				"needs to be located in the main folder, as a 7-Zip sub-folder." & @LF & _
+				"7-Zip can also be used for EXE, BIN or SH files if MD5 is missing." & @LF & _
+				"The free program UnRAR is required for RAR checking, and also" & @LF & _
+				"needs to be located in the main folder, as an UnRAR sub-folder." & @LF & @LF & _
+				"Click OK to see more information.", 0, $SimpleGUI)
+			If $ans = 1 Then
+				MsgBox(262208, "Program Information (continued)", _
+					"DISCLAIMER - As always, you use my programs at your own" & @LF & _
+					"risk. That said, I strive to ensure they work safe. I also cannot" & @LF & _
+					"guarantee the results (or my read) of the 3rd party programs." & @LF & _
+					"This is Freeware that I have voluntarily given many hours to." & @LF & @LF & _
+					"BIG THANKS to those responsible for 'gogrepo.py' versions." & @LF & _
+					"(woolymethodman, Kalanyr, etc)" & @LF & @LF & _
+					"Praise & BIG thanks as always, to Jon & team for free AutoIt." & @LF & @LF & _
+					"© August 2020 - Created by Timboli (aka TheSaint). (" & $version & ")", 0, $SimpleGUI)
+			EndIf
 		Case $msg = $Button_get
 			; Get game title from GOG library
 			GUICtrlSetBkColor($Label_status, $COLOR_RED)
