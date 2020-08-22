@@ -34,6 +34,9 @@
 #include <File.au3>
 #include <Date.au3>
 #include <Array.au3>
+#include <ScreenCapture.au3>
+#include <GDIPlus.au3>
+#include <WinAPI.au3>
 
 _Singleton("gog-repo-gui-timboli")
 
@@ -102,6 +105,27 @@ If $warning = 1 Then
 EndIf
 
 If Not FileExists($titlist) Then _FileCreate($titlist)
+
+If Not FileExists($blackjpg) Then
+	Local $hBitmap, $hGraphic, $hImage
+	_GDIPlus_Startup()
+	$hBitmap = _ScreenCapture_Capture("", 0, 0, 100, 100, False)
+	$hImage = _GDIPlus_BitmapCreateFromHBITMAP($hBitmap)
+	$hGraphic = _GDIPlus_ImageGetGraphicsContext($hImage)
+	_GDIPlus_GraphicsClear($hGraphic, 0xFF000000)
+	_GDIPlus_ImageSaveToFile($hImage, $blackjpg)
+	_GDIPlus_GraphicsDispose($hGraphic)
+	_GDIPlus_ImageDispose($hImage)
+	_WinAPI_DeleteObject($hBitmap)
+	_GDIPlus_ShutDown()
+	If Not FileExists($blackjpg) Then
+		MsgBox(262192, "Program Error", "This program requires an image file named" _
+			& @LF & "'Black.jpg' for the default cover image file." _
+			& @LF & "It needs to be in the main program folder." _
+			& @LF & @LF & "This program will now exit.", 0)
+		Exit
+	EndIf
+EndIf
 
 $bargui = IniRead($inifle, "Floating Progress Bar GUI", "use", "")
 If FileExists($progbar) Then
