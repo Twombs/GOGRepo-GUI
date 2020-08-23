@@ -64,10 +64,10 @@ Global $height, $icoD, $icoF, $icoI, $icoS, $icoT, $icoX, $image, $imgfle, $ind,
 Global $last, $latest, $left, $line, $lines, $locations, $logfle, $manifest, $md5, $message, $minimize, $name, $num
 Global $open, $OS, $OSextras, $OSget, $osskip, $path, $percent, $pid, $progbar, $progress, $QueueGUI, $read, $repolog
 Global $res, $script, $segment, $SetupGUI, $shared, $shell, $shutdown, $SimpleGUI, $size, $sizecheck, $skiplang, $skipos
-Global $split, $standalone, $started, $state, $stop, $store, $style, $t, $text, $textdump, $threads, $title, $titles
-Global $titlist, $top, $tot, $total, $type, $update, $updated, $UpdateGUI, $updating, $user, $val, $validate, $validation
-Global $verify, $VerifyGUI, $verifying, $vers, $version, $veryalone, $veryextra, $verygalaxy, $verygames, $verylog
-Global $veryshare, $wait, $warning, $width, $window, $winpos, $xpos, $ypos, $zipcheck
+Global $split, $stagesfix, $standalone, $started, $state, $stop, $store, $style, $t, $text, $textdump, $threads, $title
+Global $titles, $titlist, $top, $tot, $total, $type, $update, $updated, $UpdateGUI, $updating, $user, $val, $validate
+Global $validation, $verify, $VerifyGUI, $verifying, $vers, $version, $veryalone, $veryextra, $verygalaxy, $verygames
+Global $verylog, $veryshare, $wait, $warning, $width, $window, $winpos, $xpos, $ypos, $zipcheck
 
 $addlist = @ScriptDir & "\Added.txt"
 $backups = @ScriptDir & "\Backups"
@@ -576,6 +576,59 @@ Func MainGUI()
 	If $auth = "eddie3" Or $auth <> "eddie3,kalynr" Then
 		;eddie3-0.3a
 		$script = "default"
+		;
+		$res = _FileReadToArray($gogrepo, $array)
+		If $res = 1 Then
+			$ind = _ArraySearch($array, "TITLES_FILENAME = r'gog-titles.dat'", 0)
+			;MsgBox(262192, "Line Search", $ind, 0, $GOGRepoGUI)
+			If $ind = -1 Then
+				$stagesfix = 4
+				$exist = "MANIFEST_FILENAME = r'gog-manifest.dat'"
+				$chunk = "MANIFEST_FILENAME = r'gog-manifest.dat'" & @CRLF & "TITLES_FILENAME = r'gog-titles.dat'"
+				$res = _ReplaceStringInFile($gogrepo, $exist, $chunk)
+				If $res = 1 Then
+					$exist = "    # fetch item details"
+					$chunk = "    # save item titles" & @CRLF & "    titlesdb = sorted(items, key=lambda item: item.title)" & @CRLF _
+						& "    save_titles(titlesdb)" & @CRLF & @CRLF & "    # fetch item details"
+					$res = _ReplaceStringInFile($gogrepo, $exist, $chunk)
+					If $res = 1 Then
+						$exist = "    gamesdb = load_manifest()"
+						$chunk = "    gamesdb = load_manifest()" & @CRLF & @CRLF & "    try:" & @CRLF & "        titlesdb = load_titles()" & @CRLF _
+							& "    except:" & @CRLF & "	    titlesdb = None"
+						$res = _ReplaceStringInFile($gogrepo, $exist, $chunk, 0, 0)
+						If $res = 1 Then
+							$exist = "def save_manifest(items):" & @CRLF & "    info('saving manifest...')" & @CRLF _
+								& "    with codecs.open(MANIFEST_FILENAME, 'w', 'utf-8') as w:" & @CRLF _
+								& "        print('# {} games'.format(len(items)), file=w)" & @CRLF _
+								& "        pprint.pprint(items, width=123, stream=w)"
+							$chunk = "def save_manifest(items):" & @CRLF & "    info('saving manifest...')" & @CRLF _
+								& "    with codecs.open(MANIFEST_FILENAME, 'w', 'utf-8') as w:" & @CRLF _
+								& "        print('# {} games'.format(len(items)), file=w)" & @CRLF _
+								& "        pprint.pprint(items, width=123, stream=w)" & @CRLF & @CRLF & @CRLF _
+								& "def load_titles(filepath=TITLES_FILENAME):" & @CRLF & "    info('loading local titles...')" & @CRLF _
+								& "    try:" & @CRLF & "        with codecs.open(TITLES_FILENAME, 'rU', 'utf-8') as r:" & @CRLF _
+								& "            ad = r.read().replace('{', 'AttrDict(**{').replace('}', '})')" & @CRLF & "        return eval(ad)" & @CRLF _
+								& "    except IOError:" & @CRLF & "        return []" & @CRLF & @CRLF & @CRLF _
+								& "def save_titles(items):" & @CRLF & "    info('saving titles...')" & @CRLF _
+								& "    with codecs.open(TITLES_FILENAME, 'w', 'utf-8') as w:" & @CRLF _
+								& "        print('# {} games'.format(len(items)), file=w)" & @CRLF _
+								& "        pprint.pprint(items, width=123, stream=w)" & @CRLF _
+								& "    info('saved titles')"
+							$res = _ReplaceStringInFile($gogrepo, $exist, $chunk)
+							If $res = 1 Then
+								$stagesfix = 1
+							EndIf
+						EndIf
+					EndIf
+				EndIf
+				IniWrite($inifle, "Stages Support", "fix", $stagesfix)
+			Else
+				$stagesfix = IniRead($inifle, "Stages Support", "fix", "")
+			EndIf
+		Else
+			$stagesfix = 4
+			IniWrite($inifle, "Stages Support", "fix", $stagesfix)
+		EndIf
 	ElseIf $auth = "eddie3,kalynr" Then
 		;eddie3,kalynr-k0.3a
 		$script = "fork"
@@ -3456,7 +3509,7 @@ Func UpdateGUI()
 	Local $Combo_install, $Input_blocks, $Input_language, $Input_OSes, $Label_blocks, $Label_games, $Label_install, $Label_lang
 	Local $Updown_blocks
 	;
-	Local $above, $block, $blocks, $changed, $clean, $cleaned, $cleanup, $compfold, $entry, $err, $high, $id, $ids, $installer
+	Local $above, $block, $blocks, $changed, $clean, $cleaned, $cleanup, $compfold, $entry, $err, $high, $i, $id, $ids, $installer
 	Local $installers, $loop, $newgames, $out, $params, $replace, $results, $resume, $resumeman, $ret, $side, $skiphid, $stage
 	Local $stagefile, $stages, $start, $sum, $tagged, $titfile, $uplog, $wide
 	;
@@ -3603,7 +3656,9 @@ Func UpdateGUI()
 		If $script = "default" Then
 			$skiphid = 4
 			GUICtrlSetState($Checkbox_skip, $GUI_DISABLE)
-			GUICtrlSetState($Checkbox_stages, $GUI_DISABLE)
+			If $stagesfix = 4 Then GUICtrlSetState($Checkbox_stages, $GUI_DISABLE)
+			;
+			$resumeman = @ScriptDir & "\gog-titles.dat"
 		Else
 			$skiphid = IniRead($inifle, "Hidden Games", "skip", "")
 			If $skiphid = "" Then
@@ -3612,22 +3667,22 @@ Func UpdateGUI()
 			EndIf
 			GUICtrlSetState($Checkbox_skip, $skiphid)
 			;
-			$blocks = IniRead($inifle, "Updating", "blocks", "")
-			If $blocks = "" Then
-				$blocks = 3
-				IniWrite($inifle, "Updating", "blocks", $blocks)
-			EndIf
-			GUICtrlSetData($Input_blocks, $blocks)
-			$block = IniRead($inifle, "Updating", "block", "")
-			If $block = "" Then
-				$block = 20
-				IniWrite($inifle, "Updating", "block", $block)
-			EndIf
-			GUICtrlSetData($Combo_games, "1|2|5|10|15|20|25|30", $block)
-			;
 			$resumeman = @ScriptDir & "\gog-resume-manifest.dat"
-			$stagefile = @ScriptDir & "\Stagelist.txt"
 		EndIf
+		$stagefile = @ScriptDir & "\Stagelist.txt"
+		;
+		$blocks = IniRead($inifle, "Updating", "blocks", "")
+		If $blocks = "" Then
+			$blocks = 3
+			IniWrite($inifle, "Updating", "blocks", $blocks)
+		EndIf
+		GUICtrlSetData($Input_blocks, $blocks)
+		$block = IniRead($inifle, "Updating", "block", "")
+		If $block = "" Then
+			$block = 20
+			IniWrite($inifle, "Updating", "block", $block)
+		EndIf
+		GUICtrlSetData($Combo_games, "1|2|5|10|15|20|25|30", $block)
 		;
 		$newgames = IniRead($inifle, "New Games Only", "add", "")
 		If $newgames = "" Then
@@ -3914,9 +3969,11 @@ Func UpdateGUI()
 				$updating = 1
 				If FileExists($manifest) Then
 					GUICtrlSetState($Button_continue, $GUI_DISABLE)
-					GUICtrlSetState($Checkbox_skip, $GUI_DISABLE)
-					GUICtrlSetState($Checkbox_uplog, $GUI_DISABLE)
-					GUICtrlSetState($Combo_install, $GUI_DISABLE)
+					If $script = "fork" Then
+						GUICtrlSetState($Checkbox_skip, $GUI_DISABLE)
+						GUICtrlSetState($Checkbox_uplog, $GUI_DISABLE)
+						GUICtrlSetState($Combo_install, $GUI_DISABLE)
+					EndIf
 					GUICtrlSetState($Checkbox_clean, $GUI_DISABLE)
 					GUICtrlSetState($Checkbox_stages, $GUI_DISABLE)
 					GUICtrlSetState($Updown_blocks, $GUI_DISABLE)
@@ -4006,9 +4063,13 @@ Func UpdateGUI()
 							$block = IniRead($inifle, "Updating", "block", "")
 							IniWrite($inifle, "Updating", "loops", $blocks)
 							IniWrite($inifle, "Updating", "games", $block)
-							$params = " -resumemode noresume -skiphidden -nolog -installers " & $installer
-							If $skiphid = 4 Then $params = StringReplace($params, " -skiphidden", "")
-							If $uplog = 1 Then $params = StringReplace($params, " -nolog", "")
+							If $script = "default" Then
+								$params = ""
+							Else
+								$params = " -resumemode noresume -skiphidden -nolog -installers " & $installer
+								If $skiphid = 4 Then $params = StringReplace($params, " -skiphidden", "")
+								If $uplog = 1 Then $params = StringReplace($params, " -nolog", "")
+							EndIf
 							$res = _FileReadToArray($stagefile, $array, 1)
 							$err = @error
 							If $res = 1 Then
@@ -4044,7 +4105,17 @@ Func UpdateGUI()
 									;GUISwitch($UpdateGUI)
 									_FileWriteLog($logfle, $ids)
 									If $ids <> "" Then
-										$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -ids ' & $ids, @ScriptDir)
+										If $script = "default" Then
+											$ids = StringSplit($ids, " ", 1)
+											For $i = 1 To $ids[0]
+												$title = $ids[$i]
+												If $title <> "" Then
+													$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -id ' & $title, @ScriptDir)
+												EndIf
+											Next
+										Else
+											$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -ids ' & $ids, @ScriptDir)
+										EndIf
 									Else
 										$cleanup = 1
 										ExitLoop
@@ -4144,9 +4215,11 @@ Func UpdateGUI()
 					GUISwitch($UpdateGUI)
 					;SplashOff()
 					GUICtrlSetState($Button_continue, $GUI_ENABLE)
-					GUICtrlSetState($Checkbox_skip, $GUI_ENABLE)
-					GUICtrlSetState($Checkbox_uplog, $GUI_ENABLE)
-					GUICtrlSetState($Combo_install, $GUI_ENABLE)
+					If $script = "fork" Then
+						GUICtrlSetState($Checkbox_skip, $GUI_ENABLE)
+						GUICtrlSetState($Checkbox_uplog, $GUI_ENABLE)
+						GUICtrlSetState($Combo_install, $GUI_ENABLE)
+					EndIf
 					GUICtrlSetState($Checkbox_clean, $GUI_ENABLE)
 					GUICtrlSetState($Checkbox_stages, $GUI_ENABLE)
 					GUICtrlSetState($Updown_blocks, $GUI_ENABLE)
@@ -4165,9 +4238,11 @@ Func UpdateGUI()
 				$updating = 1
 				If FileExists($manifest) Then
 					GUICtrlSetState($Button_continue, $GUI_DISABLE)
-					GUICtrlSetState($Checkbox_skip, $GUI_DISABLE)
-					GUICtrlSetState($Checkbox_uplog, $GUI_DISABLE)
-					GUICtrlSetState($Combo_install, $GUI_DISABLE)
+					If $script = "fork" Then
+						GUICtrlSetState($Checkbox_skip, $GUI_DISABLE)
+						GUICtrlSetState($Checkbox_uplog, $GUI_DISABLE)
+						GUICtrlSetState($Combo_install, $GUI_DISABLE)
+					EndIf
 					GUICtrlSetState($Checkbox_clean, $GUI_DISABLE)
 					GUICtrlSetState($Checkbox_stages, $GUI_DISABLE)
 					GUICtrlSetState($Updown_blocks, $GUI_DISABLE)
@@ -4284,9 +4359,13 @@ Func UpdateGUI()
 							If $res = 1 Then
 								_FileWriteLog($logfle, "Processing next block of games.")
 								$res = 0
-								$params = " -resumemode noresume -skiphidden -nolog -installers " & $installer
-								If $skiphid = 4 Then $params = StringReplace($params, " -skiphidden", "")
-								If $uplog = 1 Then $params = StringReplace($params, " -nolog", "")
+								If $script = "default" Then
+									$params = ""
+								Else
+									$params = " -resumemode noresume -skiphidden -nolog -installers " & $installer
+									If $skiphid = 4 Then $params = StringReplace($params, " -skiphidden", "")
+									If $uplog = 1 Then $params = StringReplace($params, " -nolog", "")
+								EndIf
 								$loop = 1
 								$start = 1
 								While 1
@@ -4397,7 +4476,17 @@ Func UpdateGUI()
 									GUICtrlSetData($Label_cover, $message)
 									_FileWriteLog($logfle, $ids)
 									If $ids <> "" Then
-										$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -ids ' & $ids, @ScriptDir)
+										If $script = "default" Then
+											$ids = StringSplit($ids, " ", 1)
+											For $i = 1 To $ids[0]
+												$title = $ids[$i]
+												If $title <> "" Then
+													$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -id ' & $title, @ScriptDir)
+												EndIf
+											Next
+										Else
+											$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -ids ' & $ids, @ScriptDir)
+										EndIf
 									Else
 										$cleanup = 1
 										ExitLoop
@@ -4520,9 +4609,11 @@ Func UpdateGUI()
 					GUICtrlSetFont($Label_cover, 8.5, 400, 0, "")
 					GUISwitch($UpdateGUI)
 					GUICtrlSetState($Button_continue, $GUI_ENABLE)
-					GUICtrlSetState($Checkbox_skip, $GUI_ENABLE)
-					GUICtrlSetState($Checkbox_uplog, $GUI_ENABLE)
-					GUICtrlSetState($Combo_install, $GUI_ENABLE)
+					If $script = "fork" Then
+						GUICtrlSetState($Checkbox_skip, $GUI_ENABLE)
+						GUICtrlSetState($Checkbox_uplog, $GUI_ENABLE)
+						GUICtrlSetState($Combo_install, $GUI_ENABLE)
+					EndIf
 					GUICtrlSetState($Checkbox_clean, $GUI_ENABLE)
 					GUICtrlSetState($Checkbox_stages, $GUI_ENABLE)
 					GUICtrlSetState($Updown_blocks, $GUI_ENABLE)
@@ -4560,9 +4651,11 @@ Func UpdateGUI()
 			If $ans <> 2 Then
 				GUICtrlSetState($Button_begin, $GUI_DISABLE)
 				GUICtrlSetState($Button_continue, $GUI_DISABLE)
-				GUICtrlSetState($Checkbox_skip, $GUI_DISABLE)
-				GUICtrlSetState($Checkbox_uplog, $GUI_DISABLE)
-				GUICtrlSetState($Combo_install, $GUI_DISABLE)
+				If $script = "fork" Then
+					GUICtrlSetState($Checkbox_skip, $GUI_DISABLE)
+					GUICtrlSetState($Checkbox_uplog, $GUI_DISABLE)
+					GUICtrlSetState($Combo_install, $GUI_DISABLE)
+				EndIf
 				GUICtrlSetState($Checkbox_clean, $GUI_DISABLE)
 				GUICtrlSetState($Checkbox_stages, $GUI_DISABLE)
 				GUICtrlSetState($Updown_blocks, $GUI_DISABLE)
@@ -4634,7 +4727,12 @@ Func UpdateGUI()
 								;_FileWriteLog($stagefile, $out)
 								$results &= @CRLF & $out
 								$results = StringStripWS($results, 7)
-								If StringInStr($results, "saved resume manifest") > 0 Then
+								If $script = "default" Then
+									$text = "saved titles"
+								Else
+									$text = "saved resume manifest"
+								EndIf
+								If StringInStr($results, $text) > 0 Then
 									$wintit = @SystemDir & "\cmd.exe"
 									$wins = WinList($wintit, "")
 									For $w = 1 To $wins[0][0]
@@ -4700,42 +4798,70 @@ Func UpdateGUI()
 						$err = @error
 						If $res = 1 Then
 							_FileWriteLog($logfle, "Adding first block of games.")
-							$params = " -resumemode noresume -skiphidden -nolog -installers " & $installer
-							If $skiphid = 4 Then $params = StringReplace($params, " -skiphidden", "")
-							If $uplog = 1 Then $params = StringReplace($params, " -nolog", "")
+							If $script = "default" Then
+								$params = ""
+							Else
+								$params = " -resumemode noresume -skiphidden -nolog -installers " & $installer
+								If $skiphid = 4 Then $params = StringReplace($params, " -skiphidden", "")
+								If $uplog = 1 Then $params = StringReplace($params, " -nolog", "")
+							EndIf
 							$loop = 1
 							$start = 1
 							While 1
 								;SplashTextOn("", "Updating!" & @LF & $loop & " of " & $blocks, 200, 120, Default, Default, 33)
 								$ids = ""
 								$id = 0
-								For $a = $start To $array[0]
-									$title = $array[$a]
-									$title = StringReplace($title, "title=", "")
-									If $title <> "" Then
-										$id = $id + 1
-										If $ids = "" Then
-											$ids = $title
-										Else
-											$ids = $ids & " " & $title
+								If $script = "default" Then
+									$message = "Block " & $loop & " of " & $blocks & " = " & $block & " games"
+									GUICtrlSetData($Label_cover, $message)
+									For $a = $start To $array[0]
+										$title = $array[$a]
+										$title = StringReplace($title, "title=", "")
+										If $title <> "" Then
+											$id = $id + 1
+											If $ids = "" Then
+												$ids = $title
+											Else
+												$ids = $ids & " " & $title
+											EndIf
+											$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -id ' & $title, @ScriptDir)
+											If $id = $block Then ExitLoop
+											If $a = $array[0] Then
+												$cleanup = 1
+												ExitLoop
+											EndIf
 										EndIf
-										If $id = $block Then ExitLoop
-										If $a = $array[0] Then
-											$cleanup = 1
-											ExitLoop
-										EndIf
-									EndIf
-								Next
-								$message = "Block " & $loop & " of " & $blocks & " = " & $id & " games"
-								;GUISwitch($GOGRepoGUI)
-								GUICtrlSetData($Label_cover, $message)
-								;GUISwitch($UpdateGUI)
-								_FileWriteLog($logfle, $ids)
-								If $ids <> "" Then
-									$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -ids ' & $ids, @ScriptDir)
+									Next
+									_FileWriteLog($logfle, $ids)
 								Else
-									$cleanup = 1
-									ExitLoop
+									For $a = $start To $array[0]
+										$title = $array[$a]
+										$title = StringReplace($title, "title=", "")
+										If $title <> "" Then
+											$id = $id + 1
+											If $ids = "" Then
+												$ids = $title
+											Else
+												$ids = $ids & " " & $title
+											EndIf
+											If $id = $block Then ExitLoop
+											If $a = $array[0] Then
+												$cleanup = 1
+												ExitLoop
+											EndIf
+										EndIf
+									Next
+									$message = "Block " & $loop & " of " & $blocks & " = " & $id & " games"
+									;GUISwitch($GOGRepoGUI)
+									GUICtrlSetData($Label_cover, $message)
+									;GUISwitch($UpdateGUI)
+									_FileWriteLog($logfle, $ids)
+									If $ids <> "" Then
+										$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -ids ' & $ids, @ScriptDir)
+									Else
+										$cleanup = 1
+										ExitLoop
+									EndIf
 								EndIf
 								If $loop = $blocks Then
 									ExitLoop
@@ -4887,9 +5013,13 @@ Func UpdateGUI()
 									$open = FileOpen($manifest, 0)
 									$read = FileRead($open)
 									FileClose($open)
-									$params = " -resumemode noresume -skiphidden -nolog -installers " & $installer
-									If $skiphid = 4 Then $params = StringReplace($params, " -skiphidden", "")
-									If $uplog = 1 Then $params = StringReplace($params, " -nolog", "")
+									If $script = "default" Then
+										$params = ""
+									Else
+										$params = " -resumemode noresume -skiphidden -nolog -installers " & $installer
+										If $skiphid = 4 Then $params = StringReplace($params, " -skiphidden", "")
+										If $uplog = 1 Then $params = StringReplace($params, " -nolog", "")
+									EndIf
 									$loop = 1
 									$start = 1
 									While 1
@@ -5002,7 +5132,17 @@ Func UpdateGUI()
 										;GUISwitch($UpdateGUI)
 										_FileWriteLog($logfle, $ids)
 										If $ids <> "" Then
-											$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -ids ' & $ids, @ScriptDir)
+											If $script = "default" Then
+												$ids = StringSplit($ids, " ", 1)
+												For $i = 1 To $ids[0]
+													$title = $ids[$i]
+													If $title <> "" Then
+														$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -id ' & $title, @ScriptDir)
+													EndIf
+												Next
+											Else
+												$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -ids ' & $ids, @ScriptDir)
+											EndIf
 										Else
 											$cleanup = 1
 											ExitLoop
@@ -5144,9 +5284,11 @@ Func UpdateGUI()
 				GUISwitch($UpdateGUI)
 				;SplashOff()
 				GUICtrlSetState($Button_continue, $GUI_ENABLE)
-				GUICtrlSetState($Checkbox_skip, $GUI_ENABLE)
-				GUICtrlSetState($Checkbox_uplog, $GUI_ENABLE)
-				GUICtrlSetState($Combo_install, $GUI_ENABLE)
+				If $script = "fork" Then
+					GUICtrlSetState($Checkbox_skip, $GUI_ENABLE)
+					GUICtrlSetState($Checkbox_uplog, $GUI_ENABLE)
+					GUICtrlSetState($Combo_install, $GUI_ENABLE)
+				EndIf
 				GUICtrlSetState($Checkbox_clean, $GUI_ENABLE)
 				GUICtrlSetState($Checkbox_stages, $GUI_ENABLE)
 				GUICtrlSetState($Updown_blocks, $GUI_ENABLE)
@@ -5176,7 +5318,7 @@ Func UpdateGUI()
 				GUICtrlSetState($Updown_blocks, $GUI_ENABLE)
 				GUICtrlSetState($Combo_games, $GUI_ENABLE)
 				;
-				GUICtrlSetState($Checkbox_resume, $GUI_DISABLE)
+				If $script = "fork" Then GUICtrlSetState($Checkbox_resume, $GUI_DISABLE)
 				GUICtrlSetState($Checkbox_new, $GUI_DISABLE)
 				GUICtrlSetState($Checkbox_tag, $GUI_DISABLE)
 				GUICtrlSetState($Button_upnow, $GUI_DISABLE)
@@ -5190,7 +5332,7 @@ Func UpdateGUI()
 				GUICtrlSetState($Updown_blocks, $GUI_DISABLE)
 				GUICtrlSetState($Combo_games, $GUI_DISABLE)
 				;
-				GUICtrlSetState($Checkbox_resume, $GUI_ENABLE)
+				If $script = "fork" Then GUICtrlSetState($Checkbox_resume, $GUI_ENABLE)
 				GUICtrlSetState($Checkbox_new, $GUI_ENABLE)
 				GUICtrlSetState($Checkbox_tag, $GUI_ENABLE)
 				GUICtrlSetState($Button_upnow, $GUI_ENABLE)
