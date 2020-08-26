@@ -3512,17 +3512,17 @@ Func SetupGUI()
 EndFunc ;=> SetupGUI
 
 Func UpdateGUI()
-	Local $Button_begin, $Button_changed, $Button_close, $Button_continue, $Button_inf, $Button_upnow, $Checkbox_clean, $Checkbox_every
-	Local $Checkbox_new, $Checkbox_replace, $Checkbox_resume, $Checkbox_stages, $Checkbox_tag, $Checkbox_uplog, $Combo_games
-	Local $Combo_install, $Input_blocks, $Input_language, $Input_OSes, $Label_blocks, $Label_games, $Label_install, $Label_lang
-	Local $Updown_blocks
+	Local $Button_backups, $Button_begin, $Button_changed, $Button_changes, $Button_close, $Button_continue, $Button_inf, $Button_program
+	Local $Button_upnow, $Checkbox_clean, $Checkbox_every, $Checkbox_new, $Checkbox_replace, $Checkbox_resume, $Checkbox_skip, $Checkbox_stages
+	Local $Checkbox_tag, $Checkbox_uplog, $Combo_games, $Combo_install, $Group_folders, $Group_stages, $Input_blocks, $Input_language, $Input_OSes
+	Local $Label_blocks, $Label_games, $Label_install, $Label_lang, $Label_OS, $Updown_blocks
 	;
 	Local $above, $block, $blocks, $changed, $clean, $cleaned, $cleanup, $compfold, $entry, $err, $high, $i, $id, $ids, $installer
 	Local $installers, $loop, $newgames, $out, $params, $replace, $results, $resume, $resumeman, $ret, $side, $skiphid, $stage
 	Local $stagefile, $stages, $start, $sum, $tagged, $titfile, $uplog, $wide
 	;
 	$wide = 250
-	$high = 310
+	$high = 360
 	$side = IniRead($inifle, "Update Window", "left", $left)
 	$above = IniRead($inifle, "Update Window", "top", $top)
 	$UpdateGUI = GuiCreate("Update The Manifest", $wide, $high, $side, $above, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
@@ -3568,51 +3568,62 @@ Func UpdateGUI()
 	$Checkbox_tag = GUICtrlCreateCheckbox("Use the Update Tag", 124, 121, 115, 20)
 	GUICtrlSetTip($Checkbox_tag, "Update games with Update Tag!")
 	;
-	$Group_stages = GUICtrlCreateGroup("Update ALL In Stages", 10, 147, 230, 90)
-	$Button_begin = GuiCtrlCreateButton("BEGIN", 20, 167, 77, 32)
+	$Group_stages = GUICtrlCreateGroup("Update ALL In Stages", 10, 147, 230, 88)
+	$Button_begin = GuiCtrlCreateButton("BEGIN", 20, 165, 77, 32)
 	GUICtrlSetFont($Button_begin, 9, 600)
 	GUICtrlSetTip($Button_begin, "Begin Updating in Stages!")
-	$Button_continue = GuiCtrlCreateButton("CONTINUE", 107, 167, 103, 32)
+	$Button_continue = GuiCtrlCreateButton("CONTINUE", 107, 165, 103, 32)
 	GUICtrlSetFont($Button_continue, 9, 600)
 	GUICtrlSetTip($Button_continue, "Continue Updating in Stages!")
-	$Checkbox_clean = GUICtrlCreateCheckbox("", 215, 173, 15, 20, $BS_AUTO3STATE)
+	$Checkbox_clean = GUICtrlCreateCheckbox("", 215, 171, 15, 20, $BS_AUTO3STATE)
 	GUICtrlSetTip($Checkbox_clean, "Enable cleanup only!")
-	$Checkbox_stages = GUICtrlCreateCheckbox("Stages", 20, 206, 45, 21)
+	$Checkbox_stages = GUICtrlCreateCheckbox("Stages", 20, 204, 45, 21)
 	GUICtrlSetFont($Checkbox_stages, 7, 400, 0, "Small Fonts")
 	GUICtrlSetTip($Checkbox_stages, "Enable updating in stages!")
-	$Label_blocks = GuiCtrlCreateLabel("Blocks", 70, 206, 45, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
+	$Label_blocks = GuiCtrlCreateLabel("Blocks", 70, 204, 45, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
 	GUICtrlSetBkColor($Label_blocks, $COLOR_BLUE)
 	GUICtrlSetColor($Label_blocks, $COLOR_WHITE)
 	GUICtrlSetFont($Label_blocks, 6, 600, 0, "Small Fonts")
-	$Input_blocks = GUICtrlCreateInput("", 115, 206, 32, 21)
+	$Input_blocks = GUICtrlCreateInput("", 115, 204, 32, 21)
 	GUICtrlSetTip($Input_blocks, "Number of blocks to process!")
 	$Updown_blocks = GUICtrlCreateUpdown($Input_blocks)
 	GUICtrlSetTip($Updown_blocks, "Adjust the number of blocks!")
 	GUICtrlSetLimit($Updown_blocks, 9, 1)
-	$Label_games = GuiCtrlCreateLabel("Titles", 150, 206, 40, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
+	$Label_games = GuiCtrlCreateLabel("Titles", 150, 204, 40, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
 	GUICtrlSetBkColor($Label_games, $COLOR_BLUE)
 	GUICtrlSetColor($Label_games, $COLOR_WHITE)
 	GUICtrlSetFont($Label_games, 6, 600, 0, "Small Fonts")
-	$Combo_games = GUICtrlCreateCombo("", 190, 206, 38, 21)
+	$Combo_games = GUICtrlCreateCombo("", 190, 204, 38, 21)
 	GUICtrlSetTip($Combo_games, "Games in a block!")
 	;
+	$Group_folders = GUICtrlCreateGroup("Folders", 10, 243, 230, 47)
+	$Button_backups = GuiCtrlCreateButton("Backups", 20, 260, 69, 20)
+	GUICtrlSetFont($Button_backups, 7, 600, 0, "Small Fonts")
+	GUICtrlSetTip($Button_backups, "Open the Backups folder!")
+	$Button_changes = GuiCtrlCreateButton("Update Changes", 94, 260, 106, 20)
+	GUICtrlSetFont($Button_changes, 7, 600, 0, "Small Fonts")
+	GUICtrlSetTip($Button_changes, "Open the Update Changes folder!")
+	$Button_program = GuiCtrlCreateButton("P", 205, 260, 25, 20, $BS_ICON)
+	GUICtrlSetTip($Button_program, "Open the Program folder!")
+	;
 	;$Button_upnow = GuiCtrlCreateButton("UPDATE NOW", 10, 250, 120, 32)
-	$Button_upnow = GuiCtrlCreateButton("UPDATE", 10, 250, 85, 32)
+	$Button_upnow = GuiCtrlCreateButton("UPDATE", 10, 300, 85, 32)
 	GUICtrlSetFont($Button_upnow, 9, 600)
 	GUICtrlSetTip($Button_upnow, "Update the Manifest for specified!")
-	$Button_changed = GuiCtrlCreateButton("Log", 100, 250, 30, 32, $BS_ICON)
+	$Button_changed = GuiCtrlCreateButton("Log", 100, 300, 30, 32, $BS_ICON)
 	GUICtrlSetTip($Button_changed, "View the Changed.txt file!")
-	$Checkbox_replace = GUICtrlCreateCheckbox("Replace && Compare", 20, 284, 100, 18)
+	$Checkbox_replace = GUICtrlCreateCheckbox("Replace && Compare", 20, 334, 100, 18)
 	GUICtrlSetFont($Checkbox_replace, 7, 400, 0, "Small Fonts")
 	GUICtrlSetTip($Checkbox_replace, "Replace and Compare selected title in manifest!")
 	;
-	$Button_inf = GuiCtrlCreateButton("Info", 140, 250, 45, 50, $BS_ICON)
+	$Button_inf = GuiCtrlCreateButton("Info", 140, 300, 45, 50, $BS_ICON)
 	GUICtrlSetTip($Button_inf, "Update Information!")
 	;
-	$Button_close = GuiCtrlCreateButton("EXIT", 192, 250, 48, 50, $BS_ICON)
+	$Button_close = GuiCtrlCreateButton("EXIT", 192, 300, 48, 50, $BS_ICON)
 	GUICtrlSetTip($Button_close, "Exit / Close / Quit the window!")
 	;
 	; SETTINGS
+	GUICtrlSetImage($Button_program, $shell, $icoD, 0)
 	GUICtrlSetImage($Button_changed, $shell, $icoT, 0)
 	GUICtrlSetImage($Button_inf, $user, $icoI, 1)
 	GUICtrlSetImage($Button_close, $user, $icoX, 1)
@@ -3936,6 +3947,9 @@ Func UpdateGUI()
 				GUIDelete($UpdateGUI)
 				ExitLoop
 			EndIf
+		Case $msg = $Button_program
+			; Open the Program folder
+			ShellExecute(@ScriptDir)
 		Case $msg = $Button_inf
 			; Update Information
 			MsgBox(262208, "Update Information", _
@@ -3986,6 +4000,9 @@ Func UpdateGUI()
 					GUICtrlSetState($Checkbox_stages, $GUI_DISABLE)
 					GUICtrlSetState($Updown_blocks, $GUI_DISABLE)
 					GUICtrlSetState($Combo_games, $GUI_DISABLE)
+					GUICtrlSetState($Button_backups, $GUI_DISABLE)
+					GUICtrlSetState($Button_changes, $GUI_DISABLE)
+					GUICtrlSetState($Button_program, $GUI_DISABLE)
 					GUICtrlSetState($Button_changed, $GUI_DISABLE)
 					GUICtrlSetState($Button_inf, $GUI_DISABLE)
 					GUICtrlSetState($Button_close, $GUI_DISABLE)
@@ -4216,6 +4233,9 @@ Func UpdateGUI()
 					GUICtrlSetState($Checkbox_stages, $GUI_ENABLE)
 					GUICtrlSetState($Updown_blocks, $GUI_ENABLE)
 					GUICtrlSetState($Combo_games, $GUI_ENABLE)
+					GUICtrlSetState($Button_backups, $GUI_ENABLE)
+					GUICtrlSetState($Button_changes, $GUI_ENABLE)
+					GUICtrlSetState($Button_program, $GUI_ENABLE)
 					GUICtrlSetState($Button_changed, $GUI_ENABLE)
 					GUICtrlSetState($Button_inf, $GUI_ENABLE)
 					GUICtrlSetState($Button_close, $GUI_ENABLE)
@@ -4237,6 +4257,9 @@ Func UpdateGUI()
 					GUICtrlSetState($Checkbox_stages, $GUI_DISABLE)
 					GUICtrlSetState($Updown_blocks, $GUI_DISABLE)
 					GUICtrlSetState($Combo_games, $GUI_DISABLE)
+					GUICtrlSetState($Button_backups, $GUI_DISABLE)
+					GUICtrlSetState($Button_changes, $GUI_DISABLE)
+					GUICtrlSetState($Button_program, $GUI_DISABLE)
 					GUICtrlSetState($Button_changed, $GUI_DISABLE)
 					GUICtrlSetState($Button_inf, $GUI_DISABLE)
 					GUICtrlSetState($Button_close, $GUI_DISABLE)
@@ -4624,6 +4647,9 @@ Func UpdateGUI()
 					GUICtrlSetState($Checkbox_stages, $GUI_ENABLE)
 					GUICtrlSetState($Updown_blocks, $GUI_ENABLE)
 					GUICtrlSetState($Combo_games, $GUI_ENABLE)
+					GUICtrlSetState($Button_backups, $GUI_ENABLE)
+					GUICtrlSetState($Button_changes, $GUI_ENABLE)
+					GUICtrlSetState($Button_program, $GUI_ENABLE)
 					GUICtrlSetState($Button_changed, $GUI_ENABLE)
 					GUICtrlSetState($Button_inf, $GUI_ENABLE)
 					GUICtrlSetState($Button_close, $GUI_ENABLE)
@@ -4633,6 +4659,9 @@ Func UpdateGUI()
 					MsgBox(262192, "Update Error", "Could not find the manifest file!", 0, $UpdateGUI)
 				EndIf
 			EndIf
+		Case $msg = $Button_changes
+			; Open the Update Changes folder
+			If FileExists($compfold) Then ShellExecute($compfold)
 		Case $msg = $Button_changed
 			; View the Changed.txt file
 			If FileExists($changed) Then ShellExecute($changed)
@@ -4666,6 +4695,9 @@ Func UpdateGUI()
 				GUICtrlSetState($Checkbox_stages, $GUI_DISABLE)
 				GUICtrlSetState($Updown_blocks, $GUI_DISABLE)
 				GUICtrlSetState($Combo_games, $GUI_DISABLE)
+				GUICtrlSetState($Button_backups, $GUI_DISABLE)
+				GUICtrlSetState($Button_changes, $GUI_DISABLE)
+				GUICtrlSetState($Button_program, $GUI_DISABLE)
 				GUICtrlSetState($Button_changed, $GUI_DISABLE)
 				GUICtrlSetState($Button_inf, $GUI_DISABLE)
 				GUICtrlSetState($Button_close, $GUI_DISABLE)
@@ -5270,12 +5302,18 @@ Func UpdateGUI()
 				GUICtrlSetState($Checkbox_stages, $GUI_ENABLE)
 				GUICtrlSetState($Updown_blocks, $GUI_ENABLE)
 				GUICtrlSetState($Combo_games, $GUI_ENABLE)
+				GUICtrlSetState($Button_backups, $GUI_ENABLE)
+				GUICtrlSetState($Button_changes, $GUI_ENABLE)
+				GUICtrlSetState($Button_program, $GUI_ENABLE)
 				GUICtrlSetState($Button_changed, $GUI_ENABLE)
 				GUICtrlSetState($Button_inf, $GUI_ENABLE)
 				GUICtrlSetState($Button_close, $GUI_ENABLE)
 				GuiSetState(@SW_RESTORE, $GOGRepoGUI)
 				GuiSetState(@SW_RESTORE, $UpdateGUI)
 			EndIf
+		Case $msg = $Button_backups
+			; Open the Backups folder
+			If FileExists($backups) Then ShellExecute($backups)
 		Case $msg = $Checkbox_tag
 			; Update games with Update Tag
 			If GUICtrlRead($Checkbox_tag) = $GUI_CHECKED Then
