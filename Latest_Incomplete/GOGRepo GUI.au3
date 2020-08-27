@@ -15,8 +15,8 @@
 ;
 ; BackupManifestEtc(), CheckForConnection(), CheckIfPythonRunning(), CheckOnGameDownload(), CheckOnShutdown()
 ; ClearDisableEnableRestore(), CreateListOfGames($for, $file), DisableQueueButtons(), EnableDisableControls($state)
-; FillTheGamesList(), GetAllowedName(), GetAuthorAndVersion(), GetTheSize(), GetWindowPosition()
-; ParseTheManifest(), RemoveListEntry($num), ReplaceForeignCharacters($text), ShowCorrectImage()
+; FillTheGamesList(), FullComparisonCheck(), GetAllowedName(), GetAuthorAndVersion(), GetTheSize(), GetWindowPosition()
+; ParseTheManifest($show), RemoveListEntry($num), ReplaceForeignCharacters($text), ShowCorrectImage()
 
 #include <Constants.au3>
 #include <GUIConstantsEx.au3>
@@ -40,13 +40,13 @@
 
 _Singleton("gog-repo-gui-timboli")
 
-Global $Button_add, $Button_dest, $Button_detail, $Button_down, $Button_exit, $Button_find, $Button_fix, $Button_fold
-Global $Button_info, $Button_last, $Button_log, $Button_more, $Button_movedown, $Button_moveup
+Global $Button_add, $Button_dest, $Button_detail, $Button_down, $Button_exit, $Button_find, $Button_fix
+Global $Button_fold, $Button_info, $Button_last, $Button_log, $Button_more, $Button_movedown, $Button_moveup
 Global $Button_pic, $Button_queue, $Button_removall, $Button_remove, $Button_setup, $Button_start, $Button_stop
 Global $Checkbox_all, $Checkbox_alpha, $Checkbox_check, $Checkbox_cover, $Checkbox_extra, $Checkbox_files
-Global $Checkbox_game, $Checkbox_image, $Checkbox_linux, $Checkbox_log, $Checkbox_other, $Checkbox_show, $Checkbox_test
-Global $Checkbox_update, $Checkbox_verify, $Checkbox_win, $Combo_dest, $Combo_OS, $Combo_shutdown, $Group_done
-Global $Group_download, $Group_games, $Group_waiting, $Input_dest, $Input_destination, $Input_download
+Global $Checkbox_game, $Checkbox_image, $Checkbox_linux, $Checkbox_log, $Checkbox_other, $Checkbox_show
+Global $Checkbox_test, $Checkbox_update, $Checkbox_verify, $Checkbox_win, $Combo_dest, $Combo_OS, $Combo_shutdown
+Global $Group_done, $Group_download, $Group_games, $Group_waiting, $Input_dest, $Input_destination, $Input_download
 Global $Input_extra, $Input_lang, $Input_langs, $Input_name, $Input_OP, $Input_OS, $Input_title, $Label_action
 Global $Label_added, $Label_cover, $Label_num, $List_done, $List_games, $List_waiting, $Pic_cover, $Progress_bar
 ;, $Button_move
@@ -57,22 +57,25 @@ Global $Item_store, $Item_winsort, $Item_winunsort
 Global $Control_1, $Control_2, $Control_3, $Control_4, $Control_5
 ;
 Global $a, $addlist, $alf, $all, $alpha, $ans, $array, $auth, $auto, $backups, $bargui, $bigpic, $blackjpg, $c
-Global $check, $chunk, $chunks, $cnt, $connection, $cookies, $cover, $date, $delay, $delete, $dest, $done, $down
-Global $downall, $downlist, $DownloadAllGUI, $DownloadGUI, $downlog, $drv, $extras, $fdate, $file, $files, $finished
-Global $flag, $for, $forum, $galaxy, $game, $gamefold, $gamepic, $games, $gamesfle, $gamesfold, $gogrepo, $GOGRepoGUI
-Global $height, $icoD, $icoF, $icoI, $icoS, $icoT, $icoX, $image, $imgfle, $ind, $infofle, $inifle, $lang, $langskip
-Global $last, $latest, $left, $line, $lines, $locations, $logfle, $manifest, $md5, $message, $minimize, $name, $num
-Global $open, $OS, $OSextras, $OSget, $osskip, $path, $percent, $pid, $progbar, $progress, $QueueGUI, $read, $repolog
-Global $res, $script, $segment, $SetupGUI, $shared, $shell, $shutdown, $SimpleGUI, $size, $sizecheck, $skiplang, $skipos
-Global $split, $stagesfix, $standalone, $started, $state, $stop, $store, $style, $t, $text, $textdump, $threads, $title
-Global $titles, $titlist, $top, $tot, $total, $type, $update, $updated, $UpdateGUI, $updating, $user, $val, $validate
-Global $validation, $verify, $VerifyGUI, $verifying, $vers, $version, $veryalone, $veryextra, $verygalaxy, $verygames
-Global $verylog, $veryshare, $wait, $warning, $width, $window, $winpos, $xpos, $ypos, $zipcheck
+Global $changed, $check, $chunk, $chunks, $cnt, $compfold, $connection, $cookies, $cover, $date, $delay, $delete
+Global $dest, $done, $down, $downall, $downlist, $DownloadAllGUI, $DownloadGUI, $downlog, $drv, $extras, $fdate
+Global $file, $files, $finished, $flag, $for, $forum, $galaxy, $game, $gamefold, $gamepic, $games, $gamesfle
+Global $gamesfold, $gogrepo, $GOGRepoGUI, $height, $icoD, $icoF, $icoI, $icoS, $icoT, $icoX, $image, $imgfle
+Global $ind, $infofle, $inifle, $lang, $langskip, $last, $latest, $left, $line, $lines, $locations, $logfle
+Global $manifest, $md5, $message, $minimize, $name, $newfile, $num, $open, $OS, $OSextras, $OSget, $osskip
+Global $path, $percent, $pid, $progbar, $progress, $QueueGUI, $read, $repolog, $res, $script, $segment, $SetupGUI
+Global $shared, $shell, $show, $shutdown, $SimpleGUI, $size, $sizecheck, $skiplang, $skipos, $splash, $split
+Global $stagesfix, $standalone, $started, $state, $stop, $store, $style, $t, $text, $textdump, $threads, $titfile
+Global $title, $titles, $titlist, $top, $tot, $total, $type, $update, $updated, $UpdateGUI, $updating, $user, $val
+Global $validate, $validation, $verify, $VerifyGUI, $verifying, $vers, $version, $veryalone, $veryextra, $verygalaxy
+Global $verygames, $verylog, $veryshare, $wait, $warning, $width, $window, $winpos, $xpos, $ypos, $zipcheck
 
 $addlist = @ScriptDir & "\Added.txt"
 $backups = @ScriptDir & "\Backups"
 $bigpic = @ScriptDir & "\Big.jpg"
 $blackjpg = @ScriptDir & "\Black.jpg"
+$changed = @ScriptDir & "\Changed.txt"
+$compfold = @ScriptDir & "\Comparisons"
 $cookies = @ScriptDir & "\gog-cookies.dat"
 $downlist = @ScriptDir & "\Downloads.ini"
 $finished = @ScriptDir & "\Finished.txt"
@@ -86,6 +89,7 @@ $logfle = @ScriptDir & "\Record.log"
 $manifest = @ScriptDir & "\gog-manifest.dat"
 $progbar = @ScriptDir & "\Reporun.exe"
 $repolog = @ScriptDir & "\gogrepo.log"
+$splash = @ScriptDir & "\Splash.jpg"
 $titlist = @ScriptDir & "\Titles.txt"
 $version = "v1.0"
 
@@ -104,7 +108,12 @@ If $warning = 1 Then
 	Exit
 EndIf
 
+If FileExists($splash) Then SplashImageOn("", $splash, 350, 300, Default, Default, 1)
+
 If Not FileExists($titlist) Then _FileCreate($titlist)
+If Not FileExists($changed) Then _FileCreate($changed)
+
+If Not FileExists($compfold) Then DirCreate($compfold)
 
 If Not FileExists($blackjpg) Then
 	Local $hBitmap, $hGraphic, $hImage
@@ -119,6 +128,7 @@ If Not FileExists($blackjpg) Then
 	_WinAPI_DeleteObject($hBitmap)
 	_GDIPlus_ShutDown()
 	If Not FileExists($blackjpg) Then
+		If FileExists($splash) Then SplashOff()
 		MsgBox(262192, "Program Error", "This program requires an image file named" _
 			& @LF & "'Black.jpg' for the default cover image file." _
 			& @LF & "It needs to be in the main program folder." _
@@ -156,12 +166,17 @@ If FileExists($titlist) Then
 	$updated = IniRead($inifle, "Program", "updated", "")
 	$lines = _FileCountLines($titlist)
 	If $lines = 0 Or $updated <> 1 Then
-		ParseTheManifest()
+		If FileExists($splash) Then
+			ParseTheManifest(0)
+		Else
+			ParseTheManifest(1)
+		EndIf
 		$updated = 1
 		IniWrite($inifle, "Program", "updated", $updated)
 	EndIf
 	MainGUI()
 Else
+	If FileExists($splash) Then SplashOff()
 	MsgBox(262192, "Program Error", "Titles.txt file could not be created!", 0)
 EndIf
 
@@ -171,7 +186,7 @@ Func MainGUI()
 	Local $Group_added, $Group_cover, $Group_dest, $Group_down, $Group_update, $Item_delete, $Item_remove
 	Local $Label_extra, $Label_OS, $Label_title
 	;
-	Local $add, $content, $dll, $exist, $find, $fold, $mpos, $OSes, $pth, $show
+	Local $add, $content, $display, $dll, $exist, $find, $fold, $mpos, $OSes, $pth
 	;
 	$width = 590
 	$height = 405
@@ -393,12 +408,12 @@ Func MainGUI()
 		WinSetTitle($GOGRepoGUI, "", "GOGRepo GUI - " & $shutdown & " is ENABLED")
 	EndIf
 	;
-	$show = IniRead($inifle, "Cover Image", "show", "")
-	If $show = "" Then
-		$show = 1
-		IniWrite($inifle, "Cover Image", "show", $show)
+	$display = IniRead($inifle, "Cover Image", "show", "")
+	If $display = "" Then
+		$display = 1
+		IniWrite($inifle, "Cover Image", "show", $display)
 	EndIf
-	GUICtrlSetState($Checkbox_show, $show)
+	GUICtrlSetState($Checkbox_show, $display)
 	;
 	$OSes = "Windows + Linux|Windows + Mac|Linux + Mac|Windows|Linux|Mac|Every OS"
 	$OSget = IniRead($inifle, "Download Options", "OS", "")
@@ -482,7 +497,7 @@ Func MainGUI()
 		$fdate = IniRead($inifle, "gogrepo.py", "file_date", "")
 		If $fdate = "" Then
 			GetAuthorAndVersion()
-			SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
+			If Not FileExists($splash) Then SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
 			$file = FileOpen($gogrepo, 0)
 			$read = FileRead($file)
 			FileClose($file)
@@ -500,7 +515,7 @@ Func MainGUI()
 					$threads = ""
 				EndIf
 			EndIf
-			SplashOff()
+			If Not FileExists($splash) Then SplashOff()
 			;MsgBox(262192, "Threads Check 2", $threads, 0, $GOGRepoGUI)
 			;Exit
 			If $threads <> "" And $threads <> 1 Then
@@ -528,7 +543,7 @@ Func MainGUI()
 			IniWrite($inifle, "gogrepo.py", "file_date", $fdate)
 		Else
 			If $fdate <> FileGetTime($gogrepo, 0, 1) Then
-				SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
+				If Not FileExists($splash) Then SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
 				GetAuthorAndVersion()
 				; NOTE - Threads are automatically checked and updated to previous choice.
 				$file = FileOpen($gogrepo, 0)
@@ -546,7 +561,7 @@ Func MainGUI()
 						$chunk = ""
 					EndIf
 				EndIf
-				SplashOff()
+				If Not FileExists($splash) Then SplashOff()
 				;MsgBox(262192, "Threads Check 2", $chunk, 0, $GOGRepoGUI)
 				$threads = IniRead($inifle, "Downloading", "threads", "")
 				If $threads <> $chunk And $chunk <> "" And $threads <> "X" Then
@@ -584,6 +599,55 @@ Func MainGUI()
 	If $auth = "eddie3" Or $auth <> "eddie3,kalynr" Then
 		;eddie3-0.3a
 		$script = "default"
+		;
+		; Check if any existing manifest is original compatible
+		If FileExists($manifest) Then
+			$res = _FileReadToArray($manifest, $array)
+			If $res = 1 Then
+				$ind = _ArraySearch($array, "'galaxyDownloads':", 1, 0, 0, 1)
+				;MsgBox(262192, "Line Search", $ind, 0, $GOGRepoGUI)
+				;If $ind = -1 Then
+				If $ind <> -1 Then
+					$ans = MsgBox(262433, "Manifest Query", _
+						"The existing manifest format appears to be newer than" & @LF & _
+						"the current version of 'gogrepo.py', that you are using." & @LF & @LF & _
+						"This means there will likely be compatibility issues." & @LF & @LF & _
+						"OK = Backup & Continue with no manifest." & @LF & _
+						"CANCEL = Abort & Exit with no changes." & @LF & @LF & _
+						"WARNING - To continue means you will need to start" & @LF & _
+						"again, recreating your manifest file from scratch. The" & @LF & _
+						"existing manifest & related files will be copied to the" & @LF & _
+						"'Backups\Forked' folder.", 0, $GOGRepoGUI)
+					If $ans = 1 Then
+						Local $forked = $backups & "\Forked"
+						If Not FileExists($forked) Then DirCreate($forked)
+						$forked = $forked & "\"
+						$res = FileMove($manifest, $forked, 0)
+						If $res = 1 Then
+							FileMove($addlist, $forked, 0)
+							FileMove($gamesfle, $forked, 0)
+							FileMove($logfle, $forked, 0)
+							FileMove($titlist, $forked, 0)
+							FileCopy($inifle, $forked, 0)
+							FileMove($backups & "\*.bak", $forked, 0)
+						Else
+							MsgBox(262192, "Backup Error", "Manifest file could not be relocated!" _
+								& @LF & @LF & "Check for existing backups in - " _
+								& @LF & $forked & @LF _
+								& @LF & "You may need to delete, rename or relocate any" _
+								& @LF & "previous backups manually, before trying again." & @LF _
+								& @LF & "Folder will open and program will now exit.", 0, $GOGRepoGUI)
+							If FileExists($forked) Then ShellExecute($forked)
+							If FileExists($splash) Then SplashOff()
+							Exit
+						EndIf
+					Else
+						If FileExists($splash) Then SplashOff()
+						Exit
+					EndIf
+				EndIf
+			EndIf
+		EndIf
 		;
 		$res = _FileReadToArray($gogrepo, $array)
 		If $res = 1 Then
@@ -640,6 +704,55 @@ Func MainGUI()
 	ElseIf $auth = "eddie3,kalynr" Then
 		;eddie3,kalynr-k0.3a
 		$script = "fork"
+		;
+		; Check if any existing manifest is fork compatible
+		If FileExists($manifest) Then
+			$res = _FileReadToArray($manifest, $array)
+			If $res = 1 Then
+				;$ind = _ArraySearch($array, "'galaxyDownloads':", 0)
+				$ind = _ArraySearch($array, "'galaxyDownloads':", 1, 0, 0, 1)
+				;MsgBox(262192, "Line Search", $ind, 0, $GOGRepoGUI)
+				If $ind = -1 Then
+					$ans = MsgBox(262433, "Manifest Query", _
+						"The existing manifest format appears to pre-date the" & @LF & _
+						"current version of 'gogrepo.py', that you are using." & @LF & @LF & _
+						"This means there will likely be compatibility issues." & @LF & @LF & _
+						"OK = Backup & Continue with no manifest." & @LF & _
+						"CANCEL = Abort & Exit with no changes." & @LF & @LF & _
+						"WARNING - To continue means you will need to start" & @LF & _
+						"again, recreating your manifest file from scratch. The" & @LF & _
+						"existing manifest & related files will be copied to the" & @LF & _
+						"'Backups\Original' folder.", 0, $GOGRepoGUI)
+					If $ans = 1 Then
+						Local $original = $backups & "\Original"
+						If Not FileExists($original) Then DirCreate($original)
+						$original = $original & "\"
+						$res = FileMove($manifest, $original, 0)
+						If $res = 1 Then
+							FileMove($addlist, $original, 0)
+							FileMove($gamesfle, $original, 0)
+							FileMove($logfle, $original, 0)
+							FileMove($titlist, $original, 0)
+							FileCopy($inifle, $original, 0)
+							FileMove($backups & "\*.bak", $original, 0)
+						Else
+							MsgBox(262192, "Backup Error", "Manifest file could not be relocated!" _
+								& @LF & @LF & "Check for existing backups in - " _
+								& @LF & $original & @LF _
+								& @LF & "You may need to delete, rename or relocate any" _
+								& @LF & "previous backups manually, before trying again." & @LF _
+								& @LF & "Folder will open and program will now exit.", 0, $GOGRepoGUI)
+							If FileExists($original) Then ShellExecute($original)
+							If FileExists($splash) Then SplashOff()
+							Exit
+						EndIf
+					Else
+						If FileExists($splash) Then SplashOff()
+						Exit
+					EndIf
+				EndIf
+			EndIf
+		EndIf
 	EndIf
 	If $script = "default" Then
 		$Checkbox_game = GUICtrlCreateCheckbox("Game Files", 400, 313, 67, 20)
@@ -871,6 +984,8 @@ Func MainGUI()
 	EndIf
 	;
 	$window = $GOGRepoGUI
+
+	If FileExists($splash) Then SplashOff()
 
 	;GuiSetState(@SW_ENABLE, $GOGRepoGUI)
 	GuiSetState(@SW_SHOWNORMAL, $GOGRepoGUI)
@@ -1180,7 +1295,7 @@ Func MainGUI()
 									GUICtrlSetData($Input_OS, "")
 									GUICtrlSetData($Input_extra, "")
 									_FileCreate($titlist)
-									ParseTheManifest()
+									ParseTheManifest(1)
 									FillTheGamesList()
 								EndIf
 								EnableDisableControls($GUI_ENABLE)
@@ -1654,13 +1769,13 @@ Func MainGUI()
 		Case $msg = $Checkbox_show
 			; Show the cover image
 			If GUICtrlRead($Checkbox_show) = $GUI_CHECKED Then
-				$show = 1
+				$display = 1
 				ShowCorrectImage()
 			Else
-				$show = 4
+				$display = 4
 				GUICtrlSetImage($Pic_cover, $blackjpg)
 			EndIf
-			IniWrite($inifle, "Cover Image", "show", $show)
+			IniWrite($inifle, "Cover Image", "show", $display)
 		Case $msg = $Checkbox_log And $script = "fork"
 			; Enable viewing 'gogrepo.log' file
 			If GUICtrlRead($Checkbox_log) = $GUI_CHECKED Then
@@ -1862,7 +1977,7 @@ Func MainGUI()
 									GUICtrlSetData($Input_OS, "")
 									GUICtrlSetData($Input_extra, "")
 									_FileCreate($titlist)
-									ParseTheManifest()
+									ParseTheManifest(1)
 									FillTheGamesList()
 									EnableDisableControls($GUI_ENABLE)
 								Else
@@ -2002,7 +2117,7 @@ Func MainGUI()
 				GUICtrlSetData($Input_OS, $OS)
 				GUICtrlSetData($Input_extra, "")
 			EndIf
-			If $show = 1 Then
+			If $display = 1 Then
 				ShowCorrectImage()
 			EndIf
 		Case $msg = $Pic_cover
@@ -3512,14 +3627,15 @@ Func SetupGUI()
 EndFunc ;=> SetupGUI
 
 Func UpdateGUI()
-	Local $Button_backups, $Button_begin, $Button_changed, $Button_changes, $Button_close, $Button_continue, $Button_inf, $Button_program
-	Local $Button_upnow, $Checkbox_clean, $Checkbox_every, $Checkbox_new, $Checkbox_replace, $Checkbox_resume, $Checkbox_skip, $Checkbox_stages
-	Local $Checkbox_tag, $Checkbox_uplog, $Combo_games, $Combo_install, $Group_folders, $Group_stages, $Input_blocks, $Input_language, $Input_OSes
-	Local $Label_blocks, $Label_games, $Label_install, $Label_lang, $Label_OS, $Updown_blocks
+	Local $Button_backups, $Button_begin, $Button_changed, $Button_changes, $Button_close, $Button_continue, $Button_inf
+	Local $Button_program, $Button_upnow, $Checkbox_clean, $Checkbox_every, $Checkbox_new, $Checkbox_replace, $Checkbox_resume
+	Local $Checkbox_skip, $Checkbox_stages, $Checkbox_tag, $Checkbox_uplog, $Combo_games, $Combo_install, $Group_folders
+	Local $Group_stages, $Input_blocks, $Input_language, $Input_OSes, $Label_blocks, $Label_games, $Label_install, $Label_lang
+	Local $Label_OS, $Updown_blocks
 	;
-	Local $above, $block, $blocks, $changed, $clean, $cleaned, $cleanup, $compfold, $entry, $err, $high, $i, $id, $ids, $installer
-	Local $installers, $loop, $newgames, $out, $params, $replace, $results, $resume, $resumeman, $ret, $side, $skiphid, $stage
-	Local $stagefile, $stages, $start, $sum, $tagged, $titfile, $uplog, $wide
+	Local $above, $block, $blocks, $clean, $cleaned, $cleanup, $entry, $err, $high, $i, $id, $ids, $installer, $installers
+	Local $loop, $newgames, $out, $params, $replace, $results, $resume, $resumeman, $ret, $side, $skiphid, $stage, $stagefile
+	Local $stages, $start, $sum, $tagged, $uplog, $wide
 	;
 	$wide = 250
 	$high = 360
@@ -3750,11 +3866,6 @@ Func UpdateGUI()
 		GUICtrlSetState($Combo_games, $GUI_DISABLE)
 	EndIf
 	;
-	$changed = @ScriptDir & "\Changed.txt"
-	If Not FileExists($changed) Then _FileCreate($changed)
-	$compfold = @ScriptDir & "\Comparisons"
-	If Not FileExists($compfold) Then DirCreate($compfold)
-	;
 	$clean = 4
 	$replace = 4
 	$updating = ""
@@ -3815,14 +3926,13 @@ Func UpdateGUI()
 				Else
 					If $title <> "" Then
 						$updating = 1
+						GUISwitch($GOGRepoGUI)
+						GUICtrlSetImage($Pic_cover, $blackjpg)
+						GUICtrlSetFont($Label_cover, 8, 600)
 						_FileWriteLog($logfle, "Updated manifest for - " & $title & ".")
 						If $replace = 1 Then
 							_FileWriteLog($logfle, "Updating using replace & compare.")
-							GUISwitch($GOGRepoGUI)
-							GUICtrlSetImage($Pic_cover, $blackjpg)
-							GUICtrlSetFont($Label_cover, 8, 600)
 							GUICtrlSetData($Label_cover, "Replacing!")
-							;GUISwitch($UpdateGUI)
 							$res = 0
 							$open = FileOpen($manifest, 0)
 							$read = FileRead($open)
@@ -3889,16 +3999,13 @@ Func UpdateGUI()
 							Else
 								MsgBox(262192, "Removal Error", "Could not divide on title entry!", 0, $UpdateGUI)
 							EndIf
-							;GUISwitch($GOGRepoGUI)
-							GUICtrlSetData($Label_cover, "Updating!")
-							;GUISwitch($UpdateGUI)
 						EndIf
+						GUICtrlSetData($Label_cover, "Updating!")
 						$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -id ' & $title & ' &&pause', @ScriptDir)
 						If $replace = 1 Then
 							If $res > 0 Then
-								;GUISwitch($GOGRepoGUI)
-								GUICtrlSetData($Label_cover, "Comparing!")
-								;GUISwitch($UpdateGUI)
+								GUICtrlSetData($Label_action, "Comparing")
+								GUICtrlSetFont($Label_num, 7, 600, 0, "Small Fonts")
 								$open = FileOpen($manifest, 0)
 								$read = FileRead($open)
 								FileClose($open)
@@ -3915,29 +4022,33 @@ Func UpdateGUI()
 										If $res > 0 Then
 											; No differences delete the $titfile.
 											FileDelete($titfile)
-											;GUISwitch($GOGRepoGUI)
-											GUICtrlSetData($Label_cover, "Success, no changes!")
-											;GUISwitch($UpdateGUI)
+											GUICtrlSetData($Label_num, "Success, no changes!")
 										Else
-											; Differences found, add to the $changed file.
-											FileWriteLine($changed, $title)
-											;GUISwitch($GOGRepoGUI)
-											GUICtrlSetData($Label_cover, "Changes detected!")
-											;GUISwitch($UpdateGUI)
-											$titfile = $compfold & "\" & $title & "_new.txt"
-											FileWrite($titfile, $segment)
+											; Differences found, do an intensive check
+											$newfile = $compfold & "\" & $title & "_new.txt"
+											FileWrite($newfile, $segment)
+											$res = FullComparisonCheck()
+											If $res = "pass" Then
+												GUICtrlSetData($Label_num, "No Changes!")
+											ElseIf $res = "fail" Then
+												; Differences found, add to the $changed file.
+												GUICtrlSetData($Label_num, "Changes Detected!)")
+												FileWriteLine($changed, $title)
+											EndIf
 										EndIf
 										Sleep(1500)
 									EndIf
 								EndIf
+								GUICtrlSetData($Label_action, "")
+								GUICtrlSetData($Label_num, "")
+								GUICtrlSetFont($Label_num, 9, 600)
 							Else
 								MsgBox(262192, "Removal Error (2)", "Could not remove entry from manifest!", 0, $UpdateGUI)
 							EndIf
-							;GUISwitch($GOGRepoGUI)
-							GUICtrlSetData($Label_cover, "")
-							GUICtrlSetFont($Label_cover, 8.5, 400, 0, "")
-							GUISwitch($UpdateGUI)
 						EndIf
+						GUICtrlSetData($Label_cover, "")
+						GUICtrlSetFont($Label_cover, 8.5, 400, 0, "")
+						GUISwitch($UpdateGUI)
 						_FileWriteLog($logfle, "Updated finished.")
 					Else
 						MsgBox(262192, "Game Error", "Title is not selected!", $wait, $UpdateGUI)
@@ -4572,11 +4683,17 @@ Func UpdateGUI()
 																	FileDelete($titfile)
 																	GUICtrlSetData($Label_num, "No Changes (" & $a & ")")
 																Else
-																	; Differences found, add to the $changed file.
-																	FileWriteLine($changed, $title)
-																	GUICtrlSetData($Label_num, "Changes Detected (" & $a & ")")
-																	$titfile = $compfold & "\" & $title & "_new.txt"
-																	FileWrite($titfile, $segment)
+																	; Differences found, do an intensive check
+																	$newfile = $compfold & "\" & $title & "_new.txt"
+																	FileWrite($newfile, $segment)
+																	$res = FullComparisonCheck()
+																	If $res = "pass" Then
+																		GUICtrlSetData($Label_num, "No Changes (" & $a & ")")
+																	ElseIf $res = "fail" Then
+																		; Differences found, add to the $changed file.
+																		GUICtrlSetData($Label_num, "Changes Detected (" & $a & ")")
+																		FileWriteLine($changed, $title)
+																	EndIf
 																EndIf
 																Sleep(1500)
 															EndIf
@@ -5223,11 +5340,17 @@ Func UpdateGUI()
 																		FileDelete($titfile)
 																		GUICtrlSetData($Label_num, "No Changes (" & $a & ")")
 																	Else
-																		; Differences found, add to the $changed file.
-																		FileWriteLine($changed, $title)
-																		GUICtrlSetData($Label_num, "Changes Detected (" & $a & ")")
-																		$titfile = $compfold & "\" & $title & "_new.txt"
-																		FileWrite($titfile, $segment)
+																		; Differences found, do an intensive check
+																		$newfile = $compfold & "\" & $title & "_new.txt"
+																		FileWrite($newfile, $segment)
+																		$res = FullComparisonCheck()
+																		If $res = "pass" Then
+																			GUICtrlSetData($Label_num, "No Changes (" & $a & ")")
+																		ElseIf $res = "fail" Then
+																			; Differences found, add to the $changed file.
+																			GUICtrlSetData($Label_num, "Changes Detected (" & $a & ")")
+																			FileWriteLine($changed, $title)
+																		EndIf
 																	EndIf
 																	Sleep(1500)
 																EndIf
@@ -6430,6 +6553,152 @@ Func FillTheGamesList()
 	EndIf
 EndFunc ;=> FillTheGamesList
 
+Func FullComparisonCheck()
+	Local $downchunk, $e, $entries, $extrachunk, $lead, $row, $rows, $skipped, $tail
+	;
+	$downchunk = ""
+	$extrachunk = ""
+	$skipped = ""
+	$val = "fail"
+	$succ = _FileReadToArray($titfile, $entries)
+	If $succ = 1 Then
+		For $e = 1 To $entries[0]
+			$row = $entries[$e]
+			$lead = StringLeft($row, 5)
+			If StringInStr($row, "'forum_url':") > 0 Then $skipped = 1
+			If $downchunk = "" Or ($extrachunk = "" And $downchunk = "") Or  ($lead <> "     " And ($downchunk <> "" Or $extrachunk <> "")) Or $skipped = 1 Then
+				If StringInStr($row, "'downloads':") > 0 Then
+					$downchunk = $row
+				ElseIf StringInStr($row, "'extras':") > 0 Then
+					$extrachunk = $row
+				Else
+					$succ = _ReplaceStringInFile($newfile, $row, "", 0, 0)
+					If $succ = 0 Then
+						If StringInStr($row, "'title':") > 0 Then
+							$tail = StringReplace($row, "'}", "'},")
+							$succ = _ReplaceStringInFile($newfile, $tail, "", 0, 0)
+							If $succ = 0 Then
+								$tail = StringReplace($row, "'},", "'}")
+								$succ = _ReplaceStringInFile($newfile, $tail, "", 0, 0)
+							EndIf
+						EndIf
+					EndIf
+				EndIf
+			ElseIf $downchunk <> "" And $extrachunk = "" Then
+				$downchunk = $downchunk & @LF & $row
+			ElseIf $extrachunk <> "" Then
+				$extrachunk = $extrachunk & @LF & $row
+			EndIf
+		Next
+		If $downchunk <> "" Then
+			;MsgBox(262144, "Downloads", $downchunk)
+			$succ = _ReplaceStringInFile($newfile, $downchunk, "", 0, 0)
+			If $succ = 0 Then
+				$chunk = StringSplit($downchunk, "{'", 1)
+				For $e = 2 To $chunk[0]
+					$rows = "{'" & $chunk[$e]
+					$succ = _ReplaceStringInFile($newfile, $rows, "", 0, 0)
+					If $succ = 0 Then
+						$rows = StringStripWS($rows, 3)
+						$rows = StringReplace($rows, "'},", "'}],")
+						$succ = _ReplaceStringInFile($newfile, $rows, "", 0, 0)
+						If $succ = 0 Then
+							$rows = StringReplace($rows, "'}],", "'},")
+							$succ = _ReplaceStringInFile($newfile, $rows, "", 0, 0)
+							If $succ = 0 Then
+								$rows = StringReplace($rows, "},", "}],")
+								$succ = _ReplaceStringInFile($newfile, $rows, "", 0, 0)
+								If $succ = 0 Then
+									$rows = StringReplace($rows, "}],", "},")
+									_ReplaceStringInFile($newfile, $rows, "", 0, 0)
+								EndIf
+							EndIf
+						EndIf
+					EndIf
+				Next
+			EndIf
+		EndIf
+		If $extrachunk <> "" Then
+			;MsgBox(262144, "Extras", $extrachunk)
+			$succ = _ReplaceStringInFile($newfile, $extrachunk, "", 0, 0)
+			If $succ = 0 Then
+				$chunk = StringSplit($extrachunk, "{'", 1)
+				For $e = 2 To $chunk[0]
+					$rows = "{'" & $chunk[$e]
+					$succ = _ReplaceStringInFile($newfile, $rows, "", 0, 0)
+					If $succ = 0 Then
+						$rows = StringStripWS($rows, 3)
+						$rows = StringReplace($rows, "'},", "'}],")
+						$succ = _ReplaceStringInFile($newfile, $rows, "", 0, 0)
+						If $succ = 0 Then
+							$rows = StringReplace($rows, "'}],", "'},")
+							$succ = _ReplaceStringInFile($newfile, $rows, "", 0, 0)
+							If $succ = 0 Then
+								$rows = StringReplace($rows, "},", "}],")
+								$succ = _ReplaceStringInFile($newfile, $rows, "", 0, 0)
+								If $succ = 0 Then
+									$rows = StringReplace($rows, "}],", "},")
+									_ReplaceStringInFile($newfile, $rows, "", 0, 0)
+								EndIf
+							EndIf
+						EndIf
+					EndIf
+				Next
+			EndIf
+		EndIf
+		$lines = _FileCountLines($newfile)
+		If $lines > 0 Then
+			$succ = _FileReadToArray($newfile, $entries)
+			If $succ = 1 Then
+				For $e = 1 To $entries[0]
+					$row = $entries[$e]
+					If StringInStr($row, "'rating':") > 0 Or StringInStr($row, "'forum_url':") > 0 _
+						Or StringInStr($row, "'has_updates': False") > 0 Then
+						$succ = _ReplaceStringInFile($newfile, $row, "", 0, 0)
+					EndIf
+				Next
+				$succ = _FileReadToArray($newfile, $entries)
+				If $succ = 1 Then
+					$rows = ""
+					For $e = 1 To $entries[0]
+						$row = $entries[$e]
+						If $row <> "" Then
+							If $rows = "" Then
+								$rows = $row
+							Else
+								$rows = $rows & @LF & $row
+							EndIf
+						EndIf
+					Next
+					$file = FileOpen($newfile, 2)
+					FileWrite($file, $rows)
+					FileClose($file)
+					$lines = _FileCountLines($newfile)
+					If $lines < 1 Then
+						FileDelete($titfile)
+						FileDelete($newfile)
+						$val = "pass"
+					ElseIf $lines = 1 Then
+						_ReplaceStringInFile($newfile, "  'downloads': [", "", 0, 0)
+						_ReplaceStringInFile($newfile, "{'", "", 0, 1)
+						$lines = _FileCountLines($newfile)
+						If $lines < 1 Then
+							FileDelete($titfile)
+							FileDelete($newfile)
+							$val = "pass"
+						EndIf
+					EndIf
+				EndIf
+			EndIf
+		Else
+			FileDelete($titfile)
+			FileDelete($newfile)
+			$val = "pass"
+		EndIf
+	EndIf
+	Return $val
+EndFunc ;=> FullComparisonCheck
+
 Func GetAllowedName()
 	$name = StringReplace($name, Chr(150), "-")
 	$name = StringReplace($name, Chr(151), "-")
@@ -6527,9 +6796,9 @@ Func GetWindowPosition()
 	IniWrite($inifle, "Program Window", "top", $top)
 EndFunc ;=> GetWindowPosition
 
-Func ParseTheManifest()
+Func ParseTheManifest($show)
 	If FileExists($manifest) Then
-		SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
+		If $show = 1 Then SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
 		$file = FileOpen($titlist, 2)
 		$date = _NowCalc()
 		$date = StringReplace($date, "/", "-")
@@ -6688,7 +6957,7 @@ Func ParseTheManifest()
 		FileClose($file)
 		$read = ""
 		;$textdump = ""
-		SplashOff()
+		If $show = 1 Then SplashOff()
 	EndIf
 EndFunc ;=> ParseTheManifest
 
