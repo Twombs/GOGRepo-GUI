@@ -27,10 +27,10 @@ _Singleton("gog-repo-progress-timboli")
 Global $Edit_console, $Label_files, $Label_percent, $Label_size, $Label_status, $Label_title, $Progress_bar
 ;
 Global $auth, $cnt, $complete, $count, $done, $downlist, $download, $downlog, $err, $exit, $extras, $file
-Global $files, $galaxy, $gamefold, $gogrepo, $height, $inifle, $langskip, $left, $minimize, $num, $osskip
-Global $out, $outfle, $output, $params, $percent, $pid, $process, $progress, $ProgressGUI, $results, $ret
-Global $script, $shared, $size, $skiplang, $skipos, $standalone, $status, $style, $titfold, $title, $top
-Global $vers, $width, $winpos
+Global $files, $galaxy, $gamefold, $gogrepo, $height, $inifle, $lang, $langskip, $left, $minimize, $num
+Global $OS, $osskip, $out, $outfle, $output, $params, $percent, $pid, $process, $progress, $ProgressGUI
+Global $results, $ret, $script, $shared, $size, $skiplang, $skipos, $standalone, $status, $style, $titfold
+Global $title, $top, $vers, $width, $winpos
 
 $downlist = @ScriptDir & "\Downloads.ini"
 $gogrepo = @ScriptDir & "\gogrepo.py"
@@ -121,13 +121,15 @@ If FileExists($gogrepo) Then
 	If $script = "default" Then
 		$files = IniRead($inifle, "Current Download", "files", "")
 	Else
+		$OS = IniRead($inifle, "Current Download", "OS", "")
+		$lang = IniRead($inifle, "Current Download", "language", "")
 		$standalone = IniRead($inifle, "Current Download", "standalone", "")
 		$galaxy = IniRead($inifle, "Current Download", "galaxy", "")
 		$shared = IniRead($inifle, "Current Download", "shared", "")
 		$downlog = IniRead($inifle, "Current Download", "log", "")
-		$skiplang = IniRead($inifle, "Current Download", "language", "")
-		$langskip = IniRead($inifle, "Current Download", "languages", "")
-		$skipos = IniRead($inifle, "Current Download", "OS", "")
+		$skiplang = IniRead($inifle, "Current Download", "skiplang", "")
+		$langskip = IniRead($inifle, "Current Download", "langskip", "")
+		$skipos = IniRead($inifle, "Current Download", "skipOS", "")
 		$osskip = IniRead($inifle, "Current Download", "OSes", "")
 	EndIf
 	$extras = IniRead($inifle, "Current Download", "extras", "")
@@ -161,7 +163,7 @@ If FileExists($gogrepo) Then
 						$params = " -skipextras -skipgames"
 						If $files = 1 Then $params = StringReplace($params, " -skipgames", "")
 					Else
-						$params = " -skipextras -skipgalaxy -skipstandalone -skipshared -nolog"
+						$params = " -os " & $OS & " -lang " & $lang & " -skipextras -skipgalaxy -skipstandalone -skipshared -nolog"
 						If $galaxy = 1 Then $params = StringReplace($params, " -skipgalaxy", "")
 						If $standalone = 1 Then $params = StringReplace($params, " -skipstandalone", "")
 						If $shared = 1 Then $params = StringReplace($params, " -skipshared", "")
