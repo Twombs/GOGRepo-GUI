@@ -11,7 +11,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; FUNCTIONS
-; DownloadAllGUI(), DownloadGUI(), MainGUI(), QueueGUI(), SetupGUI(), UpdateGUI(), VerifyGUI()
+; DownloadAllGUI(), DownloadGUI(), FileCheckerGUI(), MainGUI(), QueueGUI(), SetupGUI(), UpdateGUI(), VerifyGUI()
 ;
 ; BackupManifestEtc(), CheckForConnection(), CheckIfPythonRunning(), CheckOnGameDownload(), CheckOnShutdown()
 ; ClearDisableEnableRestore(), CreateListOfGames($for, $file), DisableQueueButtons(), EnableDisableControls($state)
@@ -63,7 +63,7 @@ Global $file, $files, $finished, $flag, $for, $forum, $galaxy, $game, $gamefold,
 Global $gamesfold, $gogrepo, $GOGRepoGUI, $height, $icoD, $icoF, $icoI, $icoS, $icoT, $icoX, $image, $imgfle
 Global $ind, $infofle, $inifle, $lang, $langskip, $last, $latest, $left, $line, $lines, $locations, $logfle
 Global $manifest, $md5, $message, $minimize, $name, $newfile, $num, $open, $OS, $OSextras, $OSget, $osskip
-Global $path, $percent, $pid, $progbar, $progress, $QueueGUI, $read, $repolog, $res, $script, $segment, $SetupGUI
+Global $path, $percent, $pid, $progbar, $progress, $QueueGUI, $read, $repolog, $res, $s, $script, $segment, $SetupGUI
 Global $shared, $shell, $show, $shutdown, $SimpleGUI, $size, $sizecheck, $skiplang, $skipos, $splash, $split
 Global $stagesfix, $standalone, $started, $state, $stop, $store, $style, $t, $text, $textdump, $threads, $titfile
 Global $title, $titles, $titlist, $top, $tot, $total, $type, $update, $updated, $UpdateGUI, $updating, $user, $val
@@ -91,7 +91,7 @@ $progbar = @ScriptDir & "\Reporun.exe"
 $repolog = @ScriptDir & "\gogrepo.log"
 $splash = @ScriptDir & "\Splash.jpg"
 $titlist = @ScriptDir & "\Titles.txt"
-$version = "v1.0"
+$version = "v1.1"
 
 $SimpleGUI = @ScriptDir & "\GOGRepo Simple GUI.au3"
 If FileExists($SimpleGUI) Then
@@ -193,7 +193,7 @@ Func MainGUI()
 	$left = IniRead($inifle, "Program Window", "left", @DesktopWidth - $width - 25)
 	$top = IniRead($inifle, "Program Window", "top", @DesktopHeight - $height - 30)
 	$style = $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU + $WS_CLIPSIBLINGS + $WS_MINIMIZEBOX ; + $WS_VISIBLE
-	$GOGRepoGUI = GuiCreate("GOGRepo GUI", $width, $height, $left, $top, $style, $WS_EX_TOPMOST)
+	$GOGRepoGUI = GuiCreate("GOGRepo GUI " & $version, $width, $height, $left, $top, $style, $WS_EX_TOPMOST)
 	GUISetBkColor($COLOR_SKYBLUE, $GOGRepoGUI)
 	;GuiSetState(@SW_DISABLE, $GOGRepoGUI)
 	; CONTROLS
@@ -350,7 +350,10 @@ Func MainGUI()
 	$Item_library = GUICtrlCreateMenuItem("Go to Library page", $Menu_list)
 	GUICtrlCreateMenuItem("", $Menu_list)
 	GUICtrlCreateMenuItem("", $Menu_list)
-	$Item_content = GUICtrlCreateMenuItem("Folder Content", $Menu_list)
+	$Item_content = GUICtrlCreateMenuItem("View Folder Content", $Menu_list)
+	GUICtrlCreateMenuItem("", $Menu_list)
+	GUICtrlCreateMenuItem("", $Menu_list)
+	$Item_check = GUICtrlCreateMenuItem("CHECKER for Game files", $Menu_list)
 	GUICtrlCreateMenuItem("", $Menu_list)
 	GUICtrlCreateMenuItem("", $Menu_list)
 	$Item_remove = GUICtrlCreateMenuItem("Remove Selected Game", $Menu_list)
@@ -360,20 +363,20 @@ Func MainGUI()
 	GUICtrlCreateMenuItem("", $Menu_list)
 	GUICtrlCreateMenuItem("", $Menu_list)
 	$Menu_games = GUICtrlCreateMenu("ALL Games", $Menu_list)
-	$Item_allsort = GUICtrlCreateMenuItem("Sorted List", $Menu_games)
-	$Item_allunsort = GUICtrlCreateMenuItem("Unsorted List", $Menu_games)
+	$Item_allsort = GUICtrlCreateMenuItem("Save Sorted List", $Menu_games)
+	$Item_allunsort = GUICtrlCreateMenuItem("Save Unsorted List", $Menu_games)
 	GUICtrlCreateMenuItem("", $Menu_list)
 	$Menu_linux = GUICtrlCreateMenu("Linux Games", $Menu_list)
-	$Item_linsort = GUICtrlCreateMenuItem("Sorted List", $Menu_linux)
-	$Item_linunsort = GUICtrlCreateMenuItem("Unsorted List", $Menu_linux)
+	$Item_linsort = GUICtrlCreateMenuItem("Save Sorted List", $Menu_linux)
+	$Item_linunsort = GUICtrlCreateMenuItem("Save Unsorted List", $Menu_linux)
 	GUICtrlCreateMenuItem("", $Menu_list)
 	$Menu_mac = GUICtrlCreateMenu("MAC Games", $Menu_list)
-	$Item_macsort = GUICtrlCreateMenuItem("Sorted List", $Menu_mac)
-	$Item_macunsort = GUICtrlCreateMenuItem("Unsorted List", $Menu_mac)
+	$Item_macsort = GUICtrlCreateMenuItem("Save Sorted List", $Menu_mac)
+	$Item_macunsort = GUICtrlCreateMenuItem("Save Unsorted List", $Menu_mac)
 	GUICtrlCreateMenuItem("", $Menu_list)
 	$Menu_windows = GUICtrlCreateMenu("Windows Games (only)", $Menu_list)
-	$Item_winsort = GUICtrlCreateMenuItem("Sorted List", $Menu_windows)
-	$Item_winunsort = GUICtrlCreateMenuItem("Unsorted List", $Menu_windows)
+	$Item_winsort = GUICtrlCreateMenuItem("Save Sorted List", $Menu_windows)
+	$Item_winunsort = GUICtrlCreateMenuItem("Save Unsorted List", $Menu_windows)
 	;
 	; OS SETTINGS
 	$user = @SystemDir & "\user32.dll"
@@ -1286,6 +1289,7 @@ Func MainGUI()
 								$OS = StringReplace($OSget, " + ", " ")
 								$OS = StringLower($OS)
 								;$title = GUICtrlRead($Input_title)
+								$games = _GUICtrlListBox_GetCount($List_games)
 								UpdateGUI()
 								$window = $GOGRepoGUI
 								If $updating = 1 Then
@@ -2076,6 +2080,11 @@ Func MainGUI()
 			Else
 				MsgBox(262192, "Title Error", "A game is not selected!", $wait, $GOGRepoGUI)
 			EndIf
+		Case $msg = $Item_check
+			; Check for Game files
+			EnableDisableControls($GUI_DISABLE)
+			FileCheckerGUI()
+			EnableDisableControls($GUI_ENABLE)
 		Case $msg = $Item_allunsort
 			; ALL Games - Unsorted List
 			CreateListOfGames("ALL", $addlist)
@@ -2578,6 +2587,489 @@ Func DownloadGUI()
 		EndSelect
 	WEnd
 EndFunc ;=> DownloadGUI
+
+Func FileCheckerGUI()
+	Local $Button_check, $Button_get, $Button_inf, $Button_list, $Button_load, $Button_quit, $Button_remove, $Button_save
+	Local $Checkbox_first, $Checkbox_second, $Combo_filter, $Group_check, $Group_filter, $Group_missed, $Input_entry
+	Local $List_check, $List_missed
+	Local $caption, $CheckerGUI, $count, $Group, $List, $savlist, $segments
+	;
+	$CheckerGUI = GuiCreate("Game Files Checker", $width, $height, $left, $top, $style + $WS_VISIBLE, $WS_EX_TOPMOST)
+	GUISetBkColor(0xBBFFBB, $CheckerGUI)
+	; CONTROLS
+	$Group_check = GuiCtrlCreateGroup("Files To Check For", 10, 10, $width - 20, 193)
+	$Checkbox_first = GUICtrlCreateCheckbox("Active", $width - 70, 7,  50, 20)
+	GUICtrlSetTip($Checkbox_first, "Files To Check For status!")
+	$List_check = GuiCtrlCreateList("", 20, 30, $width - 40, 170, $LBS_SORT + $WS_BORDER + $WS_VSCROLL)
+	GUICtrlSetBkColor($List_check, 0xB9FFFF)
+	GUICtrlSetTip($List_check, "List of game files to check for!")
+	;
+	$Input_entry = GUICtrlCreateInput("", 10, 213, $width - 20, 20)
+	GUICtrlSetBkColor($Input_entry, 0xFFFFB0)
+	GUICtrlSetTip($Input_entry, "Selected entry!")
+	;
+	$Group_missed = GuiCtrlCreateGroup("Unmatched Files", 10, 243, $width - 20, 90)
+	$Checkbox_second = GUICtrlCreateCheckbox("Active", $width - 70, 240,  50, 20)
+	GUICtrlSetTip($Checkbox_second, "Unmatched Files status!")
+	$List_missed = GuiCtrlCreateList("", 20, 263, $width - 40, 70, $LBS_SORT + $WS_BORDER + $WS_VSCROLL)
+	GUICtrlSetBkColor($List_missed, 0xFFD5FF)
+	GUICtrlSetTip($List_missed, "List of unmatched game files after check!")
+	;
+	$Button_get = GuiCtrlCreateButton("Get File" & @LF & "Names", 10, $height - 60, 80, 50, $BS_MULTILINE)
+	GUICtrlSetFont($Button_get, 9, 600)
+	GUICtrlSetTip($Button_get, "Get file names from manifest!")
+	;
+	$Button_save = GuiCtrlCreateButton("SAVE", 100, $height - 60, 55, 22)
+	GUICtrlSetFont($Button_save, 7, 600, 0, "Small Fonts")
+	GUICtrlSetTip($Button_save, "Save the current list of game files!")
+	;
+	$Button_load = GuiCtrlCreateButton("LOAD", 100, $height - 32, 55, 22)
+	GUICtrlSetFont($Button_load, 7, 600, 0, "Small Fonts")
+	GUICtrlSetTip($Button_load, "Load the saved list of game files!")
+	;
+	$Button_check = GuiCtrlCreateButton("CHECK", 165, $height - 60, 75, 50)
+	GUICtrlSetFont($Button_check, 9, 600)
+	GUICtrlSetTip($Button_check, "Check for game files!")
+	;
+	$Button_list = GuiCtrlCreateButton("LIST", 250, $height - 60, 55, 50)
+	GUICtrlSetFont($Button_list, 9, 600)
+	GUICtrlSetTip($Button_list, "View the saved list of game files!")
+	;
+	$Button_remove = GuiCtrlCreateButton("REMOVE", 315, $height - 60, 80, 50)
+	GUICtrlSetFont($Button_remove, 9, 600)
+	GUICtrlSetTip($Button_remove, "Remove a selected entry!")
+	;
+	$Group_filter = GuiCtrlCreateGroup("Filter Out", 405, $height - 60, 65, 50)
+	$Combo_filter = GUICtrlCreateCombo("", 415, $height - 40, 45, 21)
+	GUICtrlSetTip($Combo_filter, "Filter out the selected file type from the list!")
+	;
+	$Button_inf = GuiCtrlCreateButton("Info", $width - 110, $height - 60, 45, 50, $BS_ICON)
+	GUICtrlSetTip($Button_inf, "Checker Information!")
+	;
+	$Button_quit = GuiCtrlCreateButton("EXIT", $width - 55, $height - 60, 45, 50, $BS_ICON)
+	GUICtrlSetTip($Button_quit, "Exit / Close / Quit the window!")
+	;
+	; SETTINGS
+	GUICtrlSetImage($Button_inf, $user, $icoI, 1)
+	GUICtrlSetImage($Button_quit, $user, $icoX, 1)
+	;
+	GUICtrlSetData($Combo_filter, "||BIN|DMG|EXE|GZ|MP4|PDF|PNG|RAR|SH|ZIP", "")
+	;
+	$List = $List_check
+	$Group = $Group_check
+	$caption = "Files To Check For"
+	$savlist = @ScriptDir & "\Saved.txt"
+	GUICtrlSetState($Checkbox_first, $GUI_CHECKED)
+
+	GuiSetState()
+	While 1
+		$msg = GuiGetMsg()
+		Select
+		Case $msg = $GUI_EVENT_CLOSE Or $msg = $Button_quit
+			; Exit / Close / Quit the window
+			GUIDelete($CheckerGUI)
+			ExitLoop
+		Case $msg = $Button_save
+			; Save the current list of game files
+			GUICtrlSetState($Checkbox_first, $GUI_DISABLE)
+			GUICtrlSetState($List_check, $GUI_DISABLE)
+			GUICtrlSetState($Checkbox_second, $GUI_DISABLE)
+			GUICtrlSetState($List_missed, $GUI_DISABLE)
+			GUICtrlSetState($Button_get, $GUI_DISABLE)
+			GUICtrlSetState($Button_save, $GUI_DISABLE)
+			GUICtrlSetState($Button_load, $GUI_DISABLE)
+			GUICtrlSetState($Button_check, $GUI_DISABLE)
+			GUICtrlSetState($Button_list, $GUI_DISABLE)
+			GUICtrlSetState($Button_remove, $GUI_DISABLE)
+			GUICtrlSetState($Combo_filter, $GUI_DISABLE)
+			GUICtrlSetState($Button_inf, $GUI_DISABLE)
+			GUICtrlSetState($Button_quit, $GUI_DISABLE)
+			;
+			SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
+			$entries = ""
+			$count = _GUICtrlListBox_GetCount($List)
+			For $a = 0 To $count - 1
+				$entry = _GUICtrlListBox_GetText($List, $a)
+				If $entries = "" Then
+					$entries = $entry
+				Else
+					$entries = $entries & @CRLF & $entry
+				EndIf
+			Next
+			$open = FileOpen($savlist, 2)
+			FileWrite($open, $entries)
+			FileClose($open)
+			SplashOff()
+			;
+			GUICtrlSetState($Checkbox_first, $GUI_ENABLE)
+			GUICtrlSetState($List_check, $GUI_ENABLE)
+			GUICtrlSetState($Checkbox_second, $GUI_ENABLE)
+			GUICtrlSetState($List_missed, $GUI_ENABLE)
+			GUICtrlSetState($Button_get, $GUI_ENABLE)
+			GUICtrlSetState($Button_save, $GUI_ENABLE)
+			GUICtrlSetState($Button_load, $GUI_ENABLE)
+			GUICtrlSetState($Button_check, $GUI_ENABLE)
+			GUICtrlSetState($Button_list, $GUI_ENABLE)
+			GUICtrlSetState($Button_remove, $GUI_ENABLE)
+			GUICtrlSetState($Combo_filter, $GUI_ENABLE)
+			GUICtrlSetState($Button_inf, $GUI_ENABLE)
+			GUICtrlSetState($Button_quit, $GUI_ENABLE)
+		Case $msg = $Button_remove
+			; Remove a selected entry
+			$ind = _GUICtrlListBox_GetCurSel($List)
+			If $ind > -1 Then
+				$count = _GUICtrlListBox_DeleteString($List, $ind)
+				If $count > 0 Then
+					GUICtrlSetData($Group, $caption & "  (" & $count & ")")
+					If $ind >= $count Then
+						$ind = $ind - 1
+					EndIf
+					_GUICtrlListBox_SetCurSel($List, $ind)
+					$entry = _GUICtrlListBox_GetText($List, $ind)
+					GUICtrlSetData($Input_entry, $entry)
+				Else
+					GUICtrlSetData($Group, $caption)
+					GUICtrlSetData($Input_entry, "")
+				EndIf
+			EndIf
+		Case $msg = $Button_load
+			; Load the saved list of game files
+			GUICtrlSetState($Checkbox_first, $GUI_DISABLE)
+			GUICtrlSetState($List_check, $GUI_DISABLE)
+			GUICtrlSetState($Checkbox_second, $GUI_DISABLE)
+			GUICtrlSetState($List_missed, $GUI_DISABLE)
+			GUICtrlSetState($Button_get, $GUI_DISABLE)
+			GUICtrlSetState($Button_save, $GUI_DISABLE)
+			GUICtrlSetState($Button_load, $GUI_DISABLE)
+			GUICtrlSetState($Button_check, $GUI_DISABLE)
+			GUICtrlSetState($Button_list, $GUI_DISABLE)
+			GUICtrlSetState($Button_remove, $GUI_DISABLE)
+			GUICtrlSetState($Combo_filter, $GUI_DISABLE)
+			GUICtrlSetState($Button_inf, $GUI_DISABLE)
+			GUICtrlSetState($Button_quit, $GUI_DISABLE)
+			;
+			SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
+			GUICtrlSetData($List, "")
+			_GUICtrlComboBox_SetCurSel($Combo_filter, 0)
+			$open = FileOpen($savlist, 0)
+			$read = FileRead($open)
+			FileClose($open)
+			$entries = StringReplace($read, @CRLF, "|")
+			GUICtrlSetData($List, $entries)
+			$count = _GUICtrlListBox_GetCount($List)
+			If $count > 0 Then
+				GUICtrlSetData($Group, $caption & " (" & $count & ")")
+			Else
+				GUICtrlSetData($Group, $caption)
+			EndIf
+			SplashOff()
+			;
+			GUICtrlSetState($Checkbox_first, $GUI_ENABLE)
+			GUICtrlSetState($List_check, $GUI_ENABLE)
+			GUICtrlSetState($Checkbox_second, $GUI_ENABLE)
+			GUICtrlSetState($List_missed, $GUI_ENABLE)
+			GUICtrlSetState($Button_get, $GUI_ENABLE)
+			GUICtrlSetState($Button_save, $GUI_ENABLE)
+			GUICtrlSetState($Button_load, $GUI_ENABLE)
+			GUICtrlSetState($Button_check, $GUI_ENABLE)
+			GUICtrlSetState($Button_list, $GUI_ENABLE)
+			GUICtrlSetState($Button_remove, $GUI_ENABLE)
+			GUICtrlSetState($Combo_filter, $GUI_ENABLE)
+			GUICtrlSetState($Button_inf, $GUI_ENABLE)
+			GUICtrlSetState($Button_quit, $GUI_ENABLE)
+		Case $msg = $Button_list
+			; View the saved list of game files
+			If FileExists($savlist) Then ShellExecute($savlist)
+		Case $msg = $Button_inf
+			; Checker Information
+		Case $msg = $Button_get
+			; Get file names from manifest
+			If FileExists($manifest) Then
+			GUICtrlSetState($Checkbox_first, $GUI_DISABLE)
+			GUICtrlSetState($List_check, $GUI_DISABLE)
+			GUICtrlSetState($Checkbox_second, $GUI_DISABLE)
+				GUICtrlSetState($List_missed, $GUI_DISABLE)
+				GUICtrlSetState($Button_get, $GUI_DISABLE)
+				GUICtrlSetState($Button_save, $GUI_DISABLE)
+				GUICtrlSetState($Button_load, $GUI_DISABLE)
+				GUICtrlSetState($Button_check, $GUI_DISABLE)
+				GUICtrlSetState($Button_list, $GUI_DISABLE)
+				GUICtrlSetState($Button_remove, $GUI_DISABLE)
+				GUICtrlSetState($Combo_filter, $GUI_DISABLE)
+				GUICtrlSetState($Button_inf, $GUI_DISABLE)
+				GUICtrlSetState($Button_quit, $GUI_DISABLE)
+				;
+				SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
+				GUICtrlSetData($List_check, "")
+				_GUICtrlComboBox_SetCurSel($Combo_filter, 0)
+				$open = FileOpen($manifest, 0)
+				$read = FileRead($open)
+				FileClose($open)
+				$segments = StringSplit($read, "'title':", 1)
+				If $segments[0] > 1 Then
+					$count = 0
+					For $s = 1 To $segments[0]
+						$segment = $segments[$s]
+						$array = StringSplit($segment, @LF, 1)
+						$ind = _ArraySearch($array, "'long_title':", 1, 0, 0, 1)
+						If $ind > -1 Then
+							$title = $array[$ind]
+							$title = StringSplit($title, "'long_title': '", 1)
+							If $title[0] = 2 Then
+								$title = $title[2]
+								$title = StringSplit($title, "',", 1)
+								$title = $title[1]
+							Else
+								$title = $title[1]
+								$title = StringSplit($title, "'long_title': " & '"', 1)
+								$title = $title[2]
+								$title = StringSplit($title, '",', 1)
+								$title = $title[1]
+							EndIf
+							$title = ReplaceOtherCharacters($title)
+							$title = StringReplace($title, ": ", " - ")
+							$title = StringStripWS($title, 7)
+							If $title <> "" Then
+								For $a = 1 To $array[0]
+									$line = $array[$a]
+									If StringInStr($line, "'name': '") > 0 Then
+										$line = StringSplit($line, "'name': '", 1)
+										$line = $line[2]
+										$line = StringSplit($line, "',", 1)
+										$line = $title & "\" & $line[1]
+										GUICtrlSetData($List_check, $line)
+										$count = $count + 1
+									ElseIf StringInStr($line, "'name': " & '"') > 0 Then
+										$line = StringSplit($line, "'name': " & '"', 1)
+										$line = $line[2]
+										$line = StringSplit($line, '",', 1)
+										$line = $title & "\" & $line[1]
+										GUICtrlSetData($List_check, $line)
+										$count = $count + 1
+									EndIf
+								Next
+							EndIf
+						EndIf
+					Next
+					If $count > 0 Then
+						If $count <> _GUICtrlListBox_GetCount($List_check) Then
+							MsgBox(262192, "Get Error", "Count mismatch.", 0, $CheckerGUI)
+							$count = _GUICtrlListBox_GetCount($List_check)
+						EndIf
+						GUICtrlSetData($Group_check, "Files To Check For  (" & $count & ")")
+					EndIf
+				EndIf
+				SplashOff()
+				;
+				GUICtrlSetState($Checkbox_first, $GUI_ENABLE)
+				GUICtrlSetState($List_check, $GUI_ENABLE)
+				GUICtrlSetState($Checkbox_second, $GUI_ENABLE)
+				GUICtrlSetState($List_missed, $GUI_ENABLE)
+				GUICtrlSetState($Button_get, $GUI_ENABLE)
+				GUICtrlSetState($Button_save, $GUI_ENABLE)
+				GUICtrlSetState($Button_load, $GUI_ENABLE)
+				GUICtrlSetState($Button_check, $GUI_ENABLE)
+				GUICtrlSetState($Button_list, $GUI_ENABLE)
+				GUICtrlSetState($Button_remove, $GUI_ENABLE)
+				GUICtrlSetState($Combo_filter, $GUI_ENABLE)
+				GUICtrlSetState($Button_inf, $GUI_ENABLE)
+				GUICtrlSetState($Button_quit, $GUI_ENABLE)
+			EndIf
+		Case $msg = $Button_check
+			; Check for game files
+			GUICtrlSetState($Checkbox_first, $GUI_DISABLE)
+			GUICtrlSetState($List_check, $GUI_DISABLE)
+			GUICtrlSetState($Checkbox_second, $GUI_DISABLE)
+			GUICtrlSetState($List_missed, $GUI_DISABLE)
+			GUICtrlSetState($Button_get, $GUI_DISABLE)
+			GUICtrlSetState($Button_save, $GUI_DISABLE)
+			GUICtrlSetState($Button_load, $GUI_DISABLE)
+			GUICtrlSetState($Button_check, $GUI_DISABLE)
+			GUICtrlSetState($Button_list, $GUI_DISABLE)
+			GUICtrlSetState($Button_remove, $GUI_DISABLE)
+			GUICtrlSetState($Combo_filter, $GUI_DISABLE)
+			GUICtrlSetState($Button_inf, $GUI_DISABLE)
+			GUICtrlSetState($Button_quit, $GUI_DISABLE)
+			;
+			$store = IniRead($inifle, "Games Storage Folder", "path", "")
+			$pth = FileSelectFolder("Browse to select your games storage folder.", $gamesfold, 0, $store, $CheckerGUI)
+			If Not @error And StringMid($pth, 2, 2) = ":\" Then
+				$store = $pth
+				IniWrite($inifle, "Games Storage Folder", "path", $store)
+				SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
+				$entries = ""
+				$count = _GUICtrlListBox_GetCount($List_check)
+				For $s = 0 To $count - 1
+					$entry = _GUICtrlListBox_GetText($List_check, $s)
+					If $entries = "" Then
+						$entries = $entry
+					Else
+						$entries = $entries & "|" & $entry
+					EndIf
+				Next
+				$entries = StringSplit($entries, "|", 1)
+				$array = _FileListToArrayRec($store, "*.bin;*.dmg;*.exe;*.gz;*.mp4;*.pdf;*.png;*.rar;*.sh;*.zip", $FLTAR_FILES, $FLTAR_RECUR, $FLTAR_SORT, $FLTAR_RELPATH)
+				_ArrayDisplay($array)
+				For $a = 1 To $array[0]
+					$entry = $array[$a]
+					$ind = _ArraySearch($entries, $entry, 1, 0, 0, 1)
+					If $ind > -1 Then
+						$entry = $entries[$ind]
+						$ind = _GUICtrlListBox_FindString($List_check, $entry, True)
+						If $ind > -1 Then
+							$count = _GUICtrlListBox_DeleteString($List_check, $ind)
+						EndIf
+					Else
+						GUICtrlSetData($List_missed, $entry)
+					EndIf
+				Next
+				If $count > 0 Then
+					GUICtrlSetData($Group_check, "Files To Check For  (" & $count & ")")
+				Else
+					GUICtrlSetData($Group_check, "Files To Check For")
+				EndIf
+				$count = _GUICtrlListBox_GetCount($List_missed)
+				If $count > 0 Then
+					GUICtrlSetData($Group_missed, "Unmatched Files (" & $count & ")")
+				Else
+					GUICtrlSetData($Group_missed, "Unmatched Files")
+				EndIf
+				SplashOff()
+			EndIf
+			;
+			GUICtrlSetState($Checkbox_first, $GUI_ENABLE)
+			GUICtrlSetState($List_check, $GUI_ENABLE)
+			GUICtrlSetState($Checkbox_second, $GUI_ENABLE)
+			GUICtrlSetState($List_missed, $GUI_ENABLE)
+			GUICtrlSetState($Button_get, $GUI_ENABLE)
+			GUICtrlSetState($Button_save, $GUI_ENABLE)
+			GUICtrlSetState($Button_load, $GUI_ENABLE)
+			GUICtrlSetState($Button_check, $GUI_ENABLE)
+			GUICtrlSetState($Button_list, $GUI_ENABLE)
+			GUICtrlSetState($Button_remove, $GUI_ENABLE)
+			GUICtrlSetState($Combo_filter, $GUI_ENABLE)
+			GUICtrlSetState($Button_inf, $GUI_ENABLE)
+			GUICtrlSetState($Button_quit, $GUI_ENABLE)
+		Case $msg = $Checkbox_second
+			; Filter out the selected file type from the list
+			If GUICtrlRead($Checkbox_second) = $GUI_CHECKED Then
+				$List = $List_missed
+				$Group = $Group_missed
+				$caption = "Unmatched Files"
+				$savlist = @ScriptDir & "\Unmatched.txt"
+				_GUICtrlListBox_SetCurSel($List_check, -1)
+				GUICtrlSetState($Checkbox_first, $GUI_UNCHECKED)
+			Else
+				$List = $List_check
+				$Group = $Group_check
+				$caption = "Files To Check For"
+				$savlist = @ScriptDir & "\Saved.txt"
+				_GUICtrlListBox_SetCurSel($List_missed, -1)
+				GUICtrlSetState($Checkbox_first, $GUI_CHECKED)
+			EndIf
+		Case $msg = $Checkbox_first
+			; Filter out the selected file type from the list
+			If GUICtrlRead($Checkbox_first) = $GUI_CHECKED Then
+				$List = $List_check
+				$Group = $Group_check
+				$caption = "Files To Check For"
+				$savlist = @ScriptDir & "\Saved.txt"
+				_GUICtrlListBox_SetCurSel($List_missed, -1)
+				GUICtrlSetState($Checkbox_second, $GUI_UNCHECKED)
+			Else
+				$List = $List_missed
+				$Group = $Group_missed
+				$caption = "Unmatched Files"
+				$savlist = @ScriptDir & "\Unmatched.txt"
+				_GUICtrlListBox_SetCurSel($List_check, -1)
+				GUICtrlSetState($Checkbox_second, $GUI_CHECKED)
+			EndIf
+		Case $msg = $Combo_filter
+			; Filter out the selected file type from the list
+			$type = GUICtrlRead($Combo_filter)
+			If $type <> "" Then
+				$type = "." & $type
+				$len = StringLen($type)
+				GUICtrlSetState($Checkbox_first, $GUI_DISABLE)
+				GUICtrlSetState($List_check, $GUI_DISABLE)
+				GUICtrlSetState($Checkbox_second, $GUI_DISABLE)
+				GUICtrlSetState($List_missed, $GUI_DISABLE)
+				GUICtrlSetState($Button_get, $GUI_DISABLE)
+				GUICtrlSetState($Button_save, $GUI_DISABLE)
+				GUICtrlSetState($Button_load, $GUI_DISABLE)
+				GUICtrlSetState($Button_check, $GUI_DISABLE)
+				GUICtrlSetState($Button_list, $GUI_DISABLE)
+				GUICtrlSetState($Button_remove, $GUI_DISABLE)
+				GUICtrlSetState($Combo_filter, $GUI_DISABLE)
+				GUICtrlSetState($Button_inf, $GUI_DISABLE)
+				GUICtrlSetState($Button_quit, $GUI_DISABLE)
+				;
+				SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
+				$entries = ""
+				$count = _GUICtrlListBox_GetCount($List_check)
+				For $a = 0 To $count - 1
+					$entry = _GUICtrlListBox_GetText($List_check, $a)
+					If StringRight($entry, $len) <> $type Then
+						If $entries = "" Then
+							$entries = $entry
+						Else
+							$entries = $entries & "|" & $entry
+						EndIf
+					EndIf
+				Next
+				GUICtrlSetData($List_check, "")
+				GUICtrlSetData($List_check, $entries)
+				$count = _GUICtrlListBox_GetCount($List_check)
+				If $count > 0 Then
+					GUICtrlSetData($Group_check, "Files To Check For  (" & $count & ")")
+				Else
+					GUICtrlSetData($Group_check, "Files To Check For")
+				EndIf
+				SplashOff()
+				;
+				GUICtrlSetState($Checkbox_first, $GUI_ENABLE)
+				GUICtrlSetState($List_check, $GUI_ENABLE)
+				GUICtrlSetState($Checkbox_second, $GUI_ENABLE)
+				GUICtrlSetState($List_missed, $GUI_ENABLE)
+				GUICtrlSetState($Button_get, $GUI_ENABLE)
+				GUICtrlSetState($Button_save, $GUI_ENABLE)
+				GUICtrlSetState($Button_load, $GUI_ENABLE)
+				GUICtrlSetState($Button_check, $GUI_ENABLE)
+				GUICtrlSetState($Button_list, $GUI_ENABLE)
+				GUICtrlSetState($Button_remove, $GUI_ENABLE)
+				GUICtrlSetState($Combo_filter, $GUI_ENABLE)
+				GUICtrlSetState($Button_inf, $GUI_ENABLE)
+				GUICtrlSetState($Button_quit, $GUI_ENABLE)
+			EndIf
+		Case $msg = $List_missed
+			; List of unmatched game files after check
+			$entry = GUICtrlRead($List_missed)
+			GUICtrlSetData($Input_entry, $entry)
+			;
+			$List = $List_missed
+			$Group = $Group_missed
+			$caption = "Unmatched Files"
+			$savlist = @ScriptDir & "\Unmatched.txt"
+			_GUICtrlListBox_SetCurSel($List_check, -1)
+			GUICtrlSetState($Checkbox_second, $GUI_CHECKED)
+			GUICtrlSetState($Checkbox_first, $GUI_UNCHECKED)
+		Case $msg = $List_check
+			; List of game files to check for
+			$entry = GUICtrlRead($List_check)
+			GUICtrlSetData($Input_entry, $entry)
+			;
+			$List = $List_check
+			$Group = $Group_check
+			$caption = "Files To Check For"
+			$savlist = @ScriptDir & "\Saved.txt"
+			_GUICtrlListBox_SetCurSel($List_missed, -1)
+			GUICtrlSetState($Checkbox_first, $GUI_CHECKED)
+			GUICtrlSetState($Checkbox_second, $GUI_UNCHECKED)
+		Case Else
+			;;;
+		EndSelect
+	WEnd
+EndFunc ;=> FileCheckerGUI
 
 Func QueueGUI()
 	Local $Button_inf, $Button_quit, $Button_record, $Checkbox_delete, $Checkbox_dos, $Checkbox_md5
@@ -3628,17 +4120,17 @@ EndFunc ;=> SetupGUI
 
 Func UpdateGUI()
 	Local $Button_backups, $Button_begin, $Button_changed, $Button_changes, $Button_close, $Button_continue, $Button_inf
-	Local $Button_program, $Button_upnow, $Checkbox_clean, $Checkbox_every, $Checkbox_new, $Checkbox_replace, $Checkbox_resume
-	Local $Checkbox_skip, $Checkbox_stages, $Checkbox_tag, $Checkbox_uplog, $Combo_games, $Combo_install, $Group_folders
-	Local $Group_stages, $Input_blocks, $Input_language, $Input_OSes, $Label_blocks, $Label_games, $Label_install, $Label_lang
-	Local $Label_OS, $Updown_blocks
+	Local $Button_program, $Button_upnow, $Checkbox_clean, $Checkbox_console, $Checkbox_every, $Checkbox_new, $Checkbox_replace
+	Local $Checkbox_resume, $Checkbox_skip, $Checkbox_stages, $Checkbox_tag, $Checkbox_uplog, $Checkbox_window, $Combo_games
+	Local $Combo_install, $Group_complete, $Group_folders, $Group_stages, $Group_windows, $Input_blocks, $Input_language
+	Local $Input_OSes, $Label_blocks, $Label_done, $Label_games, $Label_install, $Label_lang, $Label_OS, $Updown_blocks
 	;
-	Local $above, $block, $blocks, $clean, $cleaned, $cleanup, $entry, $err, $high, $i, $id, $ids, $installer, $installers
-	Local $loop, $newgames, $out, $params, $replace, $results, $resume, $resumeman, $ret, $side, $skiphid, $stage, $stagefile
-	Local $stages, $start, $sum, $tagged, $uplog, $wide
+	Local $above, $block, $blocks, $clean, $cleaned, $cleanup, $completed, $entry, $err, $found, $high, $i, $id, $ids
+	Local $installer, $installers, $loop, $newgames, $out, $params, $remain, $replace, $results, $resume, $resumeman
+	Local $ret, $side, $skiphid, $stage, $stagefile, $stages, $start, $sum, $tagged, $uplog, $wide
 	;
 	$wide = 250
-	$high = 360
+	$high = 405
 	$side = IniRead($inifle, "Update Window", "left", $left)
 	$above = IniRead($inifle, "Update Window", "top", $top)
 	$UpdateGUI = GuiCreate("Update The Manifest", $wide, $high, $side, $above, $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU _
@@ -3655,87 +4147,100 @@ Func UpdateGUI()
 	$Input_language = GUICtrlCreateInput("", 160, 10, 80, 20)
 	GUICtrlSetTip($Input_language, "Selected language(s)!")
 	;
-	$Label_OS = GuiCtrlCreateLabel("OS", 10, 40, 35, 20, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
+	$Label_OS = GuiCtrlCreateLabel("OS", 10, 38, 35, 20, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
 	GUICtrlSetBkColor($Label_OS, $COLOR_BLUE)
 	GUICtrlSetColor($Label_OS, $COLOR_WHITE)
 	GUICtrlSetFont($Label_OS, 7, 600, 0, "Small Fonts")
-	$Input_OSes = GUICtrlCreateInput("", 45, 40, 125, 20)
+	$Input_OSes = GUICtrlCreateInput("", 45, 38, 125, 20)
 	GUICtrlSetTip($Input_OSes, "Selected OS!")
 	;
-	$Checkbox_resume = GUICtrlCreateCheckbox("Resume", 183, 40, 55, 20, $BS_AUTO3STATE)
+	$Checkbox_resume = GUICtrlCreateCheckbox("Resume", 183, 38, 55, 20, $BS_AUTO3STATE)
 	GUICtrlSetTip($Checkbox_resume, "Enable resume modes for updating!")
 	;
-	$Checkbox_skip = GUICtrlCreateCheckbox("Skip Hidden Games  (set in the GOG Library)", 10, 70, 230, 20)
+	$Checkbox_skip = GUICtrlCreateCheckbox("Skip Hidden Games  (set in the GOG Library)", 10, 65, 230, 20)
 	GUICtrlSetTip($Checkbox_skip, "Skip updating the manifest for hidden games!")
 	;
-	$Checkbox_uplog = GUICtrlCreateCheckbox("Log File", 10, 95, 55, 20)
+	$Checkbox_uplog = GUICtrlCreateCheckbox("Log File", 10, 90, 55, 20)
 	GUICtrlSetTip($Checkbox_uplog, "Save a Log file for update!")
 	;
-	$Label_install = GuiCtrlCreateLabel("Installers", 75, 95, 65, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
+	$Label_install = GuiCtrlCreateLabel("Installers", 75, 90, 65, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
 	GUICtrlSetBkColor($Label_install, $COLOR_BLACK)
 	GUICtrlSetColor($Label_install, $COLOR_WHITE)
 	GUICtrlSetFont($Label_install, 7, 600, 0, "Small Fonts")
-	$Combo_install = GUICtrlCreateCombo("", 140, 95, 100, 21)
+	$Combo_install = GUICtrlCreateCombo("", 140, 90, 100, 21)
 	GUICtrlSetTip($Combo_install, "Installers to update for!")
 	;
-	$Checkbox_new = GUICtrlCreateCheckbox("New Games Only", 10, 121, 100, 20)
+	$Checkbox_new = GUICtrlCreateCheckbox("New Games Only", 10, 116, 100, 20)
 	GUICtrlSetTip($Checkbox_new, "Add new games only to the manifest!")
 	;
-	$Checkbox_tag = GUICtrlCreateCheckbox("Use the Update Tag", 124, 121, 115, 20)
+	$Checkbox_tag = GUICtrlCreateCheckbox("Use the Update Tag", 124, 116, 115, 20)
 	GUICtrlSetTip($Checkbox_tag, "Update games with Update Tag!")
 	;
-	$Group_stages = GUICtrlCreateGroup("Update ALL In Stages", 10, 147, 230, 88)
-	$Button_begin = GuiCtrlCreateButton("BEGIN", 20, 165, 77, 32)
+	$Group_stages = GUICtrlCreateGroup("Update ALL In Stages", 10, 140, 230, 88)
+	$Button_begin = GuiCtrlCreateButton("BEGIN", 20, 158, 77, 32)
 	GUICtrlSetFont($Button_begin, 9, 600)
 	GUICtrlSetTip($Button_begin, "Begin Updating in Stages!")
-	$Button_continue = GuiCtrlCreateButton("CONTINUE", 107, 165, 103, 32)
+	$Button_continue = GuiCtrlCreateButton("CONTINUE", 107, 158, 103, 32)
 	GUICtrlSetFont($Button_continue, 9, 600)
 	GUICtrlSetTip($Button_continue, "Continue Updating in Stages!")
-	$Checkbox_clean = GUICtrlCreateCheckbox("", 215, 171, 15, 20, $BS_AUTO3STATE)
+	$Checkbox_clean = GUICtrlCreateCheckbox("", 215, 164, 15, 20, $BS_AUTO3STATE)
 	GUICtrlSetTip($Checkbox_clean, "Enable cleanup only!")
-	$Checkbox_stages = GUICtrlCreateCheckbox("Stages", 20, 204, 45, 21)
+	$Checkbox_stages = GUICtrlCreateCheckbox("Stages", 20, 197, 45, 21)
 	GUICtrlSetFont($Checkbox_stages, 7, 400, 0, "Small Fonts")
 	GUICtrlSetTip($Checkbox_stages, "Enable updating in stages!")
-	$Label_blocks = GuiCtrlCreateLabel("Blocks", 70, 204, 45, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
+	$Label_blocks = GuiCtrlCreateLabel("Blocks", 70, 197, 45, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
 	GUICtrlSetBkColor($Label_blocks, $COLOR_BLUE)
 	GUICtrlSetColor($Label_blocks, $COLOR_WHITE)
 	GUICtrlSetFont($Label_blocks, 6, 600, 0, "Small Fonts")
-	$Input_blocks = GUICtrlCreateInput("", 115, 204, 32, 21)
+	$Input_blocks = GUICtrlCreateInput("", 115, 197, 32, 21)
 	GUICtrlSetTip($Input_blocks, "Number of blocks to process!")
 	$Updown_blocks = GUICtrlCreateUpdown($Input_blocks)
 	GUICtrlSetTip($Updown_blocks, "Adjust the number of blocks!")
 	GUICtrlSetLimit($Updown_blocks, 9, 1)
-	$Label_games = GuiCtrlCreateLabel("Titles", 150, 204, 40, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
+	$Label_games = GuiCtrlCreateLabel("Titles", 150, 197, 40, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
 	GUICtrlSetBkColor($Label_games, $COLOR_BLUE)
 	GUICtrlSetColor($Label_games, $COLOR_WHITE)
 	GUICtrlSetFont($Label_games, 6, 600, 0, "Small Fonts")
-	$Combo_games = GUICtrlCreateCombo("", 190, 204, 38, 21)
+	$Combo_games = GUICtrlCreateCombo("", 190, 197, 38, 21)
 	GUICtrlSetTip($Combo_games, "Games in a block!")
 	;
-	$Group_folders = GUICtrlCreateGroup("Folders", 10, 243, 230, 47)
-	$Button_backups = GuiCtrlCreateButton("Backups", 20, 260, 69, 20)
+	$Group_folders = GUICtrlCreateGroup("Folders", 10, 236, 230, 47)
+	$Button_backups = GuiCtrlCreateButton("Backups", 20, 253, 69, 20)
 	GUICtrlSetFont($Button_backups, 7, 600, 0, "Small Fonts")
 	GUICtrlSetTip($Button_backups, "Open the Backups folder!")
-	$Button_changes = GuiCtrlCreateButton("Update Changes", 94, 260, 106, 20)
+	$Button_changes = GuiCtrlCreateButton("Update Changes", 94, 253, 106, 20)
 	GUICtrlSetFont($Button_changes, 7, 600, 0, "Small Fonts")
 	GUICtrlSetTip($Button_changes, "Open the Update Changes folder!")
-	$Button_program = GuiCtrlCreateButton("P", 205, 260, 25, 20, $BS_ICON)
+	$Button_program = GuiCtrlCreateButton("P", 205, 253, 25, 20, $BS_ICON)
 	GUICtrlSetTip($Button_program, "Open the Program folder!")
 	;
+	$Group_windows = GUICtrlCreateGroup("Minimize Windows", 10, 291, 165, 42)
+	$Checkbox_console = GUICtrlCreateCheckbox("DOS Console", 20, 308, 85, 18)
+	GUICtrlSetTip($Checkbox_console, "Run the DOS Console minimized!")
+	$Checkbox_window = GUICtrlCreateCheckbox("Update", 113, 308, 55, 18)
+	GUICtrlSetTip($Checkbox_window, "Set the Update window to minimized!")
+	;
+	$Group_complete = GUICtrlCreateGroup("Done", 185, 291, 55, 42)
+	$Label_done = GuiCtrlCreateLabel("0", 193, 307, 39, 19, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
+	GUICtrlSetFont($Label_done, 7, 600, 0, "Small Fonts")
+	GUICtrlSetBkColor($Label_done, $COLOR_GREEN)
+	GUICtrlSetColor($Label_done, $COLOR_WHITE)
+	GUICtrlSetTip($Label_done, "0 remaining!")
+	;
 	;$Button_upnow = GuiCtrlCreateButton("UPDATE NOW", 10, 250, 120, 32)
-	$Button_upnow = GuiCtrlCreateButton("UPDATE", 10, 300, 85, 32)
+	$Button_upnow = GuiCtrlCreateButton("UPDATE", 10, 345, 85, 32)
 	GUICtrlSetFont($Button_upnow, 9, 600)
 	GUICtrlSetTip($Button_upnow, "Update the Manifest for specified!")
-	$Button_changed = GuiCtrlCreateButton("Log", 100, 300, 30, 32, $BS_ICON)
+	$Button_changed = GuiCtrlCreateButton("Log", 100, 345, 30, 32, $BS_ICON)
 	GUICtrlSetTip($Button_changed, "View the Changed.txt file!")
-	$Checkbox_replace = GUICtrlCreateCheckbox("Replace && Compare", 20, 334, 100, 18)
+	$Checkbox_replace = GUICtrlCreateCheckbox("Replace && Compare", 20, 379, 100, 18)
 	GUICtrlSetFont($Checkbox_replace, 7, 400, 0, "Small Fonts")
 	GUICtrlSetTip($Checkbox_replace, "Replace and Compare selected title in manifest!")
 	;
-	$Button_inf = GuiCtrlCreateButton("Info", 140, 300, 45, 50, $BS_ICON)
+	$Button_inf = GuiCtrlCreateButton("Info", 140, 345, 45, 50, $BS_ICON)
 	GUICtrlSetTip($Button_inf, "Update Information!")
 	;
-	$Button_close = GuiCtrlCreateButton("EXIT", 192, 300, 48, 50, $BS_ICON)
+	$Button_close = GuiCtrlCreateButton("EXIT", 192, 345, 48, 50, $BS_ICON)
 	GUICtrlSetTip($Button_close, "Exit / Close / Quit the window!")
 	;
 	; SETTINGS
@@ -3846,6 +4351,7 @@ Func UpdateGUI()
 		GUICtrlSetState($Checkbox_stages, $GUI_DISABLE)
 	EndIf
 	;
+	$found = $games
 	$stage = IniRead($inifle, "Updating", "stage", "")
 	If $stage = 1 Or $stage = 2 And $all = 1 Then
 		GUICtrlSetState($Button_begin, $GUI_DISABLE)
@@ -3857,6 +4363,18 @@ Func UpdateGUI()
 		GUICtrlSetState($Checkbox_tag, $GUI_DISABLE)
 		GUICtrlSetState($Button_upnow, $GUI_DISABLE)
 		GUICtrlSetState($Checkbox_replace, $GUI_DISABLE)
+		;
+		If FileExists($stagefile) Then
+			$remain = _FileCountLines($stagefile)
+			If $stage = 1 Then
+				$completed = $found
+				$found = $found + $remain
+			ElseIf $stage = 2 Then
+				$completed = $found - $remain
+			EndIf
+			GUICtrlSetData($Label_done, $completed)
+			GUICtrlSetTip($Label_done, $remain & " remaining!")
+		EndIf
 	Else
 		GUICtrlSetState($Button_begin, $GUI_DISABLE)
 		GUICtrlSetState($Button_continue, $GUI_DISABLE)
@@ -4167,6 +4685,10 @@ Func UpdateGUI()
 										$loop = $loop + 1
 										$start = $start + $block
 									EndIf
+									If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+										GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+										GuiSetState(@SW_MINIMIZE, $UpdateGUI)
+									EndIf
 								WEnd
 								GUICtrlSetData($Label_cover, "Cleanup = " & $cleaned)
 								Sleep(1500)
@@ -4234,11 +4756,29 @@ Func UpdateGUI()
 												$title = $ids[$i]
 												If $title <> "" Then
 													GUICtrlSetData($Label_num, $i)
-													$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -id ' & $title, @ScriptDir)
+													If GUICtrlRead($Checkbox_console) = $GUI_CHECKED Then
+														$flag = @SW_MINIMIZE
+													Else
+														$flag = @SW_SHOW
+													EndIf
+													$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -id ' & $title, @ScriptDir, $flag)
+													If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+														GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+														GuiSetState(@SW_MINIMIZE, $UpdateGUI)
+													EndIf
 												EndIf
 											Next
 										Else
-											$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -ids ' & $ids, @ScriptDir)
+											If GUICtrlRead($Checkbox_console) = $GUI_CHECKED Then
+												$flag = @SW_MINIMIZE
+											Else
+												$flag = @SW_SHOW
+											EndIf
+											$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -ids ' & $ids, @ScriptDir, $flag)
+											If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+												GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+												GuiSetState(@SW_MINIMIZE, $UpdateGUI)
+											EndIf
 										EndIf
 									Else
 										$cleanup = 1
@@ -4307,6 +4847,10 @@ Func UpdateGUI()
 											$loop = $loop + 1
 											$start = $start + $block
 										EndIf
+										If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+											GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+											GuiSetState(@SW_MINIMIZE, $UpdateGUI)
+										EndIf
 									WEnd
 								Else
 									MsgBox(262192, "Read Error", "Could not get titles!", 0, $UpdateGUI)
@@ -4318,6 +4862,12 @@ Func UpdateGUI()
 						EndIf
 						$blocks = IniRead($inifle, "Updating", "blocks", "")
 						$block = IniRead($inifle, "Updating", "block", "")
+						If FileExists($stagefile) Then
+							$remain = _FileCountLines($stagefile)
+							$completed = $found - $remain
+							GUICtrlSetData($Label_done, $completed)
+							GUICtrlSetTip($Label_done, $remain & " remaining!")
+						EndIf
 					Else
 						MsgBox(262192, "Update Error", "Could not find title list file!", 0, $UpdateGUI)
 					EndIf
@@ -4440,6 +4990,10 @@ Func UpdateGUI()
 									Else
 										$loop = $loop + 1
 										$start = $start + $block
+									EndIf
+									If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+										GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+										GuiSetState(@SW_MINIMIZE, $UpdateGUI)
 									EndIf
 								WEnd
 								GUICtrlSetData($Label_cover, "Fixup = " & $cleaned)
@@ -4596,6 +5150,10 @@ Func UpdateGUI()
 											EndIf
 											If $id = $block Then ExitLoop
 										EndIf
+										If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+											GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+											GuiSetState(@SW_MINIMIZE, $UpdateGUI)
+										EndIf
 									Next
 									GUICtrlSetData($Label_num, "")
 									GUICtrlSetFont($Label_num, 9, 600)
@@ -4612,11 +5170,29 @@ Func UpdateGUI()
 												$title = $ids[$i]
 												If $title <> "" Then
 													GUICtrlSetData($Label_num, $i)
-													$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -id ' & $title, @ScriptDir)
+													If GUICtrlRead($Checkbox_console) = $GUI_CHECKED Then
+														$flag = @SW_MINIMIZE
+													Else
+														$flag = @SW_SHOW
+													EndIf
+													$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -id ' & $title, @ScriptDir, $flag)
+													If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+														GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+														GuiSetState(@SW_MINIMIZE, $UpdateGUI)
+													EndIf
 												EndIf
 											Next
 										Else
-											$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -ids ' & $ids, @ScriptDir)
+											If GUICtrlRead($Checkbox_console) = $GUI_CHECKED Then
+												$flag = @SW_MINIMIZE
+											Else
+												$flag = @SW_SHOW
+											EndIf
+											$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -ids ' & $ids, @ScriptDir, $flag)
+											If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+												GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+												GuiSetState(@SW_MINIMIZE, $UpdateGUI)
+											EndIf
 										EndIf
 									Else
 										$cleanup = 1
@@ -4706,6 +5282,10 @@ Func UpdateGUI()
 												EndIf
 												If $id = $block Then ExitLoop
 											EndIf
+											If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+												GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+												GuiSetState(@SW_MINIMIZE, $UpdateGUI)
+											EndIf
 										Next
 										If $loop = $blocks Then
 											ExitLoop
@@ -4743,6 +5323,12 @@ Func UpdateGUI()
 							EndIf
 							$blocks = IniRead($inifle, "Updating", "blocks", "")
 							$block = IniRead($inifle, "Updating", "block", "")
+							If FileExists($stagefile) Then
+								$remain = _FileCountLines($stagefile)
+								$completed = $found - $remain
+								GUICtrlSetData($Label_done, $completed)
+								GUICtrlSetTip($Label_done, $remain & " remaining!")
+							EndIf
 						Else
 							MsgBox(262192, "List Error", "Could not find any titles!", 0, $UpdateGUI)
 						EndIf
@@ -4907,6 +5493,10 @@ Func UpdateGUI()
 						EndIf
 						If ProcessExists($pid) = 0 Then ExitLoop
 					WEnd
+					If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+						GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+						GuiSetState(@SW_MINIMIZE, $UpdateGUI)
+					EndIf
 					; Create a list of all titles.
 					GUICtrlSetData($Label_cover, "Getting Titles!")
 					If FileExists($resumeman) Then
@@ -4938,6 +5528,10 @@ Func UpdateGUI()
 						MsgBox(262192, "Update Error", "Could not find the resume manifest file!", 0, $UpdateGUI)
 					EndIf
 					_FileWriteLog($logfle, "Initial stage has finished.")
+					If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+						GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+						GuiSetState(@SW_MINIMIZE, $UpdateGUI)
+					EndIf
 					; Update (add) the specified number of game titles to the manifest.
 					GUICtrlSetData($Label_cover, "Updating!")
 					If FileExists($stagefile) Then
@@ -4972,12 +5566,21 @@ Func UpdateGUI()
 												$ids = $ids & " " & $title
 											EndIf
 											GUICtrlSetData($Label_num, $id)
-											$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -id ' & $title, @ScriptDir)
+											If GUICtrlRead($Checkbox_console) = $GUI_CHECKED Then
+												$flag = @SW_MINIMIZE
+											Else
+												$flag = @SW_SHOW
+											EndIf
+											$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -id ' & $title, @ScriptDir, $flag)
 											If $a = $array[0] Then
 												$cleanup = 1
 												ExitLoop
 											EndIf
 											If $id = $block Then ExitLoop
+											If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+												GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+												GuiSetState(@SW_MINIMIZE, $UpdateGUI)
+											EndIf
 										EndIf
 									Next
 									_FileWriteLog($logfle, $ids)
@@ -5003,7 +5606,16 @@ Func UpdateGUI()
 									GUICtrlSetData($Label_cover, $message)
 									_FileWriteLog($logfle, $ids)
 									If $ids <> "" Then
-										$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -ids ' & $ids, @ScriptDir)
+										If GUICtrlRead($Checkbox_console) = $GUI_CHECKED Then
+											$flag = @SW_MINIMIZE
+										Else
+											$flag = @SW_SHOW
+										EndIf
+										$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -ids ' & $ids, @ScriptDir, $flag)
+										If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+											GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+											GuiSetState(@SW_MINIMIZE, $UpdateGUI)
+										EndIf
 									Else
 										$cleanup = 1
 										ExitLoop
@@ -5060,6 +5672,10 @@ Func UpdateGUI()
 										$loop = $loop + 1
 										$start = $start + $block
 									EndIf
+									If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+										GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+										GuiSetState(@SW_MINIMIZE, $UpdateGUI)
+									EndIf
 								WEnd
 							Else
 								MsgBox(262192, "Read Error", "Could not get titles!", 0, $UpdateGUI)
@@ -5088,6 +5704,11 @@ Func UpdateGUI()
 						EndIf
 						$blocks = IniRead($inifle, "Updating", "blocks", "")
 						$block = IniRead($inifle, "Updating", "block", "")
+						;
+						$remain = _FileCountLines($stagefile)
+						$completed = $found - $remain
+						GUICtrlSetData($Label_done, $completed)
+						GUICtrlSetTip($Label_done, $remain & " remaining!")
 					Else
 						MsgBox(262192, "Update Error", "Could not find title list file!", 0, $UpdateGUI)
 					EndIf
@@ -5125,6 +5746,10 @@ Func UpdateGUI()
 							Next
 							FileClose($file)
 							_FileWriteLog($logfle, $id & " Game Titles found.")
+							If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+								GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+								GuiSetState(@SW_MINIMIZE, $UpdateGUI)
+							EndIf
 							;
 							If $id > 0 Then
 								GUICtrlSetData($Label_cover, $id & " Game Titles found!")
@@ -5255,6 +5880,10 @@ Func UpdateGUI()
 												EndIf
 												If $id = $block Then ExitLoop
 											EndIf
+											If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+												GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+												GuiSetState(@SW_MINIMIZE, $UpdateGUI)
+											EndIf
 										Next
 										GUICtrlSetData($Label_cover, "Updating!")
 										Sleep(750)
@@ -5269,11 +5898,29 @@ Func UpdateGUI()
 													$title = $ids[$i]
 													If $title <> "" Then
 														GUICtrlSetData($Label_num, $i)
-														$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -id ' & $title, @ScriptDir)
+														If GUICtrlRead($Checkbox_console) = $GUI_CHECKED Then
+															$flag = @SW_MINIMIZE
+														Else
+															$flag = @SW_SHOW
+														EndIf
+														$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -id ' & $title, @ScriptDir, $flag)
+														If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+															GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+															GuiSetState(@SW_MINIMIZE, $UpdateGUI)
+														EndIf
 													EndIf
 												Next
 											Else
-												$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -ids ' & $ids, @ScriptDir)
+												If GUICtrlRead($Checkbox_console) = $GUI_CHECKED Then
+													$flag = @SW_MINIMIZE
+												Else
+													$flag = @SW_SHOW
+												EndIf
+												$pid = RunWait(@ComSpec & ' /c gogrepo.py update -os ' & $OS & ' -lang ' & $lang & $params & ' -ids ' & $ids, @ScriptDir, $flag)
+												If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+													GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+													GuiSetState(@SW_MINIMIZE, $UpdateGUI)
+												EndIf
 											EndIf
 										Else
 											$cleanup = 1
@@ -5363,6 +6010,10 @@ Func UpdateGUI()
 													EndIf
 													If $id = $block Then ExitLoop
 												EndIf
+												If GUICtrlRead($Checkbox_window) = $GUI_CHECKED Then
+													GUICtrlSetState($Checkbox_window, $GUI_UNCHECKED)
+													GuiSetState(@SW_MINIMIZE, $UpdateGUI)
+												EndIf
 											Next
 											If $loop = $blocks Then
 												ExitLoop
@@ -5400,6 +6051,12 @@ Func UpdateGUI()
 								EndIf
 								$blocks = IniRead($inifle, "Updating", "blocks", "")
 								$block = IniRead($inifle, "Updating", "block", "")
+								If FileExists($stagefile) Then
+									$remain = _FileCountLines($stagefile)
+									$completed = $found - $remain
+									GUICtrlSetData($Label_done, $completed)
+									GUICtrlSetTip($Label_done, $remain & " remaining!")
+								EndIf
 							Else
 								MsgBox(262192, "List Error", "Could not find any titles!", 0, $UpdateGUI)
 							EndIf
