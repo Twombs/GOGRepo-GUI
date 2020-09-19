@@ -51,8 +51,8 @@ Global $Input_extra, $Input_lang, $Input_langs, $Input_name, $Input_OP, $Input_O
 Global $Label_added, $Label_cover, $Label_num, $List_done, $List_games, $List_waiting, $Pic_cover, $Progress_bar
 ;, $Button_move
 Global $Menu_games, $Menu_linux, $Menu_list, $Menu_mac, $Menu_windows, $Item_allsort, $Item_allunsort
-Global $Item_content, $Item_forum, $Item_library, $Item_linsort, $Item_linunsort, $Item_macsort, $Item_macunsort
-Global $Item_store, $Item_winsort, $Item_winunsort
+Global $Item_content, $Item_delete, $Item_forum, $Item_library, $Item_linsort, $Item_linunsort, $Item_macsort
+Global $Item_macunsort, $Item_remove, $Item_store, $Item_winsort, $Item_winunsort
 ;
 Global $Control_1, $Control_2, $Control_3, $Control_4, $Control_5
 ;
@@ -183,7 +183,7 @@ EndIf
 Exit
 
 Func MainGUI()
-	Local $Group_added, $Group_cover, $Group_dest, $Group_down, $Group_update, $Item_delete, $Item_remove
+	Local $Group_added, $Group_cover, $Group_dest, $Group_down, $Group_update
 	Local $Label_extra, $Label_OS, $Label_title
 	;
 	Local $add, $content, $display, $dll, $exist, $find, $fold, $mpos, $OSes, $pth
@@ -592,6 +592,7 @@ Func MainGUI()
 			EndIf
 		EndIf
 	Else
+		; gogrepo.py is missing
 		GUICtrlSetState($Button_down, $GUI_DISABLE)
 		GUICtrlSetState($Checkbox_update, $GUI_DISABLE)
 		GUICtrlSetState($Checkbox_verify, $GUI_DISABLE)
@@ -890,6 +891,9 @@ Func MainGUI()
 		GUICtrlSetState($Checkbox_all, $GUI_DISABLE)
 		GUICtrlSetState($Checkbox_update, $GUI_DISABLE)
 		GUICtrlSetState($Checkbox_verify, $GUI_DISABLE)
+		GUICtrlSetState($Item_check, $GUI_DISABLE)
+		GUICtrlSetState($Item_remove, $GUI_DISABLE)
+		GUICtrlSetState($Item_delete, $GUI_DISABLE)
 	EndIf
 	;
 	$all = 4
@@ -1033,6 +1037,9 @@ Func MainGUI()
 				GUICtrlSetState($Checkbox_all, $GUI_ENABLE)
 				GUICtrlSetState($Checkbox_update, $GUI_ENABLE)
 				GUICtrlSetState($Checkbox_verify, $GUI_ENABLE)
+				GUICtrlSetState($Item_check, $GUI_ENABLE)
+				GUICtrlSetState($Item_remove, $GUI_ENABLE)
+				GUICtrlSetState($Item_delete, $GUI_ENABLE)
 			EndIf
 		Case $msg = $Button_pic
 			; Download the selected image
@@ -1324,15 +1331,22 @@ Func MainGUI()
 										GUICtrlSetData($Button_down, $buttitle)
 										GUICtrlSetState($Checkbox_update, $GUI_DISABLE)
 										GUICtrlSetState($Checkbox_verify, $GUI_DISABLE)
+										GUICtrlSetState($Item_check, $GUI_DISABLE)
+										GUICtrlSetState($Item_remove, $GUI_DISABLE)
+										GUICtrlSetState($Item_delete, $GUI_DISABLE)
 										GetWindowPosition()
 										GuiSetState(@SW_HIDE, $GOGRepoGUI)
 										QueueGUI()
 										$window = $GOGRepoGUI
 										GuiSetState(@SW_SHOW, $GOGRepoGUI)
+										; On return
 										If $downall = 4 Then
 											GUICtrlSetState($Checkbox_all, $GUI_ENABLE)
 											GUICtrlSetState($Checkbox_update, $GUI_ENABLE)
 											GUICtrlSetState($Checkbox_verify, $GUI_ENABLE)
+											GUICtrlSetState($Item_check, $GUI_ENABLE)
+											GUICtrlSetState($Item_remove, $GUI_ENABLE)
+											GUICtrlSetState($Item_delete, $GUI_ENABLE)
 										EndIf
 									Else
 										$window = $GOGRepoGUI
@@ -1510,6 +1524,9 @@ Func MainGUI()
 											GUICtrlSetState($Checkbox_update, $GUI_DISABLE)
 											GUICtrlSetState($Checkbox_verify, $GUI_DISABLE)
 											GUICtrlSetState($Checkbox_all, $GUI_DISABLE)
+											GUICtrlSetState($Item_check, $GUI_DISABLE)
+											GUICtrlSetState($Item_remove, $GUI_DISABLE)
+											GUICtrlSetState($Item_delete, $GUI_DISABLE)
 											;GUICtrlSetState($Button_setup, $GUI_DISABLE)
 										EndIf
 									EndIf
@@ -2018,7 +2035,7 @@ Func MainGUI()
 			; Go to Library page
 			ShellExecute("https://www.gog.com/account")
 		Case $msg = $Item_forum
-			; Go to Forum page$Item_library
+			; Go to Forum page
 			$name = GUICtrlRead($List_games)
 			If $name <> "" Then
 				$forum = IniRead($gamesfle, $name, "forum", "")
@@ -2589,31 +2606,58 @@ Func DownloadGUI()
 EndFunc ;=> DownloadGUI
 
 Func FileCheckerGUI()
-	Local $Button_check, $Button_get, $Button_inf, $Button_list, $Button_load, $Button_quit, $Button_remove, $Button_save
-	Local $Checkbox_first, $Checkbox_second, $Combo_filter, $Group_check, $Group_filter, $Group_missed, $Input_entry
-	Local $List_check, $List_missed
-	Local $caption, $CheckerGUI, $count, $Group, $List, $savlist, $segments
+	Local $Button_check, $Button_compare, $Button_delete, $Button_get, $Button_inf, $Button_list, $Button_load
+	Local $Button_quit, $Button_save, $Button_saveto, $Button_view, $Checkbox_enable, $Checkbox_first, $Checkbox_md5
+	Local $Checkbox_second, $Checkbox_size, $Combo_filter, $Combo_title, $Group_check, $Group_filter, $Group_missed
+	Local $Input_entry, $Label_title, $List_check, $List_missed
+	Local $caption, $CheckerGUI, $checklist, $compsize, $count, $dir, $enable, $entries, $entry, $fext, $filefld
+	Local $filter, $fnam, $fsum, $fsumfld, $Group, $hash, $item, $List, $match, $md5check, $md5val, $pth, $resfle
+	Local $savlist, $segments, $storage, $titget
 	;
 	$CheckerGUI = GuiCreate("Game Files Checker", $width, $height, $left, $top, $style + $WS_VISIBLE, $WS_EX_TOPMOST)
 	GUISetBkColor(0xBBFFBB, $CheckerGUI)
 	; CONTROLS
-	$Group_check = GuiCtrlCreateGroup("Files To Check For", 10, 10, $width - 20, 193)
+	$Group_check = GuiCtrlCreateGroup("Files To Check For", 10, 10, $width - 20, 166)
 	$Checkbox_first = GUICtrlCreateCheckbox("Active", $width - 70, 7,  50, 20)
 	GUICtrlSetTip($Checkbox_first, "Files To Check For status!")
-	$List_check = GuiCtrlCreateList("", 20, 30, $width - 40, 170, $LBS_SORT + $WS_BORDER + $WS_VSCROLL)
+	$List_check = GuiCtrlCreateList("", 20, 30, $width - 40, 140, $LBS_SORT + $WS_BORDER + $WS_VSCROLL)
 	GUICtrlSetBkColor($List_check, 0xB9FFFF)
 	GUICtrlSetTip($List_check, "List of game files to check for!")
 	;
-	$Input_entry = GUICtrlCreateInput("", 10, 213, $width - 20, 20)
+	$Input_entry = GUICtrlCreateInput("", 10, 185, $width - 20, 18)
 	GUICtrlSetBkColor($Input_entry, 0xFFFFB0)
+	GUICtrlSetFont($Input_entry, 8, 400)
 	GUICtrlSetTip($Input_entry, "Selected entry!")
 	;
-	$Group_missed = GuiCtrlCreateGroup("Unmatched Files", 10, 243, $width - 20, 90)
-	$Checkbox_second = GUICtrlCreateCheckbox("Active", $width - 70, 240,  50, 20)
+	$Group_missed = GuiCtrlCreateGroup("Unmatched Files", 10, 213, $width - 20, 90)
+	$Checkbox_second = GUICtrlCreateCheckbox("Active", $width - 70, 210,  50, 20)
 	GUICtrlSetTip($Checkbox_second, "Unmatched Files status!")
-	$List_missed = GuiCtrlCreateList("", 20, 263, $width - 40, 70, $LBS_SORT + $WS_BORDER + $WS_VSCROLL)
+	$List_missed = GuiCtrlCreateList("", 20, 233, $width - 40, 70, $LBS_SORT + $WS_BORDER + $WS_VSCROLL)
 	GUICtrlSetBkColor($List_missed, 0xFFD5FF)
 	GUICtrlSetTip($List_missed, "List of unmatched game files after check!")
+	;
+	$Label_title = GuiCtrlCreateLabel("Title", 10, 313, 37, 21, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
+	GUICtrlSetBkColor($Label_title, $COLOR_BLUE)
+	GUICtrlSetColor($Label_title, $COLOR_WHITE)
+	GUICtrlSetFont($Label_title, 7, 600, 0, "Small Fonts")
+	$Combo_title = GUICtrlCreateCombo("", 47, 313, 70, 21)
+	GUICtrlSetTip($Combo_title, "Title format to use for Get!")
+	;
+	$Button_saveto = GuiCtrlCreateButton("SAVE To CHECKLIST", 127, 312, 133, 23)
+	GUICtrlSetFont($Button_saveto, 7, 600, 0, "Small Fonts")
+	GUICtrlSetTip($Button_saveto, "SAVE selected list entry to checklist file!")
+	;
+	$Checkbox_size = GUICtrlCreateCheckbox("Compare Size", 270, 313,  80, 21)
+	GUICtrlSetTip($Checkbox_size, "Also check file size!")
+	;
+	$Checkbox_md5 = GUICtrlCreateCheckbox("Check MD5", 361, 313,  75, 21)
+	GUICtrlSetTip($Checkbox_md5, "Check MD5 with the Compare button!")
+	;
+	$Button_compare = GuiCtrlCreateButton("COMPARE", 445, 312, 80, 23)
+	GUICtrlSetFont($Button_compare, 7, 600, 0, "Small Fonts")
+	GUICtrlSetTip($Button_compare, "Compare list entries!")
+	$Checkbox_enable = GUICtrlCreateCheckbox("Enable", 530, 313,  50, 21)
+	GUICtrlSetTip($Checkbox_enable, "Enable the Compare button!")
 	;
 	$Button_get = GuiCtrlCreateButton("Get File" & @LF & "Names", 10, $height - 60, 80, 50, $BS_MULTILINE)
 	GUICtrlSetFont($Button_get, 9, 600)
@@ -2627,20 +2671,24 @@ Func FileCheckerGUI()
 	GUICtrlSetFont($Button_load, 7, 600, 0, "Small Fonts")
 	GUICtrlSetTip($Button_load, "Load the saved list of game files!")
 	;
-	$Button_check = GuiCtrlCreateButton("CHECK", 165, $height - 60, 75, 50)
+	$Button_check = GuiCtrlCreateButton("CHECK" & @LF & "Files", 165, $height - 60, 76, 50, $BS_MULTILINE)
 	GUICtrlSetFont($Button_check, 9, 600)
 	GUICtrlSetTip($Button_check, "Check for game files!")
 	;
-	$Button_list = GuiCtrlCreateButton("LIST", 250, $height - 60, 55, 50)
-	GUICtrlSetFont($Button_list, 9, 600)
-	GUICtrlSetTip($Button_list, "View the saved list of game files!")
+	$Button_list = GuiCtrlCreateButton("VIEW The CHECKLIST", 251, $height - 60, 143, 22)
+	GUICtrlSetFont($Button_list, 7, 600, 0, "Small Fonts")
+	GUICtrlSetTip($Button_list, "View the saved checklist!")
 	;
-	$Button_remove = GuiCtrlCreateButton("REMOVE", 315, $height - 60, 80, 50)
-	GUICtrlSetFont($Button_remove, 9, 600)
-	GUICtrlSetTip($Button_remove, "Remove a selected entry!")
+	$Button_view = GuiCtrlCreateButton("VIEW", 251, $height - 32, 53, 22)
+	GUICtrlSetFont($Button_view, 7, 600, 0, "Small Fonts")
+	GUICtrlSetTip($Button_view, "View the selected load list of game files!")
 	;
-	$Group_filter = GuiCtrlCreateGroup("Filter Out", 405, $height - 60, 65, 50)
-	$Combo_filter = GUICtrlCreateCombo("", 415, $height - 40, 45, 21)
+	$Button_delete = GuiCtrlCreateButton("REMOVE", 314, $height - 32, 80, 22)
+	GUICtrlSetFont($Button_delete, 7, 600, 0, "Small Fonts")
+	GUICtrlSetTip($Button_delete, "Remove a selected entry!")
+	;
+	$Group_filter = GuiCtrlCreateGroup("Filter Out", 404, $height - 60, 66, 50)
+	$Combo_filter = GUICtrlCreateCombo("", 413, $height - 40, 48, 21)
 	GUICtrlSetTip($Combo_filter, "Filter out the selected file type from the list!")
 	;
 	$Button_inf = GuiCtrlCreateButton("Info", $width - 110, $height - 60, 45, 50, $BS_ICON)
@@ -2653,7 +2701,27 @@ Func FileCheckerGUI()
 	GUICtrlSetImage($Button_inf, $user, $icoI, 1)
 	GUICtrlSetImage($Button_quit, $user, $icoX, 1)
 	;
+	$titget = "Long Title"
+	GUICtrlSetData($Combo_title, "Title|Long Title", $titget)
+	;
+	$compsize = 4
+	$md5check = 4
+	;
+	GUICtrlSetState($Button_compare, $GUI_DISABLE)
+	$enable = 4
+	;
 	GUICtrlSetData($Combo_filter, "||BIN|DMG|EXE|GZ|MP4|PDF|PNG|RAR|SH|ZIP", "")
+	;
+	$fsum = @ScriptDir & "\FSUM\fsum.exe"
+	$fsumfld = @ScriptDir & "\FSUM"
+	$resfle = @ScriptDir & "\Results.txt"
+	;
+	$checklist = @ScriptDir & "\Checklist.txt"
+	If Not FileExists($checklist) Then
+		$open = FileOpen($checklist, 2)
+		FileWrite($open, "USE THIS CHECKLIST FOR GETTING MISSING UPDATED GAME FILES" & @CRLF & @CRLF)
+		FileClose($open)
+	EndIf
 	;
 	$List = $List_check
 	$Group = $Group_check
@@ -2669,18 +2737,41 @@ Func FileCheckerGUI()
 			; Exit / Close / Quit the window
 			GUIDelete($CheckerGUI)
 			ExitLoop
+		Case $msg = $Button_view
+			; View the selected load list of game files
+			If FileExists($savlist) Then ShellExecute($savlist)
+		Case $msg = $Button_saveto
+			; SAVE selected list entry to checklist file
+			$ind = _GUICtrlListBox_GetCurSel($List_check)
+			If $ind > -1 Then
+				$entry = _GUICtrlListBox_GetText($List_check, $ind)
+				$file = StringSplit($entry, "\", 1)
+				$title = $file[1]
+				$file = $file[2]
+				$entry = $title & " - " & $file
+				FileWriteLine($checklist, $entry)
+			Else
+				MsgBox(262192, "Save Error", "List one election issue.", 0, $CheckerGUI)
+			EndIf
 		Case $msg = $Button_save
 			; Save the current list of game files
 			GUICtrlSetState($Checkbox_first, $GUI_DISABLE)
 			GUICtrlSetState($List_check, $GUI_DISABLE)
 			GUICtrlSetState($Checkbox_second, $GUI_DISABLE)
 			GUICtrlSetState($List_missed, $GUI_DISABLE)
+			GUICtrlSetState($Combo_title, $GUI_DISABLE)
+			GUICtrlSetState($Button_saveto, $GUI_DISABLE)
+			GUICtrlSetState($Checkbox_size, $GUI_DISABLE)
+			GUICtrlSetState($Checkbox_md5, $GUI_DISABLE)
+			If $enable = 1 Then GUICtrlSetState($Button_compare, $GUI_DISABLE)
+			GUICtrlSetState($Checkbox_enable, $GUI_DISABLE)
 			GUICtrlSetState($Button_get, $GUI_DISABLE)
 			GUICtrlSetState($Button_save, $GUI_DISABLE)
 			GUICtrlSetState($Button_load, $GUI_DISABLE)
 			GUICtrlSetState($Button_check, $GUI_DISABLE)
 			GUICtrlSetState($Button_list, $GUI_DISABLE)
-			GUICtrlSetState($Button_remove, $GUI_DISABLE)
+			GUICtrlSetState($Button_view, $GUI_DISABLE)
+			GUICtrlSetState($Button_delete, $GUI_DISABLE)
 			GUICtrlSetState($Combo_filter, $GUI_DISABLE)
 			GUICtrlSetState($Button_inf, $GUI_DISABLE)
 			GUICtrlSetState($Button_quit, $GUI_DISABLE)
@@ -2705,45 +2796,41 @@ Func FileCheckerGUI()
 			GUICtrlSetState($List_check, $GUI_ENABLE)
 			GUICtrlSetState($Checkbox_second, $GUI_ENABLE)
 			GUICtrlSetState($List_missed, $GUI_ENABLE)
+			GUICtrlSetState($Combo_title, $GUI_ENABLE)
+			GUICtrlSetState($Button_saveto, $GUI_ENABLE)
+			GUICtrlSetState($Checkbox_size, $GUI_ENABLE)
+			GUICtrlSetState($Checkbox_md5, $GUI_ENABLE)
+			If $enable = 1 Then GUICtrlSetState($Button_compare, $GUI_ENABLE)
+			GUICtrlSetState($Checkbox_enable, $GUI_ENABLE)
 			GUICtrlSetState($Button_get, $GUI_ENABLE)
 			GUICtrlSetState($Button_save, $GUI_ENABLE)
 			GUICtrlSetState($Button_load, $GUI_ENABLE)
 			GUICtrlSetState($Button_check, $GUI_ENABLE)
 			GUICtrlSetState($Button_list, $GUI_ENABLE)
-			GUICtrlSetState($Button_remove, $GUI_ENABLE)
+			GUICtrlSetState($Button_view, $GUI_ENABLE)
+			GUICtrlSetState($Button_delete, $GUI_ENABLE)
 			GUICtrlSetState($Combo_filter, $GUI_ENABLE)
 			GUICtrlSetState($Button_inf, $GUI_ENABLE)
 			GUICtrlSetState($Button_quit, $GUI_ENABLE)
-		Case $msg = $Button_remove
-			; Remove a selected entry
-			$ind = _GUICtrlListBox_GetCurSel($List)
-			If $ind > -1 Then
-				$count = _GUICtrlListBox_DeleteString($List, $ind)
-				If $count > 0 Then
-					GUICtrlSetData($Group, $caption & "  (" & $count & ")")
-					If $ind >= $count Then
-						$ind = $ind - 1
-					EndIf
-					_GUICtrlListBox_SetCurSel($List, $ind)
-					$entry = _GUICtrlListBox_GetText($List, $ind)
-					GUICtrlSetData($Input_entry, $entry)
-				Else
-					GUICtrlSetData($Group, $caption)
-					GUICtrlSetData($Input_entry, "")
-				EndIf
-			EndIf
 		Case $msg = $Button_load
 			; Load the saved list of game files
 			GUICtrlSetState($Checkbox_first, $GUI_DISABLE)
 			GUICtrlSetState($List_check, $GUI_DISABLE)
 			GUICtrlSetState($Checkbox_second, $GUI_DISABLE)
 			GUICtrlSetState($List_missed, $GUI_DISABLE)
+			GUICtrlSetState($Combo_title, $GUI_DISABLE)
+			GUICtrlSetState($Button_saveto, $GUI_DISABLE)
+			GUICtrlSetState($Checkbox_size, $GUI_DISABLE)
+			GUICtrlSetState($Checkbox_md5, $GUI_DISABLE)
+			If $enable = 1 Then GUICtrlSetState($Button_compare, $GUI_DISABLE)
+			GUICtrlSetState($Checkbox_enable, $GUI_DISABLE)
 			GUICtrlSetState($Button_get, $GUI_DISABLE)
 			GUICtrlSetState($Button_save, $GUI_DISABLE)
 			GUICtrlSetState($Button_load, $GUI_DISABLE)
 			GUICtrlSetState($Button_check, $GUI_DISABLE)
 			GUICtrlSetState($Button_list, $GUI_DISABLE)
-			GUICtrlSetState($Button_remove, $GUI_DISABLE)
+			GUICtrlSetState($Button_view, $GUI_DISABLE)
+			GUICtrlSetState($Button_delete, $GUI_DISABLE)
 			GUICtrlSetState($Combo_filter, $GUI_DISABLE)
 			GUICtrlSetState($Button_inf, $GUI_DISABLE)
 			GUICtrlSetState($Button_quit, $GUI_DISABLE)
@@ -2768,87 +2855,137 @@ Func FileCheckerGUI()
 			GUICtrlSetState($List_check, $GUI_ENABLE)
 			GUICtrlSetState($Checkbox_second, $GUI_ENABLE)
 			GUICtrlSetState($List_missed, $GUI_ENABLE)
+			GUICtrlSetState($Combo_title, $GUI_ENABLE)
+			GUICtrlSetState($Button_saveto, $GUI_ENABLE)
+			GUICtrlSetState($Checkbox_size, $GUI_ENABLE)
+			GUICtrlSetState($Checkbox_md5, $GUI_ENABLE)
+			If $enable = 1 Then GUICtrlSetState($Button_compare, $GUI_ENABLE)
+			GUICtrlSetState($Checkbox_enable, $GUI_ENABLE)
 			GUICtrlSetState($Button_get, $GUI_ENABLE)
 			GUICtrlSetState($Button_save, $GUI_ENABLE)
 			GUICtrlSetState($Button_load, $GUI_ENABLE)
 			GUICtrlSetState($Button_check, $GUI_ENABLE)
 			GUICtrlSetState($Button_list, $GUI_ENABLE)
-			GUICtrlSetState($Button_remove, $GUI_ENABLE)
+			GUICtrlSetState($Button_view, $GUI_ENABLE)
+			GUICtrlSetState($Button_delete, $GUI_ENABLE)
 			GUICtrlSetState($Combo_filter, $GUI_ENABLE)
 			GUICtrlSetState($Button_inf, $GUI_ENABLE)
 			GUICtrlSetState($Button_quit, $GUI_ENABLE)
 		Case $msg = $Button_list
 			; View the saved list of game files
-			If FileExists($savlist) Then ShellExecute($savlist)
+			If FileExists($checklist) Then ShellExecute($checklist)
 		Case $msg = $Button_inf
 			; Checker Information
 		Case $msg = $Button_get
 			; Get file names from manifest
 			If FileExists($manifest) Then
-			GUICtrlSetState($Checkbox_first, $GUI_DISABLE)
-			GUICtrlSetState($List_check, $GUI_DISABLE)
-			GUICtrlSetState($Checkbox_second, $GUI_DISABLE)
+				GUICtrlSetState($Checkbox_first, $GUI_DISABLE)
+				GUICtrlSetState($List_check, $GUI_DISABLE)
+				GUICtrlSetState($Checkbox_second, $GUI_DISABLE)
 				GUICtrlSetState($List_missed, $GUI_DISABLE)
+				GUICtrlSetState($Combo_title, $GUI_DISABLE)
+				GUICtrlSetState($Button_saveto, $GUI_DISABLE)
+				GUICtrlSetState($Checkbox_size, $GUI_DISABLE)
+				GUICtrlSetState($Checkbox_md5, $GUI_DISABLE)
+				If $enable = 1 Then GUICtrlSetState($Button_compare, $GUI_DISABLE)
+				GUICtrlSetState($Checkbox_enable, $GUI_DISABLE)
 				GUICtrlSetState($Button_get, $GUI_DISABLE)
 				GUICtrlSetState($Button_save, $GUI_DISABLE)
 				GUICtrlSetState($Button_load, $GUI_DISABLE)
 				GUICtrlSetState($Button_check, $GUI_DISABLE)
 				GUICtrlSetState($Button_list, $GUI_DISABLE)
-				GUICtrlSetState($Button_remove, $GUI_DISABLE)
+				GUICtrlSetState($Button_view, $GUI_DISABLE)
+				GUICtrlSetState($Button_delete, $GUI_DISABLE)
 				GUICtrlSetState($Combo_filter, $GUI_DISABLE)
 				GUICtrlSetState($Button_inf, $GUI_DISABLE)
 				GUICtrlSetState($Button_quit, $GUI_DISABLE)
 				;
 				SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
+				GUICtrlSetData($Group_check, "Files To Check For")
 				GUICtrlSetData($List_check, "")
+				GUICtrlSetData($Input_entry, "")
 				_GUICtrlComboBox_SetCurSel($Combo_filter, 0)
+				_FileWriteLog($logfle, "Getting game files for checklist.")
 				$open = FileOpen($manifest, 0)
 				$read = FileRead($open)
 				FileClose($open)
-				$segments = StringSplit($read, "'title':", 1)
+				$segments = StringSplit($read, "'bg_url':", 1)
 				If $segments[0] > 1 Then
 					$count = 0
-					For $s = 1 To $segments[0]
+					For $s = 2 To $segments[0]
 						$segment = $segments[$s]
 						$array = StringSplit($segment, @LF, 1)
-						$ind = _ArraySearch($array, "'long_title':", 1, 0, 0, 1)
-						If $ind > -1 Then
-							$title = $array[$ind]
-							$title = StringSplit($title, "'long_title': '", 1)
-							If $title[0] = 2 Then
-								$title = $title[2]
-								$title = StringSplit($title, "',", 1)
-								$title = $title[1]
-							Else
-								$title = $title[1]
-								$title = StringSplit($title, "'long_title': " & '"', 1)
-								$title = $title[2]
-								$title = StringSplit($title, '",', 1)
-								$title = $title[1]
+						If $titget = "Long Title" Then
+							$ind = _ArraySearch($array, "'long_title':", 1, 0, 0, 1)
+							If $ind > -1 Then
+								$title = $array[$ind]
+								$title = StringSplit($title, "'long_title': '", 1)
+								If $title[0] = 2 Then
+									$title = $title[2]
+									$title = StringSplit($title, "',", 1)
+									$title = $title[1]
+								Else
+									$title = $title[1]
+									$title = StringSplit($title, "'long_title': " & '"', 1)
+									$title = $title[2]
+									$title = StringSplit($title, '",', 1)
+									$title = $title[1]
+								EndIf
+								$title = ReplaceOtherCharacters($title)
+								$title = StringReplace($title, ": ", " - ")
 							EndIf
-							$title = ReplaceOtherCharacters($title)
-							$title = StringReplace($title, ": ", " - ")
-							$title = StringStripWS($title, 7)
-							If $title <> "" Then
-								For $a = 1 To $array[0]
-									$line = $array[$a]
-									If StringInStr($line, "'name': '") > 0 Then
-										$line = StringSplit($line, "'name': '", 1)
-										$line = $line[2]
-										$line = StringSplit($line, "',", 1)
-										$line = $title & "\" & $line[1]
-										GUICtrlSetData($List_check, $line)
-										$count = $count + 1
-									ElseIf StringInStr($line, "'name': " & '"') > 0 Then
-										$line = StringSplit($line, "'name': " & '"', 1)
-										$line = $line[2]
-										$line = StringSplit($line, '",', 1)
-										$line = $title & "\" & $line[1]
-										GUICtrlSetData($List_check, $line)
-										$count = $count + 1
-									EndIf
-								Next
+						ElseIf $titget = "Title" Then
+							$ind = _ArraySearch($array, "'title':", 1, 0, 0, 1)
+							If $ind > -1 Then
+								$title = $array[$ind]
+								$title = StringSplit($title, "'title': '", 1)
+								If $title[0] = 2 Then
+									$title = $title[2]
+									$title = StringSplit($title, "'},", 1)
+									$title = $title[1]
+								Else
+									$title = $title[1]
+									$title = StringSplit($title, "'title': " & '"', 1)
+									$title = $title[2]
+									$title = StringSplit($title, '"},', 1)
+									$title = $title[1]
+								EndIf
+								$title = StringReplace($title, "'}]", "")
 							EndIf
+						EndIf
+						$title = StringStripWS($title, 7)
+						If $title <> "" Then
+							$entry = ""
+							$hash = ""
+							For $a = 1 To $array[0]
+								$line = $array[$a]
+								If StringInStr($line, "'md5': ") > 0 Then
+									$hash = StringSplit($line, "'md5': ", 1)
+									$hash = $hash[2]
+									$hash = StringSplit($hash, ",", 1)
+									$hash = $hash[1]
+									$hash = StringReplace($hash, "'", "")
+								EndIf
+								If StringInStr($line, "'name': '") > 0 Then
+									$entry = StringSplit($line, "'name': '", 1)
+									$entry = $entry[2]
+									$entry = StringSplit($entry, "',", 1)
+									$entry = $title & "\" & $entry[1]
+								ElseIf StringInStr($line, "'name': " & '"') > 0 Then
+									$entry = StringSplit($line, "'name': " & '"', 1)
+									$entry = $entry[2]
+									$entry = StringSplit($entry, '",', 1)
+									$entry = $title & "\" & $entry[1]
+								EndIf
+								If StringInStr($line, "'size': ") > 0 Then
+									$line = StringSplit($line, "'size': ", 1)
+									$line = $line[2]
+									$line = StringSplit($line, ",", 1)
+									$entry = $entry & "\" & $line[1] & "\" & $hash
+									GUICtrlSetData($List_check, $entry)
+									$count = $count + 1
+								EndIf
+							Next
 						EndIf
 					Next
 					If $count > 0 Then
@@ -2859,21 +2996,159 @@ Func FileCheckerGUI()
 						GUICtrlSetData($Group_check, "Files To Check For  (" & $count & ")")
 					EndIf
 				EndIf
+				_FileWriteLog($logfle, "Checklist finished.")
 				SplashOff()
 				;
 				GUICtrlSetState($Checkbox_first, $GUI_ENABLE)
 				GUICtrlSetState($List_check, $GUI_ENABLE)
 				GUICtrlSetState($Checkbox_second, $GUI_ENABLE)
 				GUICtrlSetState($List_missed, $GUI_ENABLE)
+				GUICtrlSetState($Combo_title, $GUI_ENABLE)
+				GUICtrlSetState($Button_saveto, $GUI_ENABLE)
+				GUICtrlSetState($Checkbox_size, $GUI_ENABLE)
+				GUICtrlSetState($Checkbox_md5, $GUI_ENABLE)
+				If $enable = 1 Then GUICtrlSetState($Button_compare, $GUI_ENABLE)
+				GUICtrlSetState($Checkbox_enable, $GUI_ENABLE)
 				GUICtrlSetState($Button_get, $GUI_ENABLE)
 				GUICtrlSetState($Button_save, $GUI_ENABLE)
 				GUICtrlSetState($Button_load, $GUI_ENABLE)
 				GUICtrlSetState($Button_check, $GUI_ENABLE)
 				GUICtrlSetState($Button_list, $GUI_ENABLE)
-				GUICtrlSetState($Button_remove, $GUI_ENABLE)
+				GUICtrlSetState($Button_view, $GUI_ENABLE)
+				GUICtrlSetState($Button_delete, $GUI_ENABLE)
 				GUICtrlSetState($Combo_filter, $GUI_ENABLE)
 				GUICtrlSetState($Button_inf, $GUI_ENABLE)
 				GUICtrlSetState($Button_quit, $GUI_ENABLE)
+			EndIf
+		Case $msg = $Button_delete
+			; Remove a selected entry
+			$ind = _GUICtrlListBox_GetCurSel($List)
+			If $ind > -1 Then
+				$count = _GUICtrlListBox_DeleteString($List, $ind)
+				If $count > 0 Then
+					GUICtrlSetData($Group, $caption & "  (" & $count & ")")
+					If $ind >= $count Then
+						$ind = $ind - 1
+					EndIf
+					_GUICtrlListBox_SetCurSel($List, $ind)
+					$entry = _GUICtrlListBox_GetText($List, $ind)
+					GUICtrlSetData($Input_entry, $entry)
+				Else
+					GUICtrlSetData($Group, $caption)
+					GUICtrlSetData($Input_entry, "")
+				EndIf
+			EndIf
+		Case $msg = $Button_compare
+			; Compare list entries
+			$ind = _GUICtrlListBox_GetCurSel($List_check)
+			If $ind > -1 Then
+				SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
+				$entry = GUICtrlRead($List_check)
+				$file = StringSplit($entry, "\", 1)
+				$title = $file[1]
+				$size = $file[3]
+				$md5val = $file[4]
+				$file = $file[2]
+				$segment = GUICtrlRead($List_missed)
+				If $segment <> "" Then
+					$storage = IniRead($inifle, "Games Storage Folder", "path", "")
+					$pth = $storage & "\" & $segment
+					If FileExists($pth) Then
+						$segment = StringSplit($segment, "\", 1)
+						If $segment[$segment[0]] = $file Then
+							If $segment[1] = $title Then
+								If $compsize = 1 Then
+									If $size = FileGetSize($pth) Then
+										$segment = "query"
+										$title = "File names are the same." & @LF & @LF & "Size is the same for both entries." & @LF & @LF & "Game Titles match."
+									Else
+										$segment = "skip"
+										MsgBox(262192, "Compare Error", "File sizes mismatch.", 0, $CheckerGUI)
+									EndIf
+								EndIf
+							Else
+								If $compsize = 1 Then
+									If $size = FileGetSize($pth) Then
+										$segment = "query"
+										$title = "File names are the same." & @LF & @LF & "Size is the same for both entries." & @LF & @LF & "Game Titles DON'T match."
+									Else
+										$segment = "skip"
+										MsgBox(262192, "Compare Error", "File sizes mismatch.", 0, $CheckerGUI)
+									EndIf
+								EndIf
+							EndIf
+							If $segment <> "query" And $segment <> "skip" Then
+								$segment = "query"
+								$title = "Size and MD5 not checked." & @LF & @LF & "File names match."
+							EndIf
+							If $md5check = 1 And $md5val <> "none" And $md5val <> "" And $segment <> "skip" Then
+								If FileExists($fsum) Then
+									FileChangeDir(@ScriptDir & "\FSUM")
+									_PathSplit($pth, $drv, $dir, $fnam, $fext)
+									$filefld = StringTrimRight($drv & $dir, 1)
+									RunWait(@ComSpec & ' /c fsum.exe -jnc -md5 -d"' & $filefld & '" ' & $file & ' >"'  & $resfle & '"')
+									$res = _FileReadToArray($resfle, $array, 1)
+									If $res = 1 Then
+										$match = $array[1]
+										$match = StringSplit($match, " ", 1)
+										$match = $match[1]
+										If $match = $md5val Then
+											$segment = "remove"
+										Else
+											MsgBox(262192, "Compare Error", "The fsum.exe check failed.", 0, $CheckerGUI)
+										EndIf
+									Else
+										MsgBox(262192, "Compare Error", "An fsum.exe results issue.", 0, $CheckerGUI)
+									EndIf
+								Else
+									MsgBox(262192, "Compare Error", "The fsum.exe program is missing.", 0, $CheckerGUI)
+								EndIf
+							EndIf
+						Else
+							MsgBox(262192, "Compare Error", "File names mismatch.", 0, $CheckerGUI)
+						EndIf
+						If $segment = "query" Then
+							$ans = MsgBox(262177, "Remove Query", _
+								$title & @LF & @LF & _
+								"Do you want to remove them?", 0, $CheckerGUI)
+							If $ans = 1 Then
+								$segment = "remove"
+							EndIf
+						EndIf
+						If $segment = "remove" Then
+							$count = _GUICtrlListBox_DeleteString($List_check, $ind)
+							If $count > 0 Then
+								GUICtrlSetData($Group_check, "Files To Check For  (" & $count & ")")
+								If $count <= $ind Then $ind = $ind - 1
+								_GUICtrlListBox_SetCurSel($List_check, $ind)
+								$entry = _GUICtrlListBox_GetText($List_check, $ind)
+								GUICtrlSetData($Input_entry, $entry)
+							Else
+								GUICtrlSetData($Group_check, "Files To Check For")
+							EndIf
+							$ind = _GUICtrlListBox_GetCurSel($List_missed)
+							If $ind > -1 Then
+								$count = _GUICtrlListBox_DeleteString($List_missed, $ind)
+								If $count > 0 Then
+									GUICtrlSetData($Group_missed, "Unmatched Files (" & $count & ")")
+									If $count <= $ind Then $ind = $ind - 1
+									_GUICtrlListBox_SetCurSel($List_missed, $ind)
+								Else
+									GUICtrlSetData($Group_check, "Unmatched Files")
+								EndIf
+							EndIf
+						EndIf
+					Else
+						MsgBox(262192, "Compare Error", "Path doesn't exist." & @LF & @LF & $pth, 0, $CheckerGUI)
+					EndIf
+				Else
+					MsgBox(262192, "Compare Error", "List two election issue.", 0, $CheckerGUI)
+				EndIf
+				$entry = ""
+				$segment = ""
+				SplashOff()
+			Else
+				MsgBox(262192, "Compare Error", "List one election issue.", 0, $CheckerGUI)
 			EndIf
 		Case $msg = $Button_check
 			; Check for game files
@@ -2881,22 +3156,31 @@ Func FileCheckerGUI()
 			GUICtrlSetState($List_check, $GUI_DISABLE)
 			GUICtrlSetState($Checkbox_second, $GUI_DISABLE)
 			GUICtrlSetState($List_missed, $GUI_DISABLE)
+			GUICtrlSetState($Combo_title, $GUI_DISABLE)
+			GUICtrlSetState($Button_saveto, $GUI_DISABLE)
+			GUICtrlSetState($Checkbox_size, $GUI_DISABLE)
+			GUICtrlSetState($Checkbox_md5, $GUI_DISABLE)
+			If $enable = 1 Then GUICtrlSetState($Button_compare, $GUI_DISABLE)
+			GUICtrlSetState($Checkbox_enable, $GUI_DISABLE)
 			GUICtrlSetState($Button_get, $GUI_DISABLE)
 			GUICtrlSetState($Button_save, $GUI_DISABLE)
 			GUICtrlSetState($Button_load, $GUI_DISABLE)
 			GUICtrlSetState($Button_check, $GUI_DISABLE)
 			GUICtrlSetState($Button_list, $GUI_DISABLE)
-			GUICtrlSetState($Button_remove, $GUI_DISABLE)
+			GUICtrlSetState($Button_view, $GUI_DISABLE)
+			GUICtrlSetState($Button_delete, $GUI_DISABLE)
 			GUICtrlSetState($Combo_filter, $GUI_DISABLE)
 			GUICtrlSetState($Button_inf, $GUI_DISABLE)
 			GUICtrlSetState($Button_quit, $GUI_DISABLE)
 			;
-			$store = IniRead($inifle, "Games Storage Folder", "path", "")
-			$pth = FileSelectFolder("Browse to select your games storage folder.", $gamesfold, 0, $store, $CheckerGUI)
+			$storage = IniRead($inifle, "Games Storage Folder", "path", "")
+			$pth = FileSelectFolder("Browse to select your games storage folder.", $gamesfold, 0, $storage, $CheckerGUI)
 			If Not @error And StringMid($pth, 2, 2) = ":\" Then
-				$store = $pth
-				IniWrite($inifle, "Games Storage Folder", "path", $store)
+				$storage = $pth
+				IniWrite($inifle, "Games Storage Folder", "path", $storage)
 				SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
+				_FileWriteLog($logfle, "Checking files with checklist.")
+				GUICtrlSetData($List_missed, "")
 				$entries = ""
 				$count = _GUICtrlListBox_GetCount($List_check)
 				For $s = 0 To $count - 1
@@ -2907,20 +3191,48 @@ Func FileCheckerGUI()
 						$entries = $entries & "|" & $entry
 					EndIf
 				Next
+				;$md5val = 0
 				$entries = StringSplit($entries, "|", 1)
-				$array = _FileListToArrayRec($store, "*.bin;*.dmg;*.exe;*.gz;*.mp4;*.pdf;*.png;*.rar;*.sh;*.zip", $FLTAR_FILES, $FLTAR_RECUR, $FLTAR_SORT, $FLTAR_RELPATH)
-				_ArrayDisplay($array)
+				$array = _FileListToArrayRec($storage, "*.bin;*.dmg;*.exe;*.gz;*.mp4;*.pdf;*.png;*.rar;*.sh;*.zip", $FLTAR_FILES, $FLTAR_RECUR, $FLTAR_SORT, $FLTAR_RELPATH)
+				;_ArrayDisplay($array)
 				For $a = 1 To $array[0]
-					$entry = $array[$a]
-					$ind = _ArraySearch($entries, $entry, 1, 0, 0, 1)
+					$item = $array[$a]
+					$ind = _ArraySearch($entries, $item, 1, 0, 0, 1)
 					If $ind > -1 Then
 						$entry = $entries[$ind]
+						$file = StringSplit($entry, "\", 1)
+						$title = $file[1]
+						$size = $file[3]
+						;$md5val = $file[4]
+						$file = $file[2]
 						$ind = _GUICtrlListBox_FindString($List_check, $entry, True)
 						If $ind > -1 Then
-							$count = _GUICtrlListBox_DeleteString($List_check, $ind)
+							;$md5val = $md5val + 1
+							$pth = $storage & "\" & $item
+							If $compsize = 1 Then
+								If FileExists($pth) Then
+									$segment = StringSplit($item, "\", 1)
+									If $segment[1] = $title And $segment[2] = $file Then
+										If $size = FileGetSize($pth) Then
+											$count = _GUICtrlListBox_DeleteString($List_check, $ind)
+										Else
+											$ind = -1
+										EndIf
+									Else
+										$ind = -1
+									EndIf
+								Else
+									$ind = -1
+								EndIf
+							Else
+								$count = _GUICtrlListBox_DeleteString($List_check, $ind)
+							EndIf
 						EndIf
 					Else
-						GUICtrlSetData($List_missed, $entry)
+						$ind = -1
+					EndIf
+					If $ind = -1 Then
+						GUICtrlSetData($List_missed, $item)
 					EndIf
 				Next
 				If $count > 0 Then
@@ -2934,22 +3246,38 @@ Func FileCheckerGUI()
 				Else
 					GUICtrlSetData($Group_missed, "Unmatched Files")
 				EndIf
+				_FileWriteLog($logfle, "Checking finished.")
 				SplashOff()
+				;MsgBox(262192, "$md5val", $md5val, 0, $CheckerGUI)
 			EndIf
 			;
 			GUICtrlSetState($Checkbox_first, $GUI_ENABLE)
 			GUICtrlSetState($List_check, $GUI_ENABLE)
 			GUICtrlSetState($Checkbox_second, $GUI_ENABLE)
 			GUICtrlSetState($List_missed, $GUI_ENABLE)
+			GUICtrlSetState($Combo_title, $GUI_ENABLE)
+			GUICtrlSetState($Button_saveto, $GUI_ENABLE)
+			GUICtrlSetState($Checkbox_size, $GUI_ENABLE)
+			GUICtrlSetState($Checkbox_md5, $GUI_ENABLE)
+			If $enable = 1 Then GUICtrlSetState($Button_compare, $GUI_ENABLE)
+			GUICtrlSetState($Checkbox_enable, $GUI_ENABLE)
 			GUICtrlSetState($Button_get, $GUI_ENABLE)
 			GUICtrlSetState($Button_save, $GUI_ENABLE)
 			GUICtrlSetState($Button_load, $GUI_ENABLE)
 			GUICtrlSetState($Button_check, $GUI_ENABLE)
 			GUICtrlSetState($Button_list, $GUI_ENABLE)
-			GUICtrlSetState($Button_remove, $GUI_ENABLE)
+			GUICtrlSetState($Button_view, $GUI_ENABLE)
+			GUICtrlSetState($Button_delete, $GUI_ENABLE)
 			GUICtrlSetState($Combo_filter, $GUI_ENABLE)
 			GUICtrlSetState($Button_inf, $GUI_ENABLE)
 			GUICtrlSetState($Button_quit, $GUI_ENABLE)
+		Case $msg = $Checkbox_size
+			; Compare Size - Also check file size
+			If GUICtrlRead($Checkbox_size) = $GUI_CHECKED Then
+				$compsize = 1
+			Else
+				$compsize = 4
+			EndIf
 		Case $msg = $Checkbox_second
 			; Filter out the selected file type from the list
 			If GUICtrlRead($Checkbox_second) = $GUI_CHECKED Then
@@ -2957,15 +3285,22 @@ Func FileCheckerGUI()
 				$Group = $Group_missed
 				$caption = "Unmatched Files"
 				$savlist = @ScriptDir & "\Unmatched.txt"
-				_GUICtrlListBox_SetCurSel($List_check, -1)
+				If $enable = 4 Then _GUICtrlListBox_SetCurSel($List_check, -1)
 				GUICtrlSetState($Checkbox_first, $GUI_UNCHECKED)
 			Else
 				$List = $List_check
 				$Group = $Group_check
 				$caption = "Files To Check For"
 				$savlist = @ScriptDir & "\Saved.txt"
-				_GUICtrlListBox_SetCurSel($List_missed, -1)
+				If $enable = 4 Then _GUICtrlListBox_SetCurSel($List_missed, -1)
 				GUICtrlSetState($Checkbox_first, $GUI_CHECKED)
+			EndIf
+		Case $msg = $Checkbox_md5
+			; Check MD5 - Check MD5 with the Compare button
+			If GUICtrlRead($Checkbox_md5) = $GUI_CHECKED Then
+				$md5check = 1
+			Else
+				$md5check = 4
 			EndIf
 		Case $msg = $Checkbox_first
 			; Filter out the selected file type from the list
@@ -2974,46 +3309,82 @@ Func FileCheckerGUI()
 				$Group = $Group_check
 				$caption = "Files To Check For"
 				$savlist = @ScriptDir & "\Saved.txt"
-				_GUICtrlListBox_SetCurSel($List_missed, -1)
+				If $enable = 4 Then _GUICtrlListBox_SetCurSel($List_missed, -1)
 				GUICtrlSetState($Checkbox_second, $GUI_UNCHECKED)
 			Else
 				$List = $List_missed
 				$Group = $Group_missed
 				$caption = "Unmatched Files"
 				$savlist = @ScriptDir & "\Unmatched.txt"
-				_GUICtrlListBox_SetCurSel($List_check, -1)
+				If $enable = 4 Then _GUICtrlListBox_SetCurSel($List_check, -1)
 				GUICtrlSetState($Checkbox_second, $GUI_CHECKED)
 			EndIf
+		Case $msg = $Checkbox_enable
+			; Enable Compare
+			If GUICtrlRead($Checkbox_enable) = $GUI_CHECKED Then
+				$enable = 1
+				GUICtrlSetState($Button_compare, $GUI_ENABLE)
+			Else
+				$enable = 4
+				GUICtrlSetState($Button_compare, $GUI_DISABLE)
+			EndIf
+		Case $msg = $Combo_title
+			; Title format to use for Get
+			$titget = GUICtrlRead($Combo_title)
 		Case $msg = $Combo_filter
 			; Filter out the selected file type from the list
-			$type = GUICtrlRead($Combo_filter)
-			If $type <> "" Then
-				$type = "." & $type
-				$len = StringLen($type)
+			$fext = GUICtrlRead($Combo_filter)
+			If $fext <> "" Then
+				If _IsPressed("11") Then
+					$filter = "in"
+				Else
+					$filter = "out"
+				EndIf
+				$fext = "." & $fext
+				$len = StringLen($fext)
 				GUICtrlSetState($Checkbox_first, $GUI_DISABLE)
 				GUICtrlSetState($List_check, $GUI_DISABLE)
 				GUICtrlSetState($Checkbox_second, $GUI_DISABLE)
 				GUICtrlSetState($List_missed, $GUI_DISABLE)
+				GUICtrlSetState($Combo_title, $GUI_DISABLE)
+				GUICtrlSetState($Button_saveto, $GUI_DISABLE)
+				GUICtrlSetState($Checkbox_size, $GUI_DISABLE)
+				GUICtrlSetState($Checkbox_md5, $GUI_DISABLE)
+				If $enable = 1 Then GUICtrlSetState($Button_compare, $GUI_DISABLE)
+				GUICtrlSetState($Checkbox_enable, $GUI_DISABLE)
 				GUICtrlSetState($Button_get, $GUI_DISABLE)
 				GUICtrlSetState($Button_save, $GUI_DISABLE)
 				GUICtrlSetState($Button_load, $GUI_DISABLE)
 				GUICtrlSetState($Button_check, $GUI_DISABLE)
 				GUICtrlSetState($Button_list, $GUI_DISABLE)
-				GUICtrlSetState($Button_remove, $GUI_DISABLE)
+				GUICtrlSetState($Button_view, $GUI_DISABLE)
+				GUICtrlSetState($Button_delete, $GUI_DISABLE)
 				GUICtrlSetState($Combo_filter, $GUI_DISABLE)
 				GUICtrlSetState($Button_inf, $GUI_DISABLE)
 				GUICtrlSetState($Button_quit, $GUI_DISABLE)
 				;
-				SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
+				SplashTextOn("", "Please Wait!" & @LF & "(filter " & $filter & ")", 200, 120, Default, Default, 33)
 				$entries = ""
 				$count = _GUICtrlListBox_GetCount($List_check)
 				For $a = 0 To $count - 1
 					$entry = _GUICtrlListBox_GetText($List_check, $a)
-					If StringRight($entry, $len) <> $type Then
-						If $entries = "" Then
-							$entries = $entry
-						Else
-							$entries = $entries & "|" & $entry
+					$file = StringSplit($entry, "\", 1)
+					$file = $file[2]
+					If $filter = "out" Then
+						If StringRight($file, $len) <> $fext Then
+							If $entries = "" Then
+								$entries = $entry
+							Else
+								$entries = $entries & "|" & $entry
+							EndIf
+						EndIf
+					ElseIf $filter = "in" Then
+						If StringRight($file, $len) = $fext Then
+							If $entries = "" Then
+								$entries = $entry
+							Else
+								$entries = $entries & "|" & $entry
+							EndIf
 						EndIf
 					EndIf
 				Next
@@ -3031,12 +3402,19 @@ Func FileCheckerGUI()
 				GUICtrlSetState($List_check, $GUI_ENABLE)
 				GUICtrlSetState($Checkbox_second, $GUI_ENABLE)
 				GUICtrlSetState($List_missed, $GUI_ENABLE)
+				GUICtrlSetState($Combo_title, $GUI_ENABLE)
+				GUICtrlSetState($Button_saveto, $GUI_ENABLE)
+				GUICtrlSetState($Checkbox_size, $GUI_ENABLE)
+				GUICtrlSetState($Checkbox_md5, $GUI_ENABLE)
+				If $enable = 1 Then GUICtrlSetState($Button_compare, $GUI_ENABLE)
+				GUICtrlSetState($Checkbox_enable, $GUI_ENABLE)
 				GUICtrlSetState($Button_get, $GUI_ENABLE)
 				GUICtrlSetState($Button_save, $GUI_ENABLE)
 				GUICtrlSetState($Button_load, $GUI_ENABLE)
 				GUICtrlSetState($Button_check, $GUI_ENABLE)
 				GUICtrlSetState($Button_list, $GUI_ENABLE)
-				GUICtrlSetState($Button_remove, $GUI_ENABLE)
+				GUICtrlSetState($Button_view, $GUI_ENABLE)
+				GUICtrlSetState($Button_delete, $GUI_ENABLE)
 				GUICtrlSetState($Combo_filter, $GUI_ENABLE)
 				GUICtrlSetState($Button_inf, $GUI_ENABLE)
 				GUICtrlSetState($Button_quit, $GUI_ENABLE)
@@ -3050,7 +3428,12 @@ Func FileCheckerGUI()
 			$Group = $Group_missed
 			$caption = "Unmatched Files"
 			$savlist = @ScriptDir & "\Unmatched.txt"
-			_GUICtrlListBox_SetCurSel($List_check, -1)
+			If $enable = 4 Then
+				_GUICtrlListBox_SetCurSel($List_check, -1)
+			Else
+				$ind = _GUICtrlListBox_FindString($List_check, $entry, False)
+				If $ind > -1 Then _GUICtrlListBox_SetCurSel($List_check, $ind)
+			EndIf
 			GUICtrlSetState($Checkbox_second, $GUI_CHECKED)
 			GUICtrlSetState($Checkbox_first, $GUI_UNCHECKED)
 		Case $msg = $List_check
@@ -3062,7 +3445,7 @@ Func FileCheckerGUI()
 			$Group = $Group_check
 			$caption = "Files To Check For"
 			$savlist = @ScriptDir & "\Saved.txt"
-			_GUICtrlListBox_SetCurSel($List_missed, -1)
+			If $enable = 4 Then _GUICtrlListBox_SetCurSel($List_missed, -1)
 			GUICtrlSetState($Checkbox_first, $GUI_CHECKED)
 			GUICtrlSetState($Checkbox_second, $GUI_UNCHECKED)
 		Case Else
@@ -3398,6 +3781,9 @@ Func QueueGUI()
 				GUICtrlSetState($Checkbox_all, $GUI_DISABLE)
 				GUICtrlSetState($Checkbox_update, $GUI_DISABLE)
 				GUICtrlSetState($Checkbox_verify, $GUI_DISABLE)
+				GUICtrlSetState($Item_check, $GUI_DISABLE)
+				GUICtrlSetState($Item_remove, $GUI_DISABLE)
+				GUICtrlSetState($Item_delete, $GUI_DISABLE)
 				;GUICtrlSetState($Button_move, $GUI_DISABLE)
 				GUICtrlSetState($Button_log, $GUI_DISABLE)
 				GUICtrlSetBkColor($Label_added, $COLOR_RED)
@@ -6995,6 +7381,9 @@ Func CheckOnGameDownload()
 	GUICtrlSetState($Checkbox_update, $GUI_ENABLE)
 	GUICtrlSetState($Checkbox_verify, $GUI_ENABLE)
 	GUICtrlSetState($Checkbox_all, $GUI_ENABLE)
+	GUICtrlSetState($Item_check, $GUI_ENABLE)
+	GUICtrlSetState($Item_remove, $GUI_ENABLE)
+	GUICtrlSetState($Item_delete, $GUI_ENABLE)
 	;GUICtrlSetState($Button_setup, $GUI_ENABLE)
 	;GUICtrlSetState($Button_move, $GUI_ENABLE)
 	GUICtrlSetState($Button_log, $GUI_ENABLE)
@@ -7059,6 +7448,9 @@ Func ClearDisableEnableRestore()
 	GUICtrlSetState($Checkbox_update, $GUI_ENABLE)
 	GUICtrlSetState($Checkbox_verify, $GUI_ENABLE)
 	GUICtrlSetState($Checkbox_all, $GUI_ENABLE)
+	GUICtrlSetState($Item_check, $GUI_ENABLE)
+	GUICtrlSetState($Item_remove, $GUI_ENABLE)
+	GUICtrlSetState($Item_delete, $GUI_ENABLE)
 	GUICtrlSetBkColor($Label_added, $COLOR_GREEN)
 	GUICtrlSetData($Label_added, $total)
 	;GUICtrlSetState($Button_setup, $GUI_ENABLE)
