@@ -30,6 +30,7 @@
 #include <ListViewConstants.au3>
 #include <ProgressConstants.au3>
 #include <StaticConstants.au3>
+#include <StringConstants.au3>
 #include <GuiListBox.au3>
 #include <GuiListView.au3>
 #include <GuiComboBox.au3>
@@ -363,6 +364,7 @@ Func MainGUI()
 	GUICtrlCreateMenuItem("", $Menu_list)
 	GUICtrlCreateMenuItem("", $Menu_list)
 	$Item_check = GUICtrlCreateMenuItem("CHECKER for Game files", $Menu_list)
+	GUICtrlCreateMenuItem("", $Menu_list)
 	GUICtrlCreateMenuItem("", $Menu_list)
 	;$Item_download = GUICtrlCreateMenuItem("DOWNLOAD selected Game file(s)", $Menu_list)
 	$Item_download = GUICtrlCreateMenuItem("DOWNLOAD Files Selector", $Menu_list)
@@ -1782,6 +1784,7 @@ Func MainGUI()
 					GUICtrlSetTip($Button_down, "Verify the selected game!")
 				EndIf
 				GUICtrlSetState($Checkbox_update, $GUI_DISABLE)
+				GUICtrlSetState($Item_download, $GUI_DISABLE)
 			Else
 				$verify = 4
 				If $all = 1 Then
@@ -1790,6 +1793,7 @@ Func MainGUI()
 				Else
 					$buttitle = "Down" & @LF & "One"
 					GUICtrlSetTip($Button_down, "Download the selected game!")
+					GUICtrlSetState($Item_download, $GUI_ENABLE)
 				EndIf
 				GUICtrlSetState($Checkbox_update, $GUI_ENABLE)
 			EndIf
@@ -1806,6 +1810,7 @@ Func MainGUI()
 					GUICtrlSetTip($Button_down, "Verify the selected game!")
 				EndIf
 				GUICtrlSetState($Checkbox_verify, $GUI_DISABLE)
+				GUICtrlSetState($Item_download, $GUI_DISABLE)
 			Else
 				$update = 4
 				If $all = 1 Then
@@ -1814,6 +1819,7 @@ Func MainGUI()
 				Else
 					$buttitle = "Down" & @LF & "One"
 					GUICtrlSetTip($Button_down, "Download the selected game!")
+					GUICtrlSetState($Item_download, $GUI_ENABLE)
 				EndIf
 				GUICtrlSetState($Checkbox_verify, $GUI_ENABLE)
 			EndIf
@@ -1889,6 +1895,7 @@ Func MainGUI()
 					$buttitle = "Down" & @LF & "ALL"
 					GUICtrlSetTip($Button_down, "Download ALL games!")
 				EndIf
+				GUICtrlSetState($Item_download, $GUI_DISABLE)
 			Else
 				$all = 4
 				If $verify = 1 Then
@@ -1900,6 +1907,7 @@ Func MainGUI()
 				Else
 					$buttitle = "Down" & @LF & "One"
 					GUICtrlSetTip($Button_down, "Download the selected game!")
+					GUICtrlSetState($Item_download, $GUI_ENABLE)
 				EndIf
 			EndIf
 			GUICtrlSetData($Button_down, $buttitle)
@@ -2117,10 +2125,14 @@ Func MainGUI()
 						EndIf
 						SplashOff()
 						If $chunk <> "" Then
+							$OS = GUICtrlRead($Combo_OS)
+							$OS = StringReplace($OS, "+", "")
+							$OS = StringStripWS($OS, 7)
+							$OS = StringLower($OS)
 							EnableDisableControls($GUI_DISABLE)
 							FileSelectorGUI()
 							EnableDisableControls($GUI_ENABLE)
-							GUISetState(@SW_SHOWNORMAL, $GOGRepoGUI)
+							GUISetState(@SW_RESTORE, $GOGRepoGUI)
 							GUICtrlSetState($Button_down, $GUI_FOCUS)
 						EndIf
 					Else
@@ -3514,17 +3526,22 @@ Func FileCheckerGUI()
 EndFunc ;=> FileCheckerGUI
 
 Func FileSelectorGUI()
-	Local $Button_download, $Button_quit, $Combo_OSfle, $Group_files, $Group_OS, $ListView_files
+	Local $Button_download, $Button_quit, $Combo_OSfle, $Group_files, $Group_OS, $Label_warn, $ListView_files
 	Local $Radio_selall, $Radio_selext, $Radio_selgame, $Radio_selpat, $Radio_selset
-	Local $col1, $col2, $col3, $col4, $downloads, $ents, $fext, $final, $first, $osfle, $tmpman
+	Local $col1, $col2, $col3, $col4, $downloads, $ents, $fext, $final, $first, $osfle, $p, $portion, $portions, $tmpman
 	;
 	$SelectorGUI = GuiCreate("DOWNLOAD Files Selector", $width, $height, $left, $top, $style + $WS_VISIBLE, $WS_EX_TOPMOST)
 	GUISetBkColor(0xBBFFBB, $SelectorGUI)
 	; CONTROLS
-	$Group_files = GuiCtrlCreateGroup("Game Files To Download", 10, 10, $width - 20, 322)
-	$ListView_files = GUICtrlCreateListView("||||", 20, 30, $width - 40, 290, $LVS_SHOWSELALWAYS + $LVS_SINGLESEL + $LVS_REPORT + $LVS_NOCOLUMNHEADER, _
+	$Group_files = GuiCtrlCreateGroup("Game Files To Download", 10, 10, $width - 20, 302)
+	$ListView_files = GUICtrlCreateListView("||||", 20, 30, $width - 40, 270, $LVS_SHOWSELALWAYS + $LVS_SINGLESEL + $LVS_REPORT + $LVS_NOCOLUMNHEADER, _
 													$LVS_EX_FULLROWSELECT + $LVS_EX_GRIDLINES + $LVS_EX_CHECKBOXES) ;
 	GUICtrlSetBkColor($ListView_files, 0xB9FFFF)
+	;
+	$Label_warn = GuiCtrlCreateLabel("", 10, 318, $width - 20, 20, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
+	GUICtrlSetBkColor($Label_warn, $COLOR_RED)
+	GUICtrlSetColor($Label_warn, $COLOR_YELLOW)
+	GUICtrlSetFont($Label_warn, 9, 600)
 	;
 	$Group_select = GuiCtrlCreateGroup("Select Files", 10, $height - 65, 300, 55)
 	$Radio_selall = GUICtrlCreateRadio("ALL", 20, $height - 44,  50, 20)
@@ -3548,7 +3565,7 @@ Func FileSelectorGUI()
 	GUICtrlSetTip($Combo_OSfle, "OS for files!")
 	;
 	$Button_download = GuiCtrlCreateButton("DOWNLOAD", $width - 170, $height - 60, 105, 50)
-	GUICtrlSetFont($Button_download, 9, 600)
+	GUICtrlSetFont($Button_download, 8, 600)
 	GUICtrlSetTip($Button_download, "Download selected files!")
 	;
 	$Button_quit = GuiCtrlCreateButton("EXIT", $width - 55, $height - 60, 45, 50, $BS_ICON)
@@ -3556,6 +3573,8 @@ Func FileSelectorGUI()
 	;
 	; SETTINGS
 	GUICtrlSetImage($Button_quit, $user, $icoX, 1)
+	;
+	GUICtrlSetData($Label_warn, "Ensure desired download settings have been set on main program window etc.")
 	;
 	$osfle = IniRead($inifle, "Selector", "OS", "")
 	If $osfle = "" Then
@@ -3685,6 +3704,8 @@ Func FileSelectorGUI()
 			; Exit / Close / Quit the window
 			GUIDelete($SelectorGUI)
 			ExitLoop
+		Case $msg = $GUI_EVENT_MINIMIZE
+			GUISetState(@SW_MINIMIZE, $GOGRepoGUI)
 		Case $msg = $Button_download
 			; Download selected files
 			$downloads = ""
@@ -3700,7 +3721,309 @@ Func FileSelectorGUI()
 				EndIf
 			Next
 			If $downloads <> "" Then
-				MsgBox(262208, "Downloads Information", $downloads, 0, $SelectorGUI)
+				;MsgBox(262208, "Downloads Information", $downloads, 0, $SelectorGUI)
+				$bypass = 0
+				$tmpman = @ScriptDir & "\Game_1.dat"
+				If FileExists($tmpman) Then
+					;$chunk =  _FileReadToArray($tmpman)
+					$open = FileOpen($tmpman, 0)
+					$read = FileRead($open)
+					FileClose($open)
+					$chunk = $read
+					If StringInStr($downloads, "GAME:") > 0 Then
+						$tmpman = @ScriptDir & "\Game_2.dat"
+						If FileExists($tmpman) Then
+							$open = FileOpen($tmpman, 0)
+							$read = FileRead($open)
+							FileClose($open)
+							$lines = ""
+							$entries = StringSplit($downloads, "|", 1)
+							For $e = 1 To $entries[0]
+								$entry = $entries[$e]
+								$entry = StringSplit($entry, ":", 1)
+								$entry = $entry[2]
+								;MsgBox(262208, "$entry", "|" & $entry, 0, $SelectorGUI)
+								$portions = StringSplit($read, "<DOWNLOAD>" & @LF, 1)
+								For $p = 1 To $portions[0]
+									$portion = $portions[$p]
+									If StringInStr($portion, $entry) > 0 Then
+										If StringInStr($portion, "'desc':") > 0 Then
+											$portion = StringReplace($portion, "}],", "},")
+											If $lines = "" Then
+												$portion = StringStripWS($portion, 1)
+												$lines = "  'downloads': [" & $portion
+												;MsgBox(262208, "$lines", "|" & $lines, 0, $SelectorGUI)
+											Else
+												$lines = $lines & $portion
+											EndIf
+										EndIf
+										ExitLoop
+									EndIf
+								Next
+							Next
+							$lines = StringReplace($lines, "},", "}],", -1)
+							$chunk = $chunk & @LF & $lines
+						Else
+							MsgBox(262192, "Build Error", "File not found (Game_2.dat)!", 0, $SelectorGUI)
+						EndIf
+					Else
+						$bypass = 1
+						$lines = "  'downloads': [],"
+						$chunk = $chunk & @LF & $lines
+					EndIf
+					If StringInStr($downloads, "EXTRA:") > 0 Then
+						$tmpman = @ScriptDir & "\Game_3.dat"
+						If FileExists($tmpman) Then
+							$open = FileOpen($tmpman, 0)
+							$read = FileRead($open)
+							FileClose($open)
+							$lines = ""
+							$entries = StringSplit($downloads, "|", 1)
+							For $e = 1 To $entries[0]
+								$entry = $entries[$e]
+								$entry = StringSplit($entry, ":", 1)
+								$entry = $entry[2]
+								$portions = StringSplit($read, "<EXTRA>" & @LF, 1)
+								For $p = 1 To $portions[0]
+									$portion = $portions[$p]
+									If StringInStr($portion, $entry) > 0 Then
+										If StringInStr($portion, "'desc':") > 0 Then
+											$portion = StringReplace($portion, "}],", "},")
+											If $lines = "" Then
+												$portion = StringStripWS($portion, 1)
+												$lines = "  'extras': [" & $portion
+											Else
+												$lines = $lines & $portion
+											EndIf
+										EndIf
+										ExitLoop
+									EndIf
+								Next
+							Next
+							$chunk = StringStripWS($chunk, 2)
+							$lines = StringReplace($lines, "},", "}],", -1)
+							$chunk = $chunk & @LF & $lines
+						Else
+							MsgBox(262192, "Build Error", "File not found (Game_3.dat)!", 0, $SelectorGUI)
+						EndIf
+					Else
+						$bypass = 2
+						$lines = "  'extras': [],"
+						$chunk = $chunk & @LF & $lines
+					EndIf
+					$tmpman = @ScriptDir & "\Game_4.dat"
+					If FileExists($tmpman) Then
+						$open = FileOpen($tmpman, 0)
+						$read = FileRead($open)
+						FileClose($open)
+						$chunk = StringStripWS($chunk, 2)
+						$chunk = $chunk & @LF & $read
+						$gamefle = @ScriptDir & "\Game.dat"
+						$open = FileOpen($gamefle, 2)
+						FileWrite($open, $chunk)
+						FileClose($open)
+						If FileExists($gamefle) Then
+							;$title = GUICtrlRead($Input_title)
+							;$name = GUICtrlRead($List_games)
+							If FileExists($gogrepo) Then
+								$ans = ""
+								CheckIfPythonRunning()
+								If $ans = 2 Then ContinueLoop
+								;
+								$gamesfold = $dest
+								If $gamesfold <> "" Then
+									$path = IniRead($locations, $name, "path", "")
+									If $path <> "" Then
+										$gamesfold = $path
+									EndIf
+									$gamefold = $gamesfold
+									If $alpha = 1 Then
+										$alf = StringUpper(StringLeft($title, 1))
+										$gamefold = $gamefold & "\" & $alf
+										;MsgBox(262192, "Got Here 2", $title & @LF & $gamefold, $wait, $SelectorGUI)
+									EndIf
+									$drv = StringLeft($gamefold, 3)
+									If FileExists($drv) Then
+										If Not FileExists($gamefold) Then
+											DirCreate($gamefold)
+										EndIf
+									EndIf
+									If FileExists($gamefold) Then
+										; Download one or more game files
+										FileChangeDir(@ScriptDir)
+										CheckForConnection()
+										If $connection = 1 Then
+											$tmpman = $manifest & ".tmp"
+											$res = FileMove($manifest, $tmpman, 1)
+											If $res = 1 And FileExists($tmpman) Then
+												;_FileCreate($finished)
+												_FileWriteLog($logfle, "Downloading (files) - " & $title & ".")
+												;IniWrite($inifle, "Current Download", "title", $title)
+												;IniWrite($inifle, "Current Download", "destination", $gamefold)
+												$res = FileMove($gamefle, $manifest, 0)
+												If $res = 1 And FileExists($manifest) Then
+													;GUISetState(@SW_MINIMIZE, $SelectorGUI)
+													;GUISetState(@SW_MINIMIZE, $GOGRepoGUI)
+													;
+													CheckOnShutdown()
+													If $minimize = 1 Then
+														$flag = @SW_MINIMIZE
+													Else
+														;$flag = @SW_RESTORE
+														$flag = @SW_SHOW
+													EndIf
+													;If $bargui = 1 And FileExists($progbar) Then
+													;	$pid = ShellExecute($progbar, "Download", @ScriptDir, "open", $flag)
+													;Else
+														If $script = "default" Then
+															Local $params = " -skipextras -skipgames"
+															If $bypass <> 1 Then
+																; Game Files required
+																;If $files = 1 Then $params = StringReplace($params, " -skipgames", "")
+																$params = StringReplace($params, " -skipgames", "")
+															EndIf
+														Else
+															Local $params = " -os " & $OS & " -lang " & $lang & " -skipextras -skipgalaxy -skipstandalone -skipshared -nolog"
+															If $bypass <> 1 Then
+																; Game Files required, according to settings
+																If $galaxy = 1 Then $params = StringReplace($params, " -skipgalaxy", "")
+																If $standalone = 1 Then $params = StringReplace($params, " -skipstandalone", "")
+																If $shared = 1 Then $params = StringReplace($params, " -skipshared", "")
+															EndIf
+															If $downlog = 1 Then $params = StringReplace($params, " -nolog", "")
+															If $skiplang = 1 Then
+																If $langskip <> "" Then $params = $params & " -skiplang " & $langskip
+															EndIf
+															If $skipos = 1 Then
+																If $osskip <> "" Then
+																	$val = StringReplace($osskip, "+", "")
+																	$val = StringStripWS($val, 7)
+																	$params = $params & " -skipos " & $val
+																EndIf
+															EndIf
+														EndIf
+														If $bypass <> 2 Then
+															; Extras required
+															;If $extras = 1 Then $params = StringReplace($params, " -skipextras", "")
+															$params = StringReplace($params, " -skipextras", "")
+														EndIf
+														;MsgBox(262192, "Parameters", $params, 0, $GOGRepoGUI)
+														$pid = RunWait(@ComSpec & ' /c gogrepo.py download' & $params & ' -id ' & $title & ' "' & $gamefold & '" &&pause', @ScriptDir, $flag)
+													;EndIf
+													If $cover = 1 Then
+														$image = IniRead($gamesfle, $name, "image", "")
+														If $image <> "" Then
+															SplashTextOn("", "Saving Cover!", 200, 120, Default, Default, 33)
+															$gamepic = $gamefold & "\" & $title
+															If Not FileExists($gamepic) Then
+																DirCreate($gamepic)
+															EndIf
+															$gamepic = $gamepic & "\Folder.jpg"
+															InetGet($image, $gamepic, 1, 0)
+															If Not FileExists($gamepic) Then
+																InetGet($image, $gamepic, 0, 0)
+																If Not FileExists($gamepic) Then
+																	InetGet($image, $gamepic, 0, 1)
+																EndIf
+															EndIf
+															SplashOff()
+														EndIf
+													EndIf
+													;_FileWriteLog($finished, $current)
+													_FileWriteLog($logfle, "Download finished.")
+													;MsgBox(262208, "Checking", $tmpman, 0, $SelectorGUI)
+													If FileExists($manifest) Then
+														$res = FileMove($manifest, $gamefle, 0)
+														If $res = 1 And FileExists($gamefle) Then
+															$res = FileMove($tmpman, $manifest, 0)
+															If $res = 1 And FileExists($manifest) Then
+																; Original Manifest Restored
+															Else
+																MsgBox(262192, "Program Error", "Original manifest file could not be restored!", 0, $SelectorGUI)
+															EndIf
+														Else
+															MsgBox(262192, "Program Error", "Temporary manifest file could not be renamed!", 0, $SelectorGUI)
+														EndIf
+													Else
+														$res = 0
+														MsgBox(262192, "Unusual Error", "Temporary manifest file not found!", 0, $SelectorGUI)
+														If FileExists($tmpman) Then
+															$res = FileMove($tmpman, $manifest, 0)
+															If $res = 1 And FileExists($manifest) Then
+																; Original Manifest Restored
+															Else
+																MsgBox(262192, "Program Error", "Original manifest file could not be restored!", 0, $SelectorGUI)
+															EndIf
+														EndIf
+													EndIf
+													If $res = 0 Then
+														MsgBox(262192, "Restore Error", "You will need to manually rename the manifest based file(s) to restore " _
+															& "them to their original file names. If 'manifest.dat.tmp' file exists, it will need renaming to " _
+															& "'manifest.dat', but you might first need to rename any already existing 'manifest.dat' file to " _
+															& "'Game.dat'." & @LF & @LF _
+															& " IT IS IMPORTANT TO DO this before any further use of this program.", 0, $SelectorGUI)
+													EndIf
+													If $shutdown <> "none" And $res = 1 Then
+														Local $code
+														$ans = MsgBox(262193, "Shutdown Query", _
+															"PC is set to shutdown in 99 seconds." & @LF & @LF & _
+															"OK = Shutdown." & @LF & _
+															"CANCEL = Abort shutdown.", 99, $SelectorGUI)
+														If $ans = 1 Or $ans = -1 Then
+															If $shutdown = "Shutdown" Then
+																; Shutdown
+																$code = 1 + 4 + 16
+															ElseIf $shutdown = "Hibernate" Then
+																; Hibernate
+																$code = 64
+															ElseIf $shutdown = "Standby" Then
+																; Standby
+																$code = 32
+															ElseIf $shutdown = "Powerdown" Then
+																; Powerdown
+																$code = 8 + 4 + 16
+															ElseIf $shutdown = "Logoff" Then
+																; Logoff
+																$code = 0 + 4 + 16
+															ElseIf $shutdown = "Reboot" Then
+																; Reboot
+																$code = 2 + 4 + 16
+															EndIf
+															Shutdown($code)
+															Exit
+														EndIf
+													EndIf
+													;GUISetState(@SW_RESTORE, $SelectorGUI)
+													;GUISetState(@SW_RESTORE, $GOGRepoGUI)
+												Else
+													MsgBox(262192, "Program Error", "Temporary manifest file could not be renamed!", 0, $SelectorGUI)
+												EndIf
+											Else
+												MsgBox(262192, "Program Error", "Original manifest file could not be renamed!", 0, $SelectorGUI)
+											EndIf
+										Else
+											MsgBox(262192, "Download Error", "No web connection.", 0, $SelectorGUI)
+										EndIf
+									Else
+										MsgBox(262192, "Path Error", "Game folder not found!", 0, $SelectorGUI)
+									EndIf
+								Else
+									MsgBox(262192, "Path Error", "Destination not set!", 0, $SelectorGUI)
+								EndIf
+							Else
+								MsgBox(262192, "Program Error", "Required file 'gogrepo.py' not found!", 0, $SelectorGUI)
+							EndIf
+						Else
+							MsgBox(262192, "Build Error", "File not found (Game.dat)!", 0, $SelectorGUI)
+						EndIf
+					Else
+						MsgBox(262192, "Build Error", "File not found (Game_4.dat)!", 0, $SelectorGUI)
+					EndIf
+				Else
+					MsgBox(262192, "Build Error", "File not found (Game_1.dat)!", 0, $SelectorGUI)
+				EndIf
+			Else
+				MsgBox(262192, "Program Error", "Nothing to download!", 0, $SelectorGUI)
 			EndIf
 		Case $msg = $Combo_OSfle
 			; OS for files
