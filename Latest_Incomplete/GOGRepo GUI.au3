@@ -3526,33 +3526,42 @@ Func FileCheckerGUI()
 EndFunc ;=> FileCheckerGUI
 
 Func FileSelectorGUI()
-	Local $Button_download, $Button_quit, $Combo_OSfle, $Group_files, $Group_OS, $Label_warn, $ListView_files
+	Local $Button_download, $Button_quit, $Button_uncheck, $Combo_OSfle, $Group_files, $Group_OS, $Label_warn, $ListView_files
 	Local $Radio_selall, $Radio_selext, $Radio_selgame, $Radio_selpat, $Radio_selset
-	Local $col1, $col2, $col3, $col4, $downloads, $ents, $fext, $final, $first, $osfle, $p, $portion, $portions, $tmpman
+	Local $checked, $col1, $col2, $col3, $col4, $downloads, $ents, $fext, $final, $first, $osfle, $p, $portion, $portions, $tmpman, $wide
 	;
-	$SelectorGUI = GuiCreate("DOWNLOAD Files Selector", $width, $height, $left, $top, $style + $WS_VISIBLE, $WS_EX_TOPMOST)
+	$SelectorGUI = GuiCreate("DOWNLOAD Files Selector", $width, $height, $left, $top, $style + $WS_SIZEBOX + $WS_VISIBLE, $WS_EX_TOPMOST)
 	GUISetBkColor(0xBBFFBB, $SelectorGUI)
 	; CONTROLS
 	$Group_files = GuiCtrlCreateGroup("Game Files To Download", 10, 10, $width - 20, 302)
+	GUICtrlSetResizing($Group_files, $GUI_DOCKLEFT + $GUI_DOCKTOP + $GUI_DOCKHEIGHT)
 	$ListView_files = GUICtrlCreateListView("||||", 20, 30, $width - 40, 270, $LVS_SHOWSELALWAYS + $LVS_SINGLESEL + $LVS_REPORT + $LVS_NOCOLUMNHEADER, _
 													$LVS_EX_FULLROWSELECT + $LVS_EX_GRIDLINES + $LVS_EX_CHECKBOXES) ;
 	GUICtrlSetBkColor($ListView_files, 0xB9FFFF)
+	GUICtrlSetResizing($ListView_files, $GUI_DOCKLEFT + $GUI_DOCKTOP + $GUI_DOCKHEIGHT)
 	;
 	$Label_warn = GuiCtrlCreateLabel("", 10, 318, $width - 20, 20, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
 	GUICtrlSetBkColor($Label_warn, $COLOR_RED)
 	GUICtrlSetColor($Label_warn, $COLOR_YELLOW)
 	GUICtrlSetFont($Label_warn, 9, 600)
+	GUICtrlSetResizing($Label_warn, $GUI_DOCKLEFT + $GUI_DOCKTOP + $GUI_DOCKHEIGHT)
 	;
 	$Group_select = GuiCtrlCreateGroup("Select Files", 10, $height - 65, 300, 55)
+	GUICtrlSetResizing($Group_select, $GUI_DOCKLEFT + $GUI_DOCKALL + $GUI_DOCKSIZE)
 	$Radio_selall = GUICtrlCreateRadio("ALL", 20, $height - 44,  50, 20)
+	GUICtrlSetResizing($Radio_selall, $GUI_DOCKLEFT + $GUI_DOCKALL + $GUI_DOCKSIZE)
 	GUICtrlSetTip($Radio_selall, "Select ALL file entries!")
 	$Radio_selgame = GUICtrlCreateRadio("GAME", 70, $height - 44,  60, 20)
+	GUICtrlSetResizing($Radio_selgame, $GUI_DOCKLEFT + $GUI_DOCKALL + $GUI_DOCKSIZE)
 	GUICtrlSetTip($Radio_selgame, "Select GAME file entries!")
 	$Radio_selext = GUICtrlCreateRadio("EXTRA", 130, $height - 44,  65, 20)
+	GUICtrlSetResizing($Radio_selext, $GUI_DOCKLEFT + $GUI_DOCKALL + $GUI_DOCKSIZE)
 	GUICtrlSetTip($Radio_selext, "Select EXTRA file entries!")
 	$Radio_selset = GUICtrlCreateRadio("setup", 195, $height - 44,  55, 20)
+	GUICtrlSetResizing($Radio_selset, $GUI_DOCKLEFT + $GUI_DOCKALL + $GUI_DOCKSIZE)
 	GUICtrlSetTip($Radio_selset, "Select SETUP file entries!")
 	$Radio_selpat = GUICtrlCreateRadio("patch", 250, $height - 44,  50, 20)
+	GUICtrlSetResizing($Radio_selpat, $GUI_DOCKLEFT + $GUI_DOCKALL + $GUI_DOCKSIZE)
 	GUICtrlSetTip($Radio_selpat, "Select PATCH file entries!")
 	GUICtrlSetBkColor($Radio_selall, 0xFFD5FF)
 	GUICtrlSetBkColor($Radio_selgame, 0xFFD5FF)
@@ -3561,14 +3570,23 @@ Func FileSelectorGUI()
 	GUICtrlSetBkColor($Radio_selpat, 0xFFD5FF)
 	;
 	$Group_OS = GuiCtrlCreateGroup("OS", $width - 270, $height - 65, 90, 55)
+	GUICtrlSetResizing($Group_OS, $GUI_DOCKLEFT + $GUI_DOCKALL + $GUI_DOCKSIZE)
 	$Combo_OSfle = GUICtrlCreateCombo("", $width - 260, $height - 45, 70, 21)
+	GUICtrlSetResizing($Combo_OSfle, $GUI_DOCKLEFT + $GUI_DOCKALL + $GUI_DOCKSIZE)
 	GUICtrlSetTip($Combo_OSfle, "OS for files!")
 	;
-	$Button_download = GuiCtrlCreateButton("DOWNLOAD", $width - 170, $height - 60, 105, 50)
+	$Button_download = GuiCtrlCreateButton("DOWNLOAD", $width - 170, $height - 60, 105, 28)
 	GUICtrlSetFont($Button_download, 8, 600)
+	GUICtrlSetResizing($Button_download, $GUI_DOCKLEFT + $GUI_DOCKALL + $GUI_DOCKSIZE)
 	GUICtrlSetTip($Button_download, "Download selected files!")
 	;
+	$Button_uncheck = GuiCtrlCreateButton("De-Select ALL", $width - 170, $height - 28, 105, 18)
+	GUICtrlSetFont($Button_uncheck, 7, 600, 0, "Small Fonts")
+	GUICtrlSetResizing($Button_uncheck, $GUI_DOCKLEFT + $GUI_DOCKALL + $GUI_DOCKSIZE)
+	GUICtrlSetTip($Button_uncheck, "Deselect ALL files!")
+	;
 	$Button_quit = GuiCtrlCreateButton("EXIT", $width - 55, $height - 60, 45, 50, $BS_ICON)
+	GUICtrlSetResizing($Button_quit, $GUI_DOCKLEFT + $GUI_DOCKALL + $GUI_DOCKSIZE)
 	GUICtrlSetTip($Button_quit, "Exit / Close / Quit the window!")
 	;
 	; SETTINGS
@@ -3706,8 +3724,30 @@ Func FileSelectorGUI()
 			ExitLoop
 		Case $msg = $GUI_EVENT_MINIMIZE
 			GUISetState(@SW_MINIMIZE, $GOGRepoGUI)
+		Case $msg = $GUI_EVENT_RESIZED
+			$winpos = WinGetPos($SelectorGUI, "")
+			$wide = $winpos[2]
+			WinMove($SelectorGUI, "", $left, $top, $wide, $height + 38)
+		Case $msg = $Button_uncheck
+			; Deselect ALL files
+			_GUICtrlListView_SetItemChecked($ListView_files, -1, False)
+			If $ents > 0 Then
+				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")")
+			Else
+				GUICtrlSetData($Group_files, "Game Files To Download")
+			EndIf
 		Case $msg = $Button_download
 			; Download selected files
+			GUICtrlSetState($Button_download, $GUI_DISABLE)
+			GUICtrlSetState($ListView_files, $GUI_DISABLE)
+			GUICtrlSetState($Radio_selall, $GUI_DISABLE)
+			GUICtrlSetState($Radio_selgame, $GUI_DISABLE)
+			GUICtrlSetState($Radio_selext, $GUI_DISABLE)
+			GUICtrlSetState($Radio_selset, $GUI_DISABLE)
+			GUICtrlSetState($Radio_selpat, $GUI_DISABLE)
+			GUICtrlSetState($Combo_OSfle, $GUI_DISABLE)
+			GUICtrlSetState($Button_uncheck, $GUI_DISABLE)
+			GUICtrlSetState($Button_quit, $GUI_DISABLE)
 			$downloads = ""
 			For $a = 0 To $ents - 1
 				If _GUICtrlListView_GetItemChecked($ListView_files, $a) = True Then
@@ -4025,21 +4065,51 @@ Func FileSelectorGUI()
 			Else
 				MsgBox(262192, "Program Error", "Nothing to download!", 0, $SelectorGUI)
 			EndIf
+			GUICtrlSetState($Button_download, $GUI_ENABLE)
+			GUICtrlSetState($ListView_files, $GUI_ENABLE)
+			GUICtrlSetState($Radio_selall, $GUI_ENABLE)
+			GUICtrlSetState($Radio_selgame, $GUI_ENABLE)
+			GUICtrlSetState($Radio_selext, $GUI_ENABLE)
+			GUICtrlSetState($Radio_selset, $GUI_ENABLE)
+			GUICtrlSetState($Radio_selpat, $GUI_ENABLE)
+			GUICtrlSetState($Combo_OSfle, $GUI_ENABLE)
+			GUICtrlSetState($Button_uncheck, $GUI_ENABLE)
+			GUICtrlSetState($Button_quit, $GUI_ENABLE)
 		Case $msg = $Combo_OSfle
 			; OS for files
 			$osfle = GUICtrlRead($Combo_OSfle)
 			IniWrite($inifle, "Selector", "OS", $osfle)
+		Case $msg = $ListView_files Or $msg > $Button_quit
+			; Game Files To Download
+			$checked = 0
+			For $a = 0 To $ents - 1
+				If _GUICtrlListView_GetItemChecked($ListView_files, $a) = True Then
+					$checked = $checked + 1
+				EndIf
+			Next
+			If $checked = 0 Then
+				If $ents > 0 Then
+					GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")")
+				Else
+					GUICtrlSetData($Group_files, "Game Files To Download")
+				EndIf
+			Else
+				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")  Selected  (" & $checked & ")")
+			EndIf
 		Case $msg = $Radio_selset
 			; Select SETUP file entries
+			$checked = 0
 			For $a = 0 To $ents - 1
 				$entry = _GUICtrlListView_GetItemText($ListView_files, $a, 2)
 				If $osfle = "Both" Then
 					If StringInStr($entry, "setup_") > 0 Then
 						_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
+						$checked = $checked + 1
 					ElseIf StringInStr($entry, "patch_") < 1 Then
 						$entry = _GUICtrlListView_GetItemText($ListView_files, $a, 1)
 						If $entry = "GAME" Then
 							_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
+							$checked = $checked + 1
 						Else
 							_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
 						EndIf
@@ -4053,11 +4123,13 @@ Func FileSelectorGUI()
 						If $osfle = "Windows" Then
 							If $fext = ".exe" Or $fext = ".bin" Then
 								_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
+								$checked = $checked + 1
 							Else
 								_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
 							EndIf
 						ElseIf $fext <> ".exe" And $fext <> ".bin" Then
 							_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
+							$checked = $checked + 1
 						Else
 							_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
 						EndIf
@@ -4068,23 +4140,36 @@ Func FileSelectorGUI()
 					_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
 				EndIf
 			Next
+			If $checked = 0 Then
+				If $ents > 0 Then
+					GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")")
+				Else
+					GUICtrlSetData($Group_files, "Game Files To Download")
+				EndIf
+			Else
+				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")  Selected  (" & $checked & ")")
+			EndIf
 		Case $msg = $Radio_selpat
 			; Select PATCH file entries
+			$checked = 0
 			For $a = 0 To $ents - 1
 				$entry = _GUICtrlListView_GetItemText($ListView_files, $a, 2)
 				$fext = StringRight($entry, 4)
 				If StringInStr($entry, "patch_") > 0 Then
 					If $osfle = "Both" Then
 						_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
+						$checked = $checked + 1
 					Else
 						If $osfle = "Windows" Then
 							If $fext = ".exe" Or $fext = ".bin" Then
 								_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
+								$checked = $checked + 1
 							Else
 								_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
 							EndIf
 						ElseIf $fext <> ".exe" And $fext <> ".bin" Then
 							_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
+							$checked = $checked + 1
 						Else
 							_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
 						EndIf
@@ -4093,24 +4178,37 @@ Func FileSelectorGUI()
 					_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
 				EndIf
 			Next
+			If $checked = 0 Then
+				If $ents > 0 Then
+					GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")")
+				Else
+					GUICtrlSetData($Group_files, "Game Files To Download")
+				EndIf
+			Else
+				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")  Selected  (" & $checked & ")")
+			EndIf
 		Case $msg = $Radio_selgame
 			; Select GAME file entries
+			$checked = 0
 			For $a = 0 To $ents - 1
 				$entry = _GUICtrlListView_GetItemText($ListView_files, $a, 1)
 				If $entry = "GAME" Then
 					If $osfle = "Both" Then
 						_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
+						$checked = $checked + 1
 					Else
 						$entry = _GUICtrlListView_GetItemText($ListView_files, $a, 2)
 						$fext = StringRight($entry, 4)
 						If $osfle = "Windows" Then
 							If $fext = ".exe" Or $fext = ".bin" Then
 								_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
+								$checked = $checked + 1
 							Else
 								_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
 							EndIf
 						ElseIf $fext <> ".exe" And $fext <> ".bin" Then
 							_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
+							$checked = $checked + 1
 						Else
 							_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
 						EndIf
@@ -4119,16 +4217,36 @@ Func FileSelectorGUI()
 					_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
 				EndIf
 			Next
+			If $checked = 0 Then
+				If $ents > 0 Then
+					GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")")
+				Else
+					GUICtrlSetData($Group_files, "Game Files To Download")
+				EndIf
+			Else
+				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")  Selected  (" & $checked & ")")
+			EndIf
 		Case $msg = $Radio_selext
 			; Select EXTRA file entries
+			$checked = 0
 			For $a = 0 To $ents - 1
 				$entry = _GUICtrlListView_GetItemText($ListView_files, $a, 1)
 				If $entry = "EXTRA" Then
 					_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
+					$checked = $checked + 1
 				Else
 					_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
 				EndIf
 			Next
+			If $checked = 0 Then
+				If $ents > 0 Then
+					GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")")
+				Else
+					GUICtrlSetData($Group_files, "Game Files To Download")
+				EndIf
+			Else
+				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")  Selected  (" & $checked & ")")
+			EndIf
 		Case $msg = $Radio_selall
 			; Select ALL file entries
 			If $osfle = "Both" Then
@@ -4144,6 +4262,7 @@ Func FileSelectorGUI()
 						If $osfle = "Windows" Then
 							If $fext = ".exe" Or $fext = ".bin" Then
 								_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
+								$checked = $checked + 1
 							Else
 								_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
 							EndIf
@@ -4154,6 +4273,11 @@ Func FileSelectorGUI()
 						EndIf
 					EndIf
 				Next
+			EndIf
+			If $ents > 0 Then
+				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")  Selected  (" & $ents & ")")
+			Else
+				GUICtrlSetData($Group_files, "Game Files To Download")
 			EndIf
 		Case Else
 			;;;
