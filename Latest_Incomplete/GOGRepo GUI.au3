@@ -3640,8 +3640,16 @@ Func FileSelectorGUI()
 			$col3 = $line
 			$col3 = StringSplit($col3, "'name':", 1)
 			$col3 = $col3[2]
-			$col3 = StringSplit($col3, "'", 1)
-			$col3 = $col3[2]
+			If StringInStr($col3, "None,") > 0 Then
+				$col3 = "None"
+			Else
+				$col3 = StringSplit($col3, "'", 1)
+				If $col3[0] > 1 Then
+					$col3 = $col3[2]
+				Else
+					$col3 = $col3[1]
+				EndIf
+			EndIf
 		ElseIf StringInStr($line, "'size':") > 0 Then
 			$lines = $lines & @LF & $line
 			$col4 = $line
