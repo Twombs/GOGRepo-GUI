@@ -915,6 +915,7 @@ Func MainGUI()
 		GUICtrlSetState($Checkbox_update, $GUI_DISABLE)
 		GUICtrlSetState($Checkbox_verify, $GUI_DISABLE)
 		GUICtrlSetState($Item_check, $GUI_DISABLE)
+		GUICtrlSetState($Item_download, $GUI_DISABLE)
 		GUICtrlSetState($Item_remove, $GUI_DISABLE)
 		GUICtrlSetState($Item_delete, $GUI_DISABLE)
 	EndIf
@@ -1061,6 +1062,7 @@ Func MainGUI()
 				GUICtrlSetState($Checkbox_update, $GUI_ENABLE)
 				GUICtrlSetState($Checkbox_verify, $GUI_ENABLE)
 				GUICtrlSetState($Item_check, $GUI_ENABLE)
+				GUICtrlSetState($Item_download, $GUI_ENABLE)
 				GUICtrlSetState($Item_remove, $GUI_ENABLE)
 				GUICtrlSetState($Item_delete, $GUI_ENABLE)
 			EndIf
@@ -1355,6 +1357,7 @@ Func MainGUI()
 										GUICtrlSetState($Checkbox_update, $GUI_DISABLE)
 										GUICtrlSetState($Checkbox_verify, $GUI_DISABLE)
 										GUICtrlSetState($Item_check, $GUI_DISABLE)
+										GUICtrlSetState($Item_download, $GUI_DISABLE)
 										GUICtrlSetState($Item_remove, $GUI_DISABLE)
 										GUICtrlSetState($Item_delete, $GUI_DISABLE)
 										GetWindowPosition()
@@ -1368,6 +1371,7 @@ Func MainGUI()
 											GUICtrlSetState($Checkbox_update, $GUI_ENABLE)
 											GUICtrlSetState($Checkbox_verify, $GUI_ENABLE)
 											GUICtrlSetState($Item_check, $GUI_ENABLE)
+											GUICtrlSetState($Item_download, $GUI_ENABLE)
 											GUICtrlSetState($Item_remove, $GUI_ENABLE)
 											GUICtrlSetState($Item_delete, $GUI_ENABLE)
 										EndIf
@@ -1478,6 +1482,7 @@ Func MainGUI()
 														EndIf
 														If $extras = 1 Then $params = StringReplace($params, " -skipextras", "")
 														;MsgBox(262192, "Parameters", $params, 0, $GOGRepoGUI)
+														IniWrite($inifle, "Download Parameters", "last", $params)
 														$pid = Run(@ComSpec & ' /c gogrepo.py download' & $params & ' -id ' & $title & ' "' & $gamefold & '"', @ScriptDir, $flag)
 													EndIf
 													AdlibRegister("CheckOnGameDownload", 3000)
@@ -1548,6 +1553,7 @@ Func MainGUI()
 											GUICtrlSetState($Checkbox_verify, $GUI_DISABLE)
 											GUICtrlSetState($Checkbox_all, $GUI_DISABLE)
 											GUICtrlSetState($Item_check, $GUI_DISABLE)
+											GUICtrlSetState($Item_download, $GUI_DISABLE)
 											GUICtrlSetState($Item_remove, $GUI_DISABLE)
 											GUICtrlSetState($Item_delete, $GUI_DISABLE)
 											;GUICtrlSetState($Button_setup, $GUI_DISABLE)
@@ -2425,6 +2431,10 @@ Func DownloadAllGUI()
 													;
 													$OS = IniRead($gamesfle, $name, "osextra", "")
 													$params = $params & @CRLF & "osextra=" & $OS
+													$OS = StringReplace($OS, "+", "")
+													$OS = StringStripWS($OS, 7)
+													$OS = StringLower($OS)
+													$params = $params & @CRLF & "OS=" & $OS
 													;
 													$params = $params & @CRLF & $lines
 													If $image <> "" Then
@@ -3528,7 +3538,7 @@ EndFunc ;=> FileCheckerGUI
 Func FileSelectorGUI()
 	Local $Button_download, $Button_quit, $Button_uncheck, $Combo_OSfle, $Group_files, $Group_OS, $Label_warn, $ListView_files
 	Local $Radio_selall, $Radio_selext, $Radio_selgame, $Radio_selpat, $Radio_selset
-	Local $checked, $col1, $col2, $col3, $col4, $downloads, $ents, $fext, $final, $first, $osfle, $p, $portion, $portions, $tmpman, $wide
+	Local $amount, $checked, $col1, $col2, $col3, $col4, $downloads, $ents, $fext, $final, $first, $osfle, $p, $portion, $portions, $sum, $tmpman, $wide
 	;
 	$SelectorGUI = GuiCreate("DOWNLOAD Files Selector", $width, $height, $left, $top, $style + $WS_SIZEBOX + $WS_VISIBLE, $WS_EX_TOPMOST)
 	GUISetBkColor(0xBBFFBB, $SelectorGUI)
@@ -4089,10 +4099,24 @@ Func FileSelectorGUI()
 			IniWrite($inifle, "Selector", "OS", $osfle)
 		Case $msg = $ListView_files Or $msg > $Button_quit
 			; Game Files To Download
+			$amount = 0
 			$checked = 0
 			For $a = 0 To $ents - 1
 				If _GUICtrlListView_GetItemChecked($ListView_files, $a) = True Then
 					$checked = $checked + 1
+					$sum = _GUICtrlListView_GetItemText($ListView_files, $a, 3)
+					$val = StringSplit($sum, " ", 1)
+					$sum = $val[1]
+					$val = $val[2]
+					If $val = "bytes" Then
+						$amount = $amount + $sum
+					ElseIf $val = "Kb" Then
+						$amount = $amount + ($sum * 1024)
+					ElseIf $val = "Mb" Then
+						$amount = $amount + ($sum * 1048576)
+					ElseIf $val = "Gb" Then
+						$amount = $amount + ($sum * 1073741824)
+					EndIf
 				EndIf
 			Next
 			If $checked = 0 Then
@@ -4102,10 +4126,26 @@ Func FileSelectorGUI()
 					GUICtrlSetData($Group_files, "Game Files To Download")
 				EndIf
 			Else
-				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")  Selected  (" & $checked & ")")
+				If $amount < 1024 Then
+					$amount = $amount & " bytes"
+				ElseIf $amount < 1048576 Then
+					$amount = $amount / 1024
+					$amount =  Round($amount) & " Kb"
+				ElseIf $amount < 1073741824 Then
+					$amount = $amount / 1048576
+					$amount =  Round($amount, 1) & " Mb"
+				ElseIf $amount < 1099511627776 Then
+					$amount = $amount / 1073741824
+					$amount = Round($amount, 2) & " Gb"
+				Else
+					$amount = $amount / 1099511627776
+					$amount = Round($amount, 3) & " Tb"
+				EndIf
+				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")  Selected  (" & $checked & ")  (" & $amount & ")")
 			EndIf
 		Case $msg = $Radio_selset
 			; Select SETUP file entries
+			$amount = 0
 			$checked = 0
 			For $a = 0 To $ents - 1
 				$entry = _GUICtrlListView_GetItemText($ListView_files, $a, 2)
@@ -4113,16 +4153,20 @@ Func FileSelectorGUI()
 					If StringInStr($entry, "setup_") > 0 Then
 						_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
 						$checked = $checked + 1
+						$sum = 1
 					ElseIf StringInStr($entry, "patch_") < 1 Then
 						$entry = _GUICtrlListView_GetItemText($ListView_files, $a, 1)
 						If $entry = "GAME" Then
 							_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
 							$checked = $checked + 1
+							$sum = 1
 						Else
 							_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
+							$sum = ""
 						EndIf
 					Else
 						_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
+						$sum = ""
 					EndIf
 				ElseIf StringInStr($entry, "patch_") < 1 Then
 					$fext = StringRight($entry, 4)
@@ -4132,20 +4176,41 @@ Func FileSelectorGUI()
 							If $fext = ".exe" Or $fext = ".bin" Then
 								_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
 								$checked = $checked + 1
+								$sum = 1
 							Else
 								_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
+								$sum = ""
 							EndIf
 						ElseIf $fext <> ".exe" And $fext <> ".bin" Then
 							_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
 							$checked = $checked + 1
+							$sum = 1
 						Else
 							_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
+							$sum = ""
 						EndIf
 					Else
 						_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
+						$sum = ""
 					EndIf
 				Else
 					_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
+					$sum = ""
+				EndIf
+				If $sum = 1 Then
+					$sum = _GUICtrlListView_GetItemText($ListView_files, $a, 3)
+					$val = StringSplit($sum, " ", 1)
+					$sum = $val[1]
+					$val = $val[2]
+					If $val = "bytes" Then
+						$amount = $amount + $sum
+					ElseIf $val = "Kb" Then
+						$amount = $amount + ($sum * 1024)
+					ElseIf $val = "Mb" Then
+						$amount = $amount + ($sum * 1048576)
+					ElseIf $val = "Gb" Then
+						$amount = $amount + ($sum * 1073741824)
+					EndIf
 				EndIf
 			Next
 			If $checked = 0 Then
@@ -4155,10 +4220,26 @@ Func FileSelectorGUI()
 					GUICtrlSetData($Group_files, "Game Files To Download")
 				EndIf
 			Else
-				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")  Selected  (" & $checked & ")")
+				If $amount < 1024 Then
+					$amount = $amount & " bytes"
+				ElseIf $amount < 1048576 Then
+					$amount = $amount / 1024
+					$amount =  Round($amount) & " Kb"
+				ElseIf $amount < 1073741824 Then
+					$amount = $amount / 1048576
+					$amount =  Round($amount, 1) & " Mb"
+				ElseIf $amount < 1099511627776 Then
+					$amount = $amount / 1073741824
+					$amount = Round($amount, 2) & " Gb"
+				Else
+					$amount = $amount / 1099511627776
+					$amount = Round($amount, 3) & " Tb"
+				EndIf
+				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")  Selected  (" & $checked & ")  (" & $amount & ")")
 			EndIf
 		Case $msg = $Radio_selpat
 			; Select PATCH file entries
+			$amount = 0
 			$checked = 0
 			For $a = 0 To $ents - 1
 				$entry = _GUICtrlListView_GetItemText($ListView_files, $a, 2)
@@ -4167,23 +4248,44 @@ Func FileSelectorGUI()
 					If $osfle = "Both" Then
 						_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
 						$checked = $checked + 1
+						$sum = 1
 					Else
 						If $osfle = "Windows" Then
 							If $fext = ".exe" Or $fext = ".bin" Then
 								_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
 								$checked = $checked + 1
+								$sum = 1
 							Else
 								_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
+								$sum = ""
 							EndIf
 						ElseIf $fext <> ".exe" And $fext <> ".bin" Then
 							_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
 							$checked = $checked + 1
+							$sum = 1
 						Else
 							_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
+							$sum = ""
 						EndIf
 					EndIf
 				Else
 					_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
+					$sum = ""
+				EndIf
+				If $sum = 1 Then
+					$sum = _GUICtrlListView_GetItemText($ListView_files, $a, 3)
+					$val = StringSplit($sum, " ", 1)
+					$sum = $val[1]
+					$val = $val[2]
+					If $val = "bytes" Then
+						$amount = $amount + $sum
+					ElseIf $val = "Kb" Then
+						$amount = $amount + ($sum * 1024)
+					ElseIf $val = "Mb" Then
+						$amount = $amount + ($sum * 1048576)
+					ElseIf $val = "Gb" Then
+						$amount = $amount + ($sum * 1073741824)
+					EndIf
 				EndIf
 			Next
 			If $checked = 0 Then
@@ -4193,10 +4295,26 @@ Func FileSelectorGUI()
 					GUICtrlSetData($Group_files, "Game Files To Download")
 				EndIf
 			Else
-				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")  Selected  (" & $checked & ")")
+				If $amount < 1024 Then
+					$amount = $amount & " bytes"
+				ElseIf $amount < 1048576 Then
+					$amount = $amount / 1024
+					$amount =  Round($amount) & " Kb"
+				ElseIf $amount < 1073741824 Then
+					$amount = $amount / 1048576
+					$amount =  Round($amount, 1) & " Mb"
+				ElseIf $amount < 1099511627776 Then
+					$amount = $amount / 1073741824
+					$amount = Round($amount, 2) & " Gb"
+				Else
+					$amount = $amount / 1099511627776
+					$amount = Round($amount, 3) & " Tb"
+				EndIf
+				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")  Selected  (" & $checked & ")  (" & $amount & ")")
 			EndIf
 		Case $msg = $Radio_selgame
 			; Select GAME file entries
+			$amount = 0
 			$checked = 0
 			For $a = 0 To $ents - 1
 				$entry = _GUICtrlListView_GetItemText($ListView_files, $a, 1)
@@ -4204,6 +4322,7 @@ Func FileSelectorGUI()
 					If $osfle = "Both" Then
 						_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
 						$checked = $checked + 1
+						$sum = 1
 					Else
 						$entry = _GUICtrlListView_GetItemText($ListView_files, $a, 2)
 						$fext = StringRight($entry, 4)
@@ -4211,18 +4330,38 @@ Func FileSelectorGUI()
 							If $fext = ".exe" Or $fext = ".bin" Then
 								_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
 								$checked = $checked + 1
+								$sum = 1
 							Else
 								_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
+								$sum = ""
 							EndIf
 						ElseIf $fext <> ".exe" And $fext <> ".bin" Then
 							_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
 							$checked = $checked + 1
+							$sum = 1
 						Else
 							_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
+							$sum = ""
 						EndIf
 					EndIf
 				Else
 					_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
+					$sum = ""
+				EndIf
+				If $sum = 1 Then
+					$sum = _GUICtrlListView_GetItemText($ListView_files, $a, 3)
+					$val = StringSplit($sum, " ", 1)
+					$sum = $val[1]
+					$val = $val[2]
+					If $val = "bytes" Then
+						$amount = $amount + $sum
+					ElseIf $val = "Kb" Then
+						$amount = $amount + ($sum * 1024)
+					ElseIf $val = "Mb" Then
+						$amount = $amount + ($sum * 1048576)
+					ElseIf $val = "Gb" Then
+						$amount = $amount + ($sum * 1073741824)
+					EndIf
 				EndIf
 			Next
 			If $checked = 0 Then
@@ -4232,16 +4371,45 @@ Func FileSelectorGUI()
 					GUICtrlSetData($Group_files, "Game Files To Download")
 				EndIf
 			Else
-				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")  Selected  (" & $checked & ")")
+				If $amount < 1024 Then
+					$amount = $amount & " bytes"
+				ElseIf $amount < 1048576 Then
+					$amount = $amount / 1024
+					$amount =  Round($amount) & " Kb"
+				ElseIf $amount < 1073741824 Then
+					$amount = $amount / 1048576
+					$amount =  Round($amount, 1) & " Mb"
+				ElseIf $amount < 1099511627776 Then
+					$amount = $amount / 1073741824
+					$amount = Round($amount, 2) & " Gb"
+				Else
+					$amount = $amount / 1099511627776
+					$amount = Round($amount, 3) & " Tb"
+				EndIf
+				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")  Selected  (" & $checked & ")  (" & $amount & ")")
 			EndIf
 		Case $msg = $Radio_selext
 			; Select EXTRA file entries
+			$amount = 0
 			$checked = 0
 			For $a = 0 To $ents - 1
 				$entry = _GUICtrlListView_GetItemText($ListView_files, $a, 1)
 				If $entry = "EXTRA" Then
 					_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
 					$checked = $checked + 1
+					$sum = _GUICtrlListView_GetItemText($ListView_files, $a, 3)
+					$val = StringSplit($sum, " ", 1)
+					$sum = $val[1]
+					$val = $val[2]
+					If $val = "bytes" Then
+						$amount = $amount + $sum
+					ElseIf $val = "Kb" Then
+						$amount = $amount + ($sum * 1024)
+					ElseIf $val = "Mb" Then
+						$amount = $amount + ($sum * 1048576)
+					ElseIf $val = "Gb" Then
+						$amount = $amount + ($sum * 1073741824)
+					EndIf
 				Else
 					_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
 				EndIf
@@ -4253,37 +4421,102 @@ Func FileSelectorGUI()
 					GUICtrlSetData($Group_files, "Game Files To Download")
 				EndIf
 			Else
-				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")  Selected  (" & $checked & ")")
+				If $amount < 1024 Then
+					$amount = $amount & " bytes"
+				ElseIf $amount < 1048576 Then
+					$amount = $amount / 1024
+					$amount =  Round($amount) & " Kb"
+				ElseIf $amount < 1073741824 Then
+					$amount = $amount / 1048576
+					$amount =  Round($amount, 1) & " Mb"
+				ElseIf $amount < 1099511627776 Then
+					$amount = $amount / 1073741824
+					$amount = Round($amount, 2) & " Gb"
+				Else
+					$amount = $amount / 1099511627776
+					$amount = Round($amount, 3) & " Tb"
+				EndIf
+				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")  Selected  (" & $checked & ")  (" & $amount & ")")
 			EndIf
 		Case $msg = $Radio_selall
 			; Select ALL file entries
+			$amount = 0
 			If $osfle = "Both" Then
 				_GUICtrlListView_SetItemChecked($ListView_files, -1, True)
+				For $a = 0 To $ents - 1
+					$sum = _GUICtrlListView_GetItemText($ListView_files, $a, 3)
+					$val = StringSplit($sum, " ", 1)
+					$sum = $val[1]
+					$val = $val[2]
+					If $val = "bytes" Then
+						$amount = $amount + $sum
+					ElseIf $val = "Kb" Then
+						$amount = $amount + ($sum * 1024)
+					ElseIf $val = "Mb" Then
+						$amount = $amount + ($sum * 1048576)
+					ElseIf $val = "Gb" Then
+						$amount = $amount + ($sum * 1073741824)
+					EndIf
+				Next
 			Else
 				For $a = 0 To $ents - 1
 					$entry = _GUICtrlListView_GetItemText($ListView_files, $a, 1)
 					If $entry = "EXTRA" Then
 						_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
+						$checked = 1
 					Else
 						$entry = _GUICtrlListView_GetItemText($ListView_files, $a, 2)
 						$fext = StringRight($entry, 4)
 						If $osfle = "Windows" Then
 							If $fext = ".exe" Or $fext = ".bin" Then
 								_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
-								$checked = $checked + 1
+								$checked = 1
 							Else
 								_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
+								$checked = ""
 							EndIf
 						ElseIf $fext <> ".exe" And $fext <> ".bin" Then
 							_GUICtrlListView_SetItemChecked($ListView_files, $a, True)
+							$checked = 1
 						Else
 							_GUICtrlListView_SetItemChecked($ListView_files, $a, False)
+							$checked = ""
+						EndIf
+					EndIf
+					If $checked = 1 Then
+						$sum = _GUICtrlListView_GetItemText($ListView_files, $a, 3)
+						$val = StringSplit($sum, " ", 1)
+						$sum = $val[1]
+						$val = $val[2]
+						If $val = "bytes" Then
+							$amount = $amount + $sum
+						ElseIf $val = "Kb" Then
+							$amount = $amount + ($sum * 1024)
+						ElseIf $val = "Mb" Then
+							$amount = $amount + ($sum * 1048576)
+						ElseIf $val = "Gb" Then
+							$amount = $amount + ($sum * 1073741824)
 						EndIf
 					EndIf
 				Next
 			EndIf
 			If $ents > 0 Then
-				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")  Selected  (" & $ents & ")")
+				If $amount < 1024 Then
+					$amount = $amount & " bytes"
+				ElseIf $amount < 1048576 Then
+					$amount = $amount / 1024
+					$amount =  Round($amount) & " Kb"
+				ElseIf $amount < 1073741824 Then
+					$amount = $amount / 1048576
+					$amount =  Round($amount, 1) & " Mb"
+				ElseIf $amount < 1099511627776 Then
+					$amount = $amount / 1073741824
+					$amount = Round($amount, 2) & " Gb"
+				Else
+					$amount = $amount / 1099511627776
+					$amount = Round($amount, 3) & " Tb"
+				EndIf
+				GUICtrlSetData($Group_files, "Game Files To Download (" & $ents & ")  Selected  (" & $ents & ")  (" & $amount & ")")
 			Else
 				GUICtrlSetData($Group_files, "Game Files To Download")
 			EndIf
@@ -4621,6 +4854,7 @@ Func QueueGUI()
 				GUICtrlSetState($Checkbox_update, $GUI_DISABLE)
 				GUICtrlSetState($Checkbox_verify, $GUI_DISABLE)
 				GUICtrlSetState($Item_check, $GUI_DISABLE)
+				GUICtrlSetState($Item_download, $GUI_DISABLE)
 				GUICtrlSetState($Item_remove, $GUI_DISABLE)
 				GUICtrlSetState($Item_delete, $GUI_DISABLE)
 				;GUICtrlSetState($Button_move, $GUI_DISABLE)
@@ -7880,6 +8114,7 @@ Func AddGameToDownloadList()
 		$OS = GUICtrlRead($Combo_OS)
 		$OS = StringReplace($OS, "+", "")
 		$OS = StringStripWS($OS, 7)
+		$OS = StringLower($OS)
 		IniWrite($downlist, $title, "OS", $OS)
 		IniWrite($downlist, $title, "standalone", $standalone)
 		IniWrite($downlist, $title, "galaxy", $galaxy)
@@ -8369,6 +8604,7 @@ Func CheckOnGameDownload()
 	GUICtrlSetState($Checkbox_verify, $GUI_ENABLE)
 	GUICtrlSetState($Checkbox_all, $GUI_ENABLE)
 	GUICtrlSetState($Item_check, $GUI_ENABLE)
+	GUICtrlSetState($Item_download, $GUI_ENABLE)
 	GUICtrlSetState($Item_remove, $GUI_ENABLE)
 	GUICtrlSetState($Item_delete, $GUI_ENABLE)
 	;GUICtrlSetState($Button_setup, $GUI_ENABLE)
@@ -8436,6 +8672,7 @@ Func ClearDisableEnableRestore()
 	GUICtrlSetState($Checkbox_verify, $GUI_ENABLE)
 	GUICtrlSetState($Checkbox_all, $GUI_ENABLE)
 	GUICtrlSetState($Item_check, $GUI_ENABLE)
+	GUICtrlSetState($Item_download, $GUI_ENABLE)
 	GUICtrlSetState($Item_remove, $GUI_ENABLE)
 	GUICtrlSetState($Item_delete, $GUI_ENABLE)
 	GUICtrlSetBkColor($Label_added, $COLOR_GREEN)
