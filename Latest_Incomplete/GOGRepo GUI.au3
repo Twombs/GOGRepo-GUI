@@ -75,8 +75,8 @@ Global $path, $percent, $pid, $progbar, $progress, $QueueGUI, $read, $repolog, $
 Global $shared, $shell, $show, $shutdown, $SimpleGUI, $size, $sizecheck, $skiplang, $skipos, $splash, $split
 Global $stagesfix, $standalone, $started, $state, $stop, $store, $style, $t, $text, $textdump, $threads, $titfile
 Global $title, $titles, $titlist, $top, $tot, $total, $type, $update, $updated, $UpdateGUI, $updating, $user, $val
-Global $validate, $validation, $verify, $VerifyGUI, $verifying, $vers, $version, $veryalone, $veryextra, $verygalaxy
-Global $verygames, $verylog, $veryshare, $wait, $warning, $width, $window, $winpos, $xpos, $ypos, $zipcheck
+Global $validate, $validation, $value, $verify, $VerifyGUI, $verifying, $vers, $version, $veryalone, $veryextra
+Global $verygalaxy, $verygames, $verylog, $veryshare, $wait, $warning, $width, $window, $winpos, $xpos, $ypos, $zipcheck
 
 $addlist = @ScriptDir & "\Added.txt"
 $backups = @ScriptDir & "\Backups"
@@ -1278,6 +1278,7 @@ Func MainGUI()
 				;
 				$title = GUICtrlRead($Input_title)
 				$name = GUICtrlRead($List_games)
+				$value = $name
 				If ($name = GUICtrlRead($Input_name)) Or $update = 1 Then
 					If ($title <> "" And ($name <> "" Or $update = 1)) Or $all = 1 Then
 						$gamesfold = $dest
@@ -1336,6 +1337,14 @@ Func MainGUI()
 								EndIf
 								EnableDisableControls($GUI_ENABLE)
 								GUISetState(@SW_SHOWNORMAL, $GOGRepoGUI)
+								If $all <> 1 Then
+									$name = $value
+									$ind = _GUICtrlListBox_SelectString($List_games, $name, -1)
+									If $ind > -1 Then
+										_GUICtrlListBox_SetCurSel($List_games, $ind)
+										_GUICtrlListBox_ClickItem($List_games, $ind)
+									EndIf
+								EndIf
 								GUICtrlSetState($Button_down, $GUI_FOCUS)
 							Else
 								; Download one or more games or add to queue
