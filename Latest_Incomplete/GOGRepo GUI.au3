@@ -1065,6 +1065,18 @@ Func MainGUI()
 				GUICtrlSetState($Item_download, $GUI_ENABLE)
 				GUICtrlSetState($Item_remove, $GUI_ENABLE)
 				GUICtrlSetState($Item_delete, $GUI_ENABLE)
+				;MsgBox(262192, "Total", $tot, 2, $GOGRepoGUI)
+				$total = $tot
+			EndIf
+			GUICtrlSetData($Label_added, $total)
+			If $started = 1 Then
+				GUICtrlSetBkColor($Label_added, $COLOR_RED)
+			Else
+				If $total = 0 Then
+					GUICtrlSetBkColor($Label_added, $COLOR_BLACK)
+				Else
+					GUICtrlSetBkColor($Label_added, $COLOR_GREEN)
+				EndIf
 			EndIf
 		Case $msg = $Button_pic
 			; Download the selected image
@@ -1383,6 +1395,17 @@ Func MainGUI()
 											GUICtrlSetState($Item_download, $GUI_ENABLE)
 											GUICtrlSetState($Item_remove, $GUI_ENABLE)
 											GUICtrlSetState($Item_delete, $GUI_ENABLE)
+											$total = $tot
+										EndIf
+										GUICtrlSetData($Label_added, $total)
+										If $started = 1 Then
+											GUICtrlSetBkColor($Label_added, $COLOR_RED)
+										Else
+											If $total = 0 Then
+												GUICtrlSetBkColor($Label_added, $COLOR_BLACK)
+											Else
+												GUICtrlSetBkColor($Label_added, $COLOR_GREEN)
+											EndIf
 										EndIf
 									Else
 										$window = $GOGRepoGUI
@@ -1567,6 +1590,8 @@ Func MainGUI()
 											GUICtrlSetState($Item_delete, $GUI_DISABLE)
 											;GUICtrlSetState($Button_setup, $GUI_DISABLE)
 										EndIf
+									Else
+										GUICtrlSetBkColor($Label_added, $COLOR_BLACK)
 									EndIf
 								EndIf
 							EndIf
@@ -4540,7 +4565,7 @@ Func QueueGUI()
 	Local $Checkbox_size, $Checkbox_start, $Checkbox_stop, $Checkbox_zip, $Group_auto, $Group_info
 	Local $Group_lang, $Group_progress, $Group_shutdown, $Group_stop
 	;
-	Local $count, $current, $params, $process, $restart, $section, $shutopts, $swap, $templog
+	Local $count, $current, $params, $pre, $process, $rank, $restart, $section, $shutopts, $swap, $templog
 	;
 	$QueueGUI = GuiCreate("QUEUE & Options", $width, $height, $left, $top, $style + $WS_VISIBLE, $WS_EX_TOPMOST)
 	GUISetBkColor(0xFFD5FF, $QueueGUI)
@@ -4705,11 +4730,29 @@ Func QueueGUI()
 		$titles = IniReadSectionNames($downlist)
 		If Not @error Then
 			If $titles[0] > 1 Then
+				$ind = IniRead($downlist, "Downloads", "stop", "")
+				$ind = StringSplit($ind, "|", 1)
+				If $ind[0] = 2 Then
+					$val = $ind[2]
+					$ind = $ind[1]
+					$ind = Number($ind)
+				Else
+					$val = ""
+				EndIf
 				$tot = 0
 				For $t = 2 To $titles[0]
 					$title = $titles[$t]
 					$current = $title
 					If $current <> "" Then
+						If $val <> "" Then
+							If $current = $val Then
+								_GUICtrlListBox_AddString($List_waiting, "+++ STOP HERE +++")
+								If $ind <> $tot Then
+									$ind = $tot
+									IniWrite($downlist, "Downloads", "stop", $ind & "|" & $title)
+								EndIf
+							EndIf
+						EndIf
 						$tot = $tot + 1
 						_GUICtrlListBox_AddString($List_waiting, $current)
 					EndIf
@@ -4720,11 +4763,6 @@ Func QueueGUI()
 						GUICtrlSetState($Button_start, $GUI_DISABLE)
 					Else
 						GUICtrlSetState($Button_stop, $GUI_DISABLE)
-					EndIf
-					$ind = IniRead($downlist, "Downloads", "stop", -1)
-					$ind = Number($ind)
-					If $ind > -1 And $ind < $tot Then
-						_GUICtrlListBox_InsertString($List_waiting, "+++ STOP HERE +++", $ind)
 					EndIf
 				Else
 					DisableQueueButtons()
@@ -5044,12 +5082,17 @@ Func QueueGUI()
 			If $current <> "" Then
 				GUICtrlSetState($Button_moveup, $GUI_DISABLE)
 				$ind = _GUICtrlListBox_GetCurSel($List_waiting)
+				If $ind < 2 Then
+					$pre = ""
+				Else
+					$pre = _GUICtrlListBox_GetText($List_waiting, $ind - 2)
+				EndIf
 				$val = _GUICtrlListBox_GetText($List_waiting, $ind)
 				$swap = _GUICtrlListBox_GetText($List_waiting, $ind - 1)
-				If $current = $val And $val <> "+++ STOP HERE +++" And $swap <> "+++ STOP HERE +++" Then
+				If $current = $val And $val <> "+++ STOP HERE +++" And $swap <> "+++ STOP HERE +++" And $pre <> "+++ STOP HERE +++" Then
 					SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
-					$tot = IniRead($downlist, $current, "rank", "")
-					IniWrite($downlist, $current, "rank", $tot - 1)
+					$rank = IniRead($downlist, $current, "rank", "")
+					IniWrite($downlist, $current, "rank", $rank - 1)
 					; Read original section entries.
 					$section = IniReadSection($downlist, $current)
 					; Temporarily rename original.
@@ -5061,8 +5104,8 @@ Func QueueGUI()
 					$val = _GUICtrlListBox_GetText($List_waiting, $ind)
 					; If original title doesn't match swap title continue.
 					If $current <> $val Then
-						$tot = IniRead($downlist, $val, "rank", "")
-						IniWrite($downlist, $val, "rank", $tot + 1)
+						$rank = IniRead($downlist, $val, "rank", "")
+						IniWrite($downlist, $val, "rank", $rank + 1)
 						; Read swap section entries.
 						$swap = IniReadSection($downlist, $val)
 						; Rename swap section title to original title.
@@ -5092,19 +5135,24 @@ Func QueueGUI()
 			If $current <> "" Then
 				GUICtrlSetState($Button_movedown, $GUI_DISABLE)
 				$ind = _GUICtrlListBox_GetCurSel($List_waiting)
+				If $ind = 0 Then
+					$pre = ""
+				Else
+					$pre = _GUICtrlListBox_GetText($List_waiting, $ind - 1)
+				EndIf
 				$val = _GUICtrlListBox_GetText($List_waiting, $ind)
 				$swap = _GUICtrlListBox_GetText($List_waiting, $ind + 1)
-				If $current = $val And $val <> "+++ STOP HERE +++" And $swap <> "+++ STOP HERE +++" Then
+				If $current = $val And $val <> "+++ STOP HERE +++" And $swap <> "+++ STOP HERE +++" And $pre <> "+++ STOP HERE +++" Then
 					SplashTextOn("", "Please Wait!", 200, 120, Default, Default, 33)
-					$tot = IniRead($downlist, $current, "rank", "")
-					IniWrite($downlist, $current, "rank", $tot + 1)
+					$rank = IniRead($downlist, $current, "rank", "")
+					IniWrite($downlist, $current, "rank", $rank + 1)
 					$section = IniReadSection($downlist, $current)
 					_ReplaceStringInFile($downlist, "[" & $current & "]", "[###temporary###]")
 					_GUICtrlListBox_SwapString($List_waiting, $ind, $ind + 1)
 					$val = _GUICtrlListBox_GetText($List_waiting, $ind)
 					If $current <> $val Then
-						$tot = IniRead($downlist, $val, "rank", "")
-						IniWrite($downlist, $val, "rank", $tot - 1)
+						$rank = IniRead($downlist, $val, "rank", "")
+						IniWrite($downlist, $val, "rank", $rank - 1)
 						$swap = IniReadSection($downlist, $val)
 						_ReplaceStringInFile($downlist, "[" & $val & "]", "[" & $current & "]")
 						IniWriteSection($downlist, $current, $section)
@@ -5156,7 +5204,7 @@ Func QueueGUI()
 						IniDelete($downlist, "Downloads", "stop")
 					Else
 						_GUICtrlListBox_InsertString($List_waiting, "+++ STOP HERE +++", $ind)
-						IniWrite($downlist, "Downloads", "stop", $ind)
+						IniWrite($downlist, "Downloads", "stop", $ind & "|" & $title)
 					EndIf
 				EndIf
 			EndIf
@@ -8418,133 +8466,157 @@ Func CheckOnGameDownload()
 						$titles = IniReadSectionNames($downlist)
 						If Not @error Then
 							If $titles[0] > 1 Then
-								CheckForConnection()
-								If $connection = 1 Then
-									$title = $titles[2]
-									$current = $title
-									_FileWriteLog($logfle, "Downloaded - " & $current & ".")
-									IniWrite($inifle, "Current Download", "title", $current)
-									$gamefold = IniRead($downlist, $current, "destination", "")
-									IniWrite($inifle, "Current Download", "destination", $gamefold)
-									;
-									If $script = "default" Then
-										$params = " -skipextras -skipgames"
-										$val = IniRead($downlist, $current, "files", "")
-										IniWrite($inifle, "Current Download", "files", $val)
-										If $val = 1 Then $params = StringReplace($params, " -skipgames", "")
-									Else
-										$OS = IniRead($downlist, $title, "OS", "")
-										IniWrite($inifle, "Current Download", "OS", $OS)
-										$lang = IniRead($downlist, $title, "language", "")
-										IniWrite($inifle, "Current Download", "language", $lang)
-										$params = " -os " & $OS & " -lang " & $lang & " -skipextras -skipgalaxy -skipstandalone -skipshared -nolog"
-										$val = IniRead($downlist, $title, "standalone", "")
-										IniWrite($inifle, "Current Download", "standalone", $val)
-										If $val = 1 Then $params = StringReplace($params, " -skipstandalone", "")
-										$val = IniRead($downlist, $title, "galaxy", "")
-										IniWrite($inifle, "Current Download", "galaxy", $val)
-										If $val = 1 Then $params = StringReplace($params, " -skipgalaxy", "")
-										$val = IniRead($downlist, $title, "shared", "")
-										IniWrite($inifle, "Current Download", "shared", $val)
-										If $val = 1 Then $params = StringReplace($params, " -skipshared", "")
-										$val = IniRead($downlist, $title, "log", "")
-										IniWrite($inifle, "Current Download", "log", $val)
-										If $val = 1 Then $params = StringReplace($params, " -nolog", "")
-										;
-										$val = IniRead($downlist, $title, "skiplang", "")
-										IniWrite($inifle, "Current Download", "skiplang", $val)
-										If $val = 1 Then
-											$val = IniRead($downlist, $title, "languages", "")
-											If $val <> "" Then $params = $params & " -skiplang " & $val
-										Else
+								$title = $titles[2]
+								$val = IniRead($downlist, "Downloads", "stop", "")
+								$val = StringSplit($val, "|", 1)
+								If $val[0] = 2 Then
+									$val = $val[1]
+									If $val = $title Then
+										$ans = MsgBox(262177, "Stop Query", "STOP has been enabled for downloads." & @LF & @LF & _
+											"Do you really want to stop now?" & @LF & @LF & _
+											"(continuing with STOP in 9 seconds)", 9, $window)
+										If $ans = 2 Then
 											$val = ""
-										EndIf
-										IniWrite($inifle, "Current Download", "langskip", $val)
-										;
-										$val = IniRead($downlist, $title, "skipOS", "")
-										IniWrite($inifle, "Current Download", "skipOS", $val)
-										If $val = 1 Then
-											$val = IniRead($downlist, $title, "OSes", "")
-											If $val <> "" Then $params = $params & " -skipos " & $val
 										Else
-											$val = ""
+											IniDelete($downlist, "Downloads", "stop")
 										EndIf
-										IniWrite($inifle, "Current Download", "OSes", $val)
-									EndIf
-									$val = IniRead($downlist, $current, "extras", "")
-									IniWrite($inifle, "Current Download", "extras", $val)
-									If $val = 1 Then $params = StringReplace($params, " -skipextras", "")
-									;
-									$val = IniRead($downlist, $current, "cover", "")
-									IniWrite($inifle, "Current Download", "cover", $val)
-									If $val = 1 Then
-										$image = IniRead($downlist, $current, "image", "")
-										IniWrite($inifle, "Current Download", "image", $image)
-									EndIf
-									$val = IniRead($downlist, $current, "verify", "")
-									IniWrite($inifle, "Current Download", "verify", $val)
-									$val = IniRead($downlist, $current, "md5", "")
-									IniWrite($inifle, "Current Download", "md5", $val)
-									$val = IniRead($downlist, $current, "size", "")
-									IniWrite($inifle, "Current Download", "size", $val)
-									$val = IniRead($downlist, $current, "zips", "")
-									IniWrite($inifle, "Current Download", "zips", $val)
-									$val = IniRead($downlist, $current, "delete", "")
-									IniWrite($inifle, "Current Download", "delete", $val)
-									If $script = "fork" Then
-										$val = IniRead($downlist, $title, "verylog", "")
-										IniWrite($inifle, "Current Download", "verylog", $val)
-										$val = IniRead($downlist, $title, "veryextra", "")
-										IniWrite($inifle, "Current Download", "veryextra", $val)
-										$val = IniRead($downlist, $title, "verygames", "")
-										IniWrite($inifle, "Current Download", "verygames", $val)
-										$val = IniRead($downlist, $title, "veryalone", "")
-										IniWrite($inifle, "Current Download", "veryalone", $val)
-										$val = IniRead($downlist, $title, "veryshare", "")
-										IniWrite($inifle, "Current Download", "veryshare", $val)
-										$val = IniRead($downlist, $title, "verygalaxy", "")
-										IniWrite($inifle, "Current Download", "verygalaxy", $val)
-									EndIf
-									;
-									If $minimize = 1 Then
-										$flag = @SW_MINIMIZE
 									Else
-										;$flag = @SW_RESTORE
-										$flag = @SW_SHOW
+										$val = ""
 									EndIf
-									If $bargui = 1 And FileExists($progbar) Then
-										$pid = ShellExecute($progbar, "Download", @ScriptDir, "open", $flag)
-									Else
-										$pid = Run(@ComSpec & ' /c gogrepo.py download' & $params & ' -id ' & $current & ' "' & $gamefold & '"', @ScriptDir, $flag)
-									EndIf
-									;$progress = $done + $tot
-									$progress = $total
-									$percent = (($done * 100) + $done) / ($progress + ($progress * 100))
-									$percent = $percent * 100
-									;$percent = Round($percent)
-									If $window = $QueueGUI Then
-										GUICtrlSetData($Input_download, $current)
-										GUICtrlSetData($Progress_bar, $percent)
-										GUICtrlSetTip($Progress_bar, Round($percent, 1) & "%")
-										RemoveListEntry(0)
-									Else
-										$val = $current
-										IniDelete($downlist, $current)
-										$titles = IniReadSectionNames($downlist)
-										If Not @error Then
-											If $titles[0] > 1 Then
-												$tot = 0
-												For $t = 2 To $titles[0]
-													$title = $titles[$t]
-													If $title <> "" Then
-														$tot = $tot + 1
-														IniWrite($downlist, $title, "rank", $tot)
-													EndIf
-												Next
+								Else
+									$val = ""
+								EndIf
+								If $val = "" Then
+									CheckForConnection()
+									If $connection = 1 Then
+										;$title = $titles[2]
+										$current = $title
+										_FileWriteLog($logfle, "Downloaded - " & $current & ".")
+										IniWrite($inifle, "Current Download", "title", $current)
+										$gamefold = IniRead($downlist, $current, "destination", "")
+										IniWrite($inifle, "Current Download", "destination", $gamefold)
+										;
+										If $script = "default" Then
+											$params = " -skipextras -skipgames"
+											$val = IniRead($downlist, $current, "files", "")
+											IniWrite($inifle, "Current Download", "files", $val)
+											If $val = 1 Then $params = StringReplace($params, " -skipgames", "")
+										Else
+											$OS = IniRead($downlist, $title, "OS", "")
+											IniWrite($inifle, "Current Download", "OS", $OS)
+											$lang = IniRead($downlist, $title, "language", "")
+											IniWrite($inifle, "Current Download", "language", $lang)
+											$params = " -os " & $OS & " -lang " & $lang & " -skipextras -skipgalaxy -skipstandalone -skipshared -nolog"
+											$val = IniRead($downlist, $title, "standalone", "")
+											IniWrite($inifle, "Current Download", "standalone", $val)
+											If $val = 1 Then $params = StringReplace($params, " -skipstandalone", "")
+											$val = IniRead($downlist, $title, "galaxy", "")
+											IniWrite($inifle, "Current Download", "galaxy", $val)
+											If $val = 1 Then $params = StringReplace($params, " -skipgalaxy", "")
+											$val = IniRead($downlist, $title, "shared", "")
+											IniWrite($inifle, "Current Download", "shared", $val)
+											If $val = 1 Then $params = StringReplace($params, " -skipshared", "")
+											$val = IniRead($downlist, $title, "log", "")
+											IniWrite($inifle, "Current Download", "log", $val)
+											If $val = 1 Then $params = StringReplace($params, " -nolog", "")
+											;
+											$val = IniRead($downlist, $title, "skiplang", "")
+											IniWrite($inifle, "Current Download", "skiplang", $val)
+											If $val = 1 Then
+												$val = IniRead($downlist, $title, "languages", "")
+												If $val <> "" Then $params = $params & " -skiplang " & $val
+											Else
+												$val = ""
 											EndIf
+											IniWrite($inifle, "Current Download", "langskip", $val)
+											;
+											$val = IniRead($downlist, $title, "skipOS", "")
+											IniWrite($inifle, "Current Download", "skipOS", $val)
+											If $val = 1 Then
+												$val = IniRead($downlist, $title, "OSes", "")
+												If $val <> "" Then $params = $params & " -skipos " & $val
+											Else
+												$val = ""
+											EndIf
+											IniWrite($inifle, "Current Download", "OSes", $val)
 										EndIf
-										IniWrite($downlist, "Downloads", "total", $tot)
-										$title = $val
+										$val = IniRead($downlist, $current, "extras", "")
+										IniWrite($inifle, "Current Download", "extras", $val)
+										If $val = 1 Then $params = StringReplace($params, " -skipextras", "")
+										;
+										$val = IniRead($downlist, $current, "cover", "")
+										IniWrite($inifle, "Current Download", "cover", $val)
+										If $val = 1 Then
+											$image = IniRead($downlist, $current, "image", "")
+											IniWrite($inifle, "Current Download", "image", $image)
+										EndIf
+										$val = IniRead($downlist, $current, "verify", "")
+										IniWrite($inifle, "Current Download", "verify", $val)
+										$val = IniRead($downlist, $current, "md5", "")
+										IniWrite($inifle, "Current Download", "md5", $val)
+										$val = IniRead($downlist, $current, "size", "")
+										IniWrite($inifle, "Current Download", "size", $val)
+										$val = IniRead($downlist, $current, "zips", "")
+										IniWrite($inifle, "Current Download", "zips", $val)
+										$val = IniRead($downlist, $current, "delete", "")
+										IniWrite($inifle, "Current Download", "delete", $val)
+										If $script = "fork" Then
+											$val = IniRead($downlist, $title, "verylog", "")
+											IniWrite($inifle, "Current Download", "verylog", $val)
+											$val = IniRead($downlist, $title, "veryextra", "")
+											IniWrite($inifle, "Current Download", "veryextra", $val)
+											$val = IniRead($downlist, $title, "verygames", "")
+											IniWrite($inifle, "Current Download", "verygames", $val)
+											$val = IniRead($downlist, $title, "veryalone", "")
+											IniWrite($inifle, "Current Download", "veryalone", $val)
+											$val = IniRead($downlist, $title, "veryshare", "")
+											IniWrite($inifle, "Current Download", "veryshare", $val)
+											$val = IniRead($downlist, $title, "verygalaxy", "")
+											IniWrite($inifle, "Current Download", "verygalaxy", $val)
+										EndIf
+										;
+										If $minimize = 1 Then
+											$flag = @SW_MINIMIZE
+										Else
+											;$flag = @SW_RESTORE
+											$flag = @SW_SHOW
+										EndIf
+										If $bargui = 1 And FileExists($progbar) Then
+											$pid = ShellExecute($progbar, "Download", @ScriptDir, "open", $flag)
+										Else
+											$pid = Run(@ComSpec & ' /c gogrepo.py download' & $params & ' -id ' & $current & ' "' & $gamefold & '"', @ScriptDir, $flag)
+										EndIf
+										;$progress = $done + $tot
+										$progress = $total
+										$percent = (($done * 100) + $done) / ($progress + ($progress * 100))
+										$percent = $percent * 100
+										;$percent = Round($percent)
+										If $window = $QueueGUI Then
+											GUICtrlSetData($Input_download, $current)
+											GUICtrlSetData($Progress_bar, $percent)
+											GUICtrlSetTip($Progress_bar, Round($percent, 1) & "%")
+											RemoveListEntry(0)
+										Else
+											$val = $current
+											IniDelete($downlist, $current)
+											$titles = IniReadSectionNames($downlist)
+											If Not @error Then
+												If $titles[0] > 1 Then
+													$tot = 0
+													For $t = 2 To $titles[0]
+														$title = $titles[$t]
+														If $title <> "" Then
+															$tot = $tot + 1
+															IniWrite($downlist, $title, "rank", $tot)
+														EndIf
+													Next
+												EndIf
+											EndIf
+											IniWrite($downlist, "Downloads", "total", $tot)
+											$title = $val
+										EndIf
+									Else
+										AdlibUnRegister("CheckOnGameDownload")
 									EndIf
 								Else
 									AdlibUnRegister("CheckOnGameDownload")
@@ -9283,11 +9355,17 @@ Func RemoveListEntry($num)
 			Next
 		EndIf
 	EndIf
-	$tot = _GUICtrlListBox_DeleteString($List_waiting, $num)
-	If $tot > 0 Then
+	$val = _GUICtrlListBox_DeleteString($List_waiting, $num)
+	If $val > 0 Then
+		;$tot = $tot - 1
 		GUICtrlSetData($Group_waiting, "Games To Download  (" & $tot & ")")
 		If $ind > 0 Then
-		$ind = $ind - 1
+			$ind = $ind - 1
+			$val = _GUICtrlListBox_GetText($List_waiting, $ind)
+			If $val = "+++ STOP HERE +++" Then
+				_GUICtrlListBox_DeleteString($List_waiting, $ind)
+				IniDelete($downlist, "Downloads", "stop")
+			EndIf
 			_GUICtrlListBox_SetCurSel($List_waiting, $ind)
 			_GUICtrlListBox_ClickItem($List_waiting, $ind)
 		EndIf
