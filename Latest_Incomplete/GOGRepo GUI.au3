@@ -1762,12 +1762,13 @@ Func MainGUI()
 					EndIf
 					$pth = FileSelectFolder("Browse to set a specific game folder.", @ScriptDir, 7, $pth, $GOGRepoGUI)
 					If Not @error And StringMid($pth, 2, 2) = ":\" Then
+						;MsgBox(262192, "Got Here 1", $pth, 0, $GOGRepoGUI)
 						;IniWrite($gamesfle, $name, "path", $pth)
 						IniWrite($locations, $name, "path", $pth)
 						GUICtrlSetData($Input_dest, $pth)
 						;IniWrite($locations, $name, "type", "Specific")
 						$gamesfold = $pth
-						$val = IniRead($downlist, $title, , "destination", "")
+						$val = IniRead($downlist, $title, "destination", "")
 						If $val <> "" And $val <> $gamesfold Then
 							$gamefold = $gamesfold
 							If $alpha = 1 Then
@@ -1787,7 +1788,22 @@ Func MainGUI()
 					;$path = IniRead($gamesfle, $name, "path", "")
 					$path = IniRead($locations, $name, "path", "")
 					If $path = "" Or $path = $dest Then
-						MsgBox(262192, "Browse Report", "Nothing to do, game is already set to use 'Default'.", $wait, $GOGRepoGUI)
+						;MsgBox(262192, "Browse Report", "Nothing to do, game is already set to use 'Default'.", $wait, $GOGRepoGUI)
+						$ans = MsgBox(262177, "Browse Report", "Nothing to do, game is already set to use 'Default'." & @LF & @LF & _
+							"Do you want to clear the Games list selection and" & @LF & _
+							"input values to allow changing the 'Default' path?", $wait, $GOGRepoGUI)
+						If $ans = 1 Then
+							$title = ""
+							GUICtrlSetData($Input_title, "")
+							$name = ""
+							GUICtrlSetData($Input_name, "")
+							GUICtrlSetData($Input_OS, "")
+							GUICtrlSetData($Input_extra, "")
+							_GUICtrlListBox_SetCurSel($List_games, -1)
+							SplashTextOn("", "Browse Again!", 200, 120, Default, Default, 33)
+							Sleep(1000)
+							SplashOff()
+						EndIf
 					Else
 						$delay = $wait * 3
 						$ans = MsgBox(262177, "Change Query", _
@@ -1798,7 +1814,8 @@ Func MainGUI()
 							IniDelete($locations, $name, "path")
 							;IniDelete($locations, $name, "type")
 							$gamesfold = $dest
-							$val = IniRead($downlist, $title, , "destination", "")
+							GUICtrlSetData($Input_dest, $dest)
+							$val = IniRead($downlist, $title, "destination", "")
 							If $val <> "" And $val <> $gamesfold Then
 								$gamefold = $gamesfold
 								If $alpha = 1 Then
