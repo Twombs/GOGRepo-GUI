@@ -682,37 +682,34 @@ Func MainGUI()
 			;MsgBox(262192, "Line Search", $ind, 0, $GOGRepoGUI)
 			If $ind = -1 Then
 				$stagesfix = 4
-				$exist = "MANIFEST_FILENAME = r'gog-manifest.dat'"
-				$chunk = "MANIFEST_FILENAME = r'gog-manifest.dat'" & @CRLF & "TITLES_FILENAME = r'gog-titles.dat'"
+				$exist = "MANIFEST_FILENAME = r'gog-manifest.dat'" & @LF
+				$chunk = $exist & "TITLES_FILENAME = r'gog-titles.dat'" & @LF
 				$res = _ReplaceStringInFile($gogrepo, $exist, $chunk)
 				If $res = 1 Then
-					$exist = "    # fetch item details"
-					$chunk = "    # save item titles" & @CRLF & "    titlesdb = sorted(items, key=lambda item: item.title)" & @CRLF _
-						& "    save_titles(titlesdb)" & @CRLF & @CRLF & "    # fetch item details"
+					$exist = "    # fetch item details" & @LF
+					$chunk = $exist & "    titlesdb = sorted(items, key=lambda item: item.title)" & @LF _
+						& "    save_titles(titlesdb)" & @LF & @LF & "    # fetch item details" & @LF
 					$res = _ReplaceStringInFile($gogrepo, $exist, $chunk)
 					If $res = 1 Then
-						$exist = "    gamesdb = load_manifest()"
-						$chunk = "    gamesdb = load_manifest()" & @CRLF & @CRLF & "    try:" & @CRLF & "        titlesdb = load_titles()" & @CRLF _
-							& "    except:" & @CRLF & "	    titlesdb = None"
+						$exist = "    gamesdb = load_manifest()" & @LF
+						$chunk = $exist & @LF & "    try:" & @LF & "        titlesdb = load_titles()" & @LF _
+							& "    except:" & @LF & "	    titlesdb = None" & @LF
 						$res = _ReplaceStringInFile($gogrepo, $exist, $chunk, 0, 0)
 						If $res = 1 Then
-							$exist = "def save_manifest(items):" & @CRLF & "    info('saving manifest...')" & @CRLF _
-								& "    with codecs.open(MANIFEST_FILENAME, 'w', 'utf-8') as w:" & @CRLF _
-								& "        print('# {} games'.format(len(items)), file=w)" & @CRLF _
-								& "        pprint.pprint(items, width=123, stream=w)"
-							$chunk = "def save_manifest(items):" & @CRLF & "    info('saving manifest...')" & @CRLF _
-								& "    with codecs.open(MANIFEST_FILENAME, 'w', 'utf-8') as w:" & @CRLF _
-								& "        print('# {} games'.format(len(items)), file=w)" & @CRLF _
-								& "        pprint.pprint(items, width=123, stream=w)" & @CRLF & @CRLF & @CRLF _
-								& "def load_titles(filepath=TITLES_FILENAME):" & @CRLF & "    info('loading local titles...')" & @CRLF _
-								& "    try:" & @CRLF & "        with codecs.open(TITLES_FILENAME, 'rU', 'utf-8') as r:" & @CRLF _
-								& "            ad = r.read().replace('{', 'AttrDict(**{').replace('}', '})')" & @CRLF & "        return eval(ad)" & @CRLF _
-								& "    except IOError:" & @CRLF & "        return []" & @CRLF & @CRLF & @CRLF _
-								& "def save_titles(items):" & @CRLF & "    info('saving titles...')" & @CRLF _
-								& "    with codecs.open(TITLES_FILENAME, 'w', 'utf-8') as w:" & @CRLF _
-								& "        print('# {} games'.format(len(items)), file=w)" & @CRLF _
-								& "        pprint.pprint(items, width=123, stream=w)" & @CRLF _
-								& "    info('saved titles')"
+							$exist = "def save_manifest(items):" & @LF & "    info('saving manifest...')" & @LF _
+								& "    with codecs.open(MANIFEST_FILENAME, 'w', 'utf-8') as w:" & @LF _
+								& "        print('# {} games'.format(len(items)), file=w)" & @LF _
+								& "        pprint.pprint(items, width=123, stream=w)" & @LF
+							$chunk = $exist & @LF & @LF _
+								& "def load_titles(filepath=TITLES_FILENAME):" & @LF & "    info('loading local titles...')" & @LF _
+								& "    try:" & @LF & "        with codecs.open(TITLES_FILENAME, 'rU', 'utf-8') as r:" & @LF _
+								& "            ad = r.read().replace('{', 'AttrDict(**{').replace('}', '})')" & @LF & "        return eval(ad)" & @LF _
+								& "    except IOError:" & @LF & "        return []" & @LF & @LF & @LF _
+								& "def save_titles(items):" & @LF & "    info('saving titles...')" & @LF _
+								& "    with codecs.open(TITLES_FILENAME, 'w', 'utf-8') as w:" & @LF _
+								& "        print('# {} games'.format(len(items)), file=w)" & @LF _
+								& "        pprint.pprint(items, width=123, stream=w)" & @LF _
+								& "    info('saved titles')" & @LF
 							$res = _ReplaceStringInFile($gogrepo, $exist, $chunk)
 							If $res = 1 Then
 								$stagesfix = 1
