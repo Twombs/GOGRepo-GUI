@@ -33,8 +33,8 @@
 _Singleton("gog-repo-simple-gui-timboli")
 
 Global $Button_exit, $Button_find, $Button_fold, $Button_get, $Button_info, $Button_log, $Checkbox_exact, $Checkbox_update
-Global $Combo_file, $Group_drop, $Group_games, $Group_status, $Input_name, $Input_title, $Label_drop, $Label_status
-Global $Label_title, $List_games
+Global $Combo_file, $Group_drop, $Group_games, $Group_size, $Group_status, $Input_name, $Input_title, $Label_drop, $Label_size
+Global $Label_status, $Label_title, $List_games
 ;
 Global $7zip, $a, $add, $ans, $array, $atts, $boxcol, $cmdpid, $cnt, $cookies, $entries, $entry, $f, $file, $filefld, $filepth
 Global $files, $find, $foldrar, $foldzip, $found, $fsum, $fsumfld, $g, $games, $gamesfle, $gogrepo, $handle, $height, $icoD
@@ -61,10 +61,11 @@ $logfle = @ScriptDir & "\Log.txt"
 $manifest = @ScriptDir & "\gog-manifest.dat"
 $resfle = @ScriptDir & "\Checksums.txt"
 ;$resumeman = @ScriptDir & "\gog-resume-manifest.dat"
-$target = @LF & "Drag && Drop" & @LF & "Downloaded" & @LF & "Game Files" & @LF & "HERE"
+;$target = @LF & "Drag && Drop" & @LF & "Downloaded" & @LF & "Game Files" & @LF & "HERE"
+$target = @LF & "Drag && Drop" & @LF & "GOG Game" & @LF & "Files or Folder" & @LF & "HERE"
 $titlist = @ScriptDir & "\Titles.txt"
 $unrar = @ScriptDir & "\UnRAR\UnRAR.exe"
-$version = "v1.2"
+$version = "v1.4"
 
 If FileExists($7zip) Then
 	$zipexe = "7z.exe"
@@ -123,37 +124,34 @@ If FileExists($titlist) Then
 						Local $chunk, $exist, $modify = "", $repotemp = $gogrepo & ".tmp"
 						$res = FileCopy($gogrepo, $repotemp, 1)
 						If $res = 1 Then
-							$exist = "MANIFEST_FILENAME = r'gog-manifest.dat'"
-							$chunk = "MANIFEST_FILENAME = r'gog-manifest.dat'" & @CRLF & "TITLES_FILENAME = r'gog-titles.dat'"
+							$exist = "MANIFEST_FILENAME = r'gog-manifest.dat'" & @LF
+							$chunk = $exist & "TITLES_FILENAME = r'gog-titles.dat'" & @LF
 							$res = _ReplaceStringInFile($gogrepo, $exist, $chunk)
 							If $res = 1 Then
-								$exist = "    # fetch item details"
-								$chunk = "    # save item titles" & @CRLF & "    titlesdb = sorted(items, key=lambda item: item.title)" & @CRLF _
-									& "    save_titles(titlesdb)" & @CRLF & @CRLF & "    # fetch item details"
+								$exist = "    # fetch item details" & @LF
+								$chunk = $exist & "    titlesdb = sorted(items, key=lambda item: item.title)" & @LF _
+									& "    save_titles(titlesdb)" & @LF & @LF & "    # fetch item details" & @LF
 								$res = _ReplaceStringInFile($gogrepo, $exist, $chunk)
 								If $res = 1 Then
-									$exist = "    gamesdb = load_manifest()"
-									$chunk = "    gamesdb = load_manifest()" & @CRLF & @CRLF & "    try:" & @CRLF & "        titlesdb = load_titles()" & @CRLF _
-										& "    except:" & @CRLF & "	    titlesdb = None"
+									$exist = "    gamesdb = load_manifest()" & @LF
+									$chunk = $exist & @LF & "    try:" & @LF & "        titlesdb = load_titles()" & @LF _
+										& "    except:" & @LF & "	    titlesdb = None" & @LF
 									$res = _ReplaceStringInFile($gogrepo, $exist, $chunk, 0, 0)
 									If $res = 1 Then
-										$exist = "def save_manifest(items):" & @CRLF & "    info('saving manifest...')" & @CRLF _
-											& "    with codecs.open(MANIFEST_FILENAME, 'w', 'utf-8') as w:" & @CRLF _
-											& "        print('# {} games'.format(len(items)), file=w)" & @CRLF _
-											& "        pprint.pprint(items, width=123, stream=w)"
-										$chunk = "def save_manifest(items):" & @CRLF & "    info('saving manifest...')" & @CRLF _
-											& "    with codecs.open(MANIFEST_FILENAME, 'w', 'utf-8') as w:" & @CRLF _
-											& "        print('# {} games'.format(len(items)), file=w)" & @CRLF _
-											& "        pprint.pprint(items, width=123, stream=w)" & @CRLF & @CRLF & @CRLF _
-											& "def load_titles(filepath=TITLES_FILENAME):" & @CRLF & "    info('loading local titles...')" & @CRLF _
-											& "    try:" & @CRLF & "        with codecs.open(TITLES_FILENAME, 'rU', 'utf-8') as r:" & @CRLF _
-											& "            ad = r.read().replace('{', 'AttrDict(**{').replace('}', '})')" & @CRLF & "        return eval(ad)" & @CRLF _
-											& "    except IOError:" & @CRLF & "        return []" & @CRLF & @CRLF & @CRLF _
-											& "def save_titles(items):" & @CRLF & "    info('saving titles...')" & @CRLF _
-											& "    with codecs.open(TITLES_FILENAME, 'w', 'utf-8') as w:" & @CRLF _
-											& "        print('# {} games'.format(len(items)), file=w)" & @CRLF _
-											& "        pprint.pprint(items, width=123, stream=w)" & @CRLF _
-											& "    info('saved titles')"
+										$exist = "def save_manifest(items):" & @LF & "    info('saving manifest...')" & @LF _
+											& "    with codecs.open(MANIFEST_FILENAME, 'w', 'utf-8') as w:" & @LF _
+											& "        print('# {} games'.format(len(items)), file=w)" & @LF _
+											& "        pprint.pprint(items, width=123, stream=w)" & @LF
+										$chunk = $exist & @LF & @LF _
+											& "def load_titles(filepath=TITLES_FILENAME):" & @LF & "    info('loading local titles...')" & @LF _
+											& "    try:" & @LF & "        with codecs.open(TITLES_FILENAME, 'rU', 'utf-8') as r:" & @LF _
+											& "            ad = r.read().replace('{', 'AttrDict(**{').replace('}', '})')" & @LF & "        return eval(ad)" & @LF _
+											& "    except IOError:" & @LF & "        return []" & @LF & @LF & @LF _
+											& "def save_titles(items):" & @LF & "    info('saving titles...')" & @LF _
+											& "    with codecs.open(TITLES_FILENAME, 'w', 'utf-8') as w:" & @LF _
+											& "        print('# {} games'.format(len(items)), file=w)" & @LF _
+											& "        pprint.pprint(items, width=123, stream=w)" & @LF _
+											& "    info('saved titles')" & @LF
 										$res = _ReplaceStringInFile($gogrepo, $exist, $chunk)
 										If $res = 1 Then
 											$modify = 1
@@ -206,14 +204,14 @@ EndIf
 Exit
 
 Func MainGUI()
-	Local $date, $diff, $dir, $drv, $exe, $fext, $fnam, $o, $output, $rar, $sh, $zip
+	Local $bytes, $date, $diff, $dir, $drv, $exe, $fext, $fnam, $mass, $o, $output, $rar, $sh, $zip
 	;
 	$width = 580
 	$height = 395
 	$left = IniRead($inifle, "Program Window", "left", @DesktopWidth - $width - 25)
 	$top = IniRead($inifle, "Program Window", "top", @DesktopHeight - $height - 30)
 	$style = $WS_OVERLAPPED + $WS_CAPTION + $WS_SYSMENU + $WS_CLIPSIBLINGS + $WS_MINIMIZEBOX ; + $WS_VISIBLE
-	$SimpleGUI = GuiCreate("GOGRepo Simple GUI", $width, $height, $left, $top, $style, $WS_EX_TOPMOST + $WS_EX_ACCEPTFILES)
+	$SimpleGUI = GuiCreate("GOGRepo Simple GUI " & $version, $width, $height, $left, $top, $style, $WS_EX_TOPMOST + $WS_EX_ACCEPTFILES)
 	GUISetBkColor($COLOR_SKYBLUE, $SimpleGUI)
 	; CONTROLS
 	$Group_files = GuiCtrlCreateGroup("", 10, 5, 560, 47)
@@ -258,9 +256,15 @@ Func MainGUI()
 	GUICtrlSetBkColor($Label_drop, $boxcol)
 	GUICtrlSetColor($Label_drop, $textcol)
 	;
-	$Button_get = GuiCtrlCreateButton("RETRIEVE LIST OF GAMES", 390, 180, 180, 40)
+	$Button_get = GuiCtrlCreateButton("RETRIEVE LIST" & @LF & "OF GAMES", 390, 180, 105, 40, $BS_MULTILINE)
 	GUICtrlSetFont($Button_get, 7, 600, 0, "Small Fonts")
 	GUICtrlSetTip($Button_get, "Get game title from GOG library!")
+	;
+	$Group_size = GuiCtrlCreateGroup("Size", 505, 175, 65, 43)
+	$Label_size = GuiCtrlCreateLabel("", 512, 190, 51, 20, $SS_CENTER + $SS_CENTERIMAGE) ; + $SS_SUNKEN
+	GUICtrlSetBkColor($Label_size, $COLOR_MONEYGREEN)
+	GUICtrlSetColor($Label_size, $COLOR_GREEN)
+	;GUICtrlSetColor($Label_size, 0xBBFFBB)
 	;
 	$Group_status = GuiCtrlCreateGroup("Status", 390, 225, 180, 50)
 	$Label_status = GuiCtrlCreateLabel("Waiting", 400, 243, 160, 22, $SS_CENTER + $SS_CENTERIMAGE + $SS_SUNKEN)
@@ -268,11 +272,12 @@ Func MainGUI()
 	GUICtrlSetColor($Label_status, $COLOR_WHITE)
 	GUICtrlSetFont($Label_status, 9, 600)
 	;
-	$Button_verify = GuiCtrlCreateButton("VERIFY DROPPED FILE", 390, 285, 150, 40)
+	;$Button_verify = GuiCtrlCreateButton("VERIFY DROPPED FILE", 390, 285, 150, 40)
+	$Button_verify = GuiCtrlCreateButton("VERIFY ALL" & @LF & "DROPPED FILES", 390, 285, 130, 40, $BS_MULTILINE)
 	GUICtrlSetFont($Button_verify, 7, 600, 0, "Small Fonts")
 	GUICtrlSetTip($Button_verify, "Verify the dropped game file!")
 	;
-	$Button_log = GuiCtrlCreateButton("Log", 545, 290, 25, 30, $BS_ICON)
+	$Button_log = GuiCtrlCreateButton("Log", 525, 285, 45, 40, $BS_ICON)
 	GUICtrlSetTip($Button_log, "Log Record!")
 	;
 	$Checkbox_update = GUICtrlCreateCheckbox("Update", 393, 327, 57, 20)
@@ -298,7 +303,7 @@ Func MainGUI()
 	$icoX = -4
 	GUICtrlSetImage($Button_find, $shell, $icoS, 0)
 	GUICtrlSetImage($Button_fold, $shell, $icoD, 0)
-	GUICtrlSetImage($Button_log, $shell, $icoT, 0)
+	GUICtrlSetImage($Button_log, $shell, $icoT, 1)
 	GUICtrlSetImage($Button_info, $user, $icoI, 1)
 	GUICtrlSetImage($Button_exit, $user, $icoX, 1)
 	;
@@ -427,6 +432,7 @@ Func MainGUI()
 			$ans = MsgBox(262177, "Verify Query", _
 				"Verify integrity of dropped file for selected game title?", 0, $SimpleGUI)
 			If $ans = 1 Then
+				GUICtrlSetData($Label_size, "")
 				$name = GUICtrlRead($Input_name)
 				$title = GUICtrlRead($Input_title)
 				If $name <> "" And $title <> "" Then
@@ -493,6 +499,9 @@ Func MainGUI()
 									EndIf
 									$srcfle = $srcfld & $filepth
 									If FileExists($srcfle) Then
+										$bytes = FileGetSize($srcfle)
+										$mass = GetTheSize($bytes)
+										GUICtrlSetData($Label_size, $mass)
 										_PathSplit($srcfle, $drv, $dir, $fnam, $fext)
 										$filefld = StringTrimRight($drv & $dir, 1)
 										$file = $fnam & $fext
@@ -797,7 +806,8 @@ Func MainGUI()
 												$match = $zip
 											EndIf
 											If $size <> "" Then
-												If FileGetSize($srcfle) = $size Then
+												;If FileGetSize($srcfle) = $size Then
+												If $bytes = $size Then
 													$match = $match & " Size Passed."
 												Else
 													$match = $match & " Size Failed."
@@ -1495,6 +1505,25 @@ Func GetAllowedName()
 	$name = ReplaceOtherCharacters($name)
 	$name = StringStripWS($name, 7)
 EndFunc ;=> GetAllowedName
+
+Func GetTheSize($size)
+	If $size < 1024 Then
+		$size = $size & " bytes"
+	ElseIf $size < 1048576 Then
+		$size = $size / 1024
+		$size =  Round($size) & " Kb"
+	ElseIf $size < 1073741824 Then
+		$size = $size / 1048576
+		$size =  Round($size) & " Mb"
+	ElseIf $size < 1099511627776 Then
+		$size = $size / 1073741824
+		$size = Round($size, 2) & " Gb"
+	Else
+		$size = $size / 1099511627776
+		$size = Round($size, 3) & " Tb"
+	EndIf
+	Return $size
+EndFunc ;=> GetTheSize
 
 Func ReplaceForeignCharacters($text)
 	Local $char, $let, $p, $pair, $pairs
