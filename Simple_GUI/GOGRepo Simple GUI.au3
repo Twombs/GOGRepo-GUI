@@ -13,7 +13,7 @@
 ; FUNCTIONS
 ; MainGUI(), SetupGUI()
 ; AddFileToCombo($add, $filepth), DetermineFindText(), FillTheGamesList(), GetAllowedName(), ReplaceForeignCharacters($text)
-; ReplaceOtherCharacters($text)
+; ReplaceOtherCharacters($text), SetControlsState($state)
 
 #include <Constants.au3>
 #include <GUIConstantsEx.au3>
@@ -27,21 +27,22 @@
 #include <Misc.au3>
 #include <File.au3>
 #include <Date.au3>
+#include <Crypt.au3>
 #include <Array.au3>
 #include "ExtProp.au3"
 
 _Singleton("gog-repo-simple-gui-timboli")
 
-Global $Button_exit, $Button_find, $Button_fold, $Button_get, $Button_info, $Button_log, $Checkbox_exact, $Checkbox_update
-Global $Combo_file, $Group_drop, $Group_games, $Group_size, $Group_status, $Input_name, $Input_title, $Label_drop, $Label_size
-Global $Label_status, $Label_title, $List_games
+Global $Button_exit, $Button_find, $Button_fold, $Button_get, $Button_info, $Button_log, $Button_setup, $Button_verify
+Global $Checkbox_exact, $Checkbox_update, $Combo_file, $Group_drop, $Group_games, $Group_size, $Group_status, $Input_name
+Global $Input_title, $Label_drop, $Label_size, $Label_status, $Label_title, $List_games
 ;
 Global $7zip, $a, $add, $ans, $array, $atts, $boxcol, $cmdpid, $cnt, $cookies, $entries, $entry, $f, $file, $filefld, $filepth
-Global $files, $find, $foldrar, $foldzip, $found, $fsum, $fsumfld, $g, $games, $gamesfle, $gogrepo, $handle, $height, $icoD
+Global $files, $find, $foldrar, $foldzip, $found, $g, $games, $gamesfle, $gogrepo, $handle, $height, $icoD
 Global $icoI, $icoS, $icoT, $icoX, $ind, $inifle, $lang, $left, $line, $logfle, $manifest, $match, $md5, $name, $names, $open
-Global $OS, $OSget, $out, $outcome, $pid, $pos, $property, $repoGUI, $res, $resfle, $results, $resumeman, $ret, $script, $shell
-Global $show, $SimpleGUI, $size, $srcfld, $srcfle, $style, $target, $text, $textcol, $title, $titlist, $top, $unrar, $update
-Global $updated, $user, $val, $version, $w, $warning, $width, $winpos, $wins, $wintit, $zipexe
+Global $OS, $OSget, $out, $outcome, $pid, $pos, $property, $repoGUI, $res, $results, $resumeman, $ret, $script, $shell
+Global $show, $SimpleGUI, $size, $srcfld, $srcfle, $state, $style, $target, $text, $textcol, $title, $titlist, $top, $unrar
+Global $update, $updated, $user, $val, $version, $w, $warning, $width, $winpos, $wins, $wintit, $zipexe
 ;Global $innoextract
 ;
 Global $gaDropFiles[1], $hWnd, $lParam, $msgID, $wParam
@@ -51,21 +52,17 @@ $7zip = @ScriptDir & "\7-Zip\7z.exe"
 $cookies = @ScriptDir & "\gog-cookies.dat"
 $foldrar = @ScriptDir & "\UnRAR"
 $foldzip = @ScriptDir & "\7-Zip"
-$fsum = @ScriptDir & "\FSUM\fsum.exe"
-$fsumfld = @ScriptDir & "\FSUM"
 $gamesfle = @ScriptDir & "\Games.ini"
 $gogrepo = @ScriptDir & "\gogrepo.py"
 $inifle = @ScriptDir & "\Options.ini"
 ;$innoextract = @ScriptDir & "\innoextract.exe"
 $logfle = @ScriptDir & "\Log.txt"
 $manifest = @ScriptDir & "\gog-manifest.dat"
-$resfle = @ScriptDir & "\Checksums.txt"
 ;$resumeman = @ScriptDir & "\gog-resume-manifest.dat"
-;$target = @LF & "Drag && Drop" & @LF & "Downloaded" & @LF & "Game Files" & @LF & "HERE"
 $target = @LF & "Drag && Drop" & @LF & "GOG Game" & @LF & "Files or Folder" & @LF & "HERE"
 $titlist = @ScriptDir & "\Titles.txt"
 $unrar = @ScriptDir & "\UnRAR\UnRAR.exe"
-$version = "v1.4"
+$version = "v1.5"
 
 If FileExists($7zip) Then
 	$zipexe = "7z.exe"
@@ -93,7 +90,6 @@ EndIf
 
 If Not FileExists($foldrar) Then DirCreate($foldrar)
 If Not FileExists($foldzip) Then DirCreate($foldzip)
-If Not FileExists($fsumfld) Then DirCreate($fsumfld)
 
 If Not FileExists($titlist) Then _FileCreate($titlist)
 
@@ -272,7 +268,6 @@ Func MainGUI()
 	GUICtrlSetColor($Label_status, $COLOR_WHITE)
 	GUICtrlSetFont($Label_status, 9, 600)
 	;
-	;$Button_verify = GuiCtrlCreateButton("VERIFY DROPPED FILE", 390, 285, 150, 40)
 	$Button_verify = GuiCtrlCreateButton("VERIFY ALL" & @LF & "DROPPED FILES", 390, 285, 130, 40, $BS_MULTILINE)
 	GUICtrlSetFont($Button_verify, 7, 600, 0, "Small Fonts")
 	GUICtrlSetTip($Button_verify, "Verify the dropped game file!")
@@ -432,6 +427,7 @@ Func MainGUI()
 			$ans = MsgBox(262177, "Verify Query", _
 				"Verify integrity of dropped file for selected game title?", 0, $SimpleGUI)
 			If $ans = 1 Then
+				SetControlsState($GUI_DISABLE)
 				GUICtrlSetData($Label_size, "")
 				$name = GUICtrlRead($Input_name)
 				$title = GUICtrlRead($Input_title)
@@ -487,6 +483,7 @@ Func MainGUI()
 									$updated = _NowCalc()
 									IniWrite($gamesfle, $name, "updated", $updated)
 								EndIf
+								_Crypt_Startup()
 								$outcome = ""
 								$show = ""
 								$files = StringSplit($files, "|", 1)
@@ -766,25 +763,13 @@ Func MainGUI()
 											;MsgBox(262192, "Data", "MD5 = " & $md5 & @LF & "Size = " & $size, 0, $SimpleGUI)
 											$match = ""
 											If $md5 <> "" Then
-												If FileExists($fsum) Then
-													GUICtrlSetData($Label_status, "Comparing MD5")
-													FileChangeDir(@ScriptDir & "\FSUM")
-													RunWait(@ComSpec & ' /c fsum.exe -jnc -md5 -d"' & $filefld & '" ' & $file & ' >"'  & $resfle & '"')
-													$res = _FileReadToArray($resfle, $array, 1)
-													If $res = 1 Then
-														$match = $array[1]
-														$match = StringSplit($match, " ", 1)
-														$match = $match[1]
-														If $match = $md5 Then
-															$match = "MD5 Passed."
-														Else
-															$match = "MD5 Failed."
-														EndIf
-													Else
-														$match = "FSUM Error."
-													EndIf
+												GUICtrlSetData($Label_status, "Comparing MD5")
+												$hash = _Crypt_HashFile($srcfle, $CALG_MD5)
+												$hash = StringTrimLeft($hash, 2)
+												If $hash = $md5 Then
+													$match = "MD5 Passed."
 												Else
-													$match = "FSUM Missing."
+													$match = "MD5 Failed."
 												EndIf
 											Else
 												If (($fext = ".exe" Or $fext = ".bin") And $exe = "") Or ($fext = ".sh" And $sh = "") Then
@@ -844,6 +829,7 @@ Func MainGUI()
 										ExitLoop
 									EndIf
 								Next
+								_Crypt_Shutdown()
 								If $outcome <> "" And $show = 1 Then
 									MsgBox(262208, "Verify Results", _
 										$outcome & @LF & @LF & _
@@ -862,6 +848,7 @@ Func MainGUI()
 				Else
 					MsgBox(262192, "Game Selection Error", "Title not selected correctly!", 0, $SimpleGUI)
 				EndIf
+				SetControlsState($GUI_ENABLE)
 			EndIf
 		Case $msg = $Button_setup
 			; Setup username and password
@@ -895,8 +882,6 @@ Func MainGUI()
 				"Python libraries are required, and installed from SETUP window." & @LF & _
 				"The gogrepo.py script needs to be located in the same folder as" & @LF & _
 				"GOGRepo Simple GUI. We call this the main or parent folder." & @LF & _
-				"The free program FSUM is required for MD5 checking, and also" & @LF & _
-				"needs to be located in the main folder, as an FSUM sub-folder." & @LF & _
 				"The free program 7-Zip is required for ZIP & 7Z checking, and" & @LF & _
 				"needs to be located in the main folder, as a 7-Zip sub-folder." & @LF & _
 				"7-Zip can also be used for EXE, BIN or SH files if MD5 is missing." & @LF & _
@@ -916,6 +901,7 @@ Func MainGUI()
 			EndIf
 		Case $msg = $Button_get
 			; Get game title from GOG library
+			SetControlsState($GUI_DISABLE)
 			GUICtrlSetBkColor($Label_status, $COLOR_RED)
 			GUICtrlSetColor($Label_status, $COLOR_WHITE)
 			GUICtrlSetFont($Label_status, 9, 600)
@@ -1056,6 +1042,7 @@ Func MainGUI()
 			FillTheGamesList()
 			GUICtrlSetBkColor($Label_status, $COLOR_BLUE)
 			GUICtrlSetData($Label_status, "Finished")
+			SetControlsState($GUI_ENABLE)
 		Case $msg = $Button_fold
 			; Use folder name for find
 			$file = GUICtrlRead($Combo_file)
@@ -1563,6 +1550,24 @@ Func ReplaceOtherCharacters($text)
 	$text = $name
 	Return $text
 EndFunc ;=> ReplaceOtherCharacters
+
+Func SetControlsState($state)
+	GUICtrlSetState($Combo_file, $state)
+	GUICtrlSetState($List_games, $state)
+	GUICtrlSetState($Input_name, $state)
+	GUICtrlSetState($Input_title, $state)
+	GUICtrlSetState($Button_find, $state)
+	GUICtrlSetState($Checkbox_exact, $state)
+	GUICtrlSetState($Button_fold, $state)
+	GUICtrlSetState($Button_get, $state)
+	GUICtrlSetState($Button_verify, $state)
+	GUICtrlSetState($Button_log, $state)
+	GUICtrlSetState($Checkbox_update, $state)
+	GUICtrlSetState($Button_setup, $state)
+	GUICtrlSetState($Button_info, $state)
+	GUICtrlSetState($Button_exit, $state)
+EndFunc ;=> SetControlsState
+
 
 ; Provided by Lazycat, June 23, 2006 in AutoIt Example Scripts (Drop multiple files on any control)
 Func WM_DROPFILES_FUNC($hWnd, $msgID, $wParam, $lParam)
