@@ -1,0 +1,6 @@
+
+(v1.4) BUGFIX for incorrect line ending insertions into gogrepo.py. These insertions did not occur if using the Kalanyr forked version of gogrepo.py.
+
+(v1.3) Added a file Size field. Two buttons resized with multiline text. Some text changes.
+
+(v1.2) BUGFIX for detecting the version of 'gogrepo.py'. This involves checking for the Kalanyr forked version, which is automatically supported, and then checking for a modified version of the original 'gogrepo.py', which is also supported. The user is queried if neither are the case, with an option to modify the existing. 7-Zip is now checked for at startup, with priority given to the '7z.exe' file over '7za.exe' if found.
