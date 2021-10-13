@@ -17,4 +17,4 @@ More information can be found at - https://github.com/eddie3/gogrepo
 
 (eddie3, disi, resonantworks, Shiryou, tiehichi, Trilarion, jpenney, HamsterExAstris)
 
-IMPORTANT - Only this compiled version will work properly with 'GOGRepo Simple GUI'.
+IMPORTANT - Only this compiled version will work properly with 'GOGRepo Simple GUI v1.6'.
